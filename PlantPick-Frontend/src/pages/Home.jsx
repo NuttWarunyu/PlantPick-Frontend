@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { identifyPlant } from "../api/identify";
+import { identifyPlant } from "../api/identify.js";
 
 function Home() {
   const [plantInfo, setPlantInfo] = useState(""); // เปลี่ยนจาก plantName เป็น plantInfo
