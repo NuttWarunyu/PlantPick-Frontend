@@ -4,6 +4,7 @@ import Home from "./pages/Home.jsx";
 import SearchResults from "./pages/SearchResults.jsx";
 
 function App() {
+  console.log("Rendering App.jsx");
   return (
     <Router>
       <div

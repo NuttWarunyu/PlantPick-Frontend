@@ -1,4 +1,4 @@
-const API_URL = import.meta.env.VITE_API_URL; // ใช้ค่าจาก .env
+const API_URL = import.meta.env.VITE_API_URL;
 
 export const identifyPlant = async (file) => {
   const formData = new FormData();
@@ -14,7 +14,7 @@ export const identifyPlant = async (file) => {
       throw new Error("Failed to identify plant");
     }
 
-    return await response.json(); // ได้ผลลัพธ์เป็น JSON
+    return await response.json();
   } catch (error) {
     console.error("Error identifying plant:", error);
     return { error: "Failed to identify plant" };
