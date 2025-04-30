@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
 import Home from "./pages/Home.jsx";
 import SearchResults from "./pages/SearchResults.jsx";
 import "./App.css"; // นำเข้า App.css
+import PopularPlants from "./pages/PopularPlants"; // เพิ่มการ import
 
 function App() {
   console.log("Rendering App.jsx");
@@ -18,7 +19,8 @@ function App() {
             Welcome to PlantPick!
           </h1>
           <nav className="header-links">
-            <Link to="/">หน้าแรก</Link> | <Link to="/search">ค้นหาต้นไม้</Link>
+            <Link to="/">ค้นหาต้นไม้</Link> |{" "}
+            <Link to="/search">สำรวจต้นไม้ยอดนิยม</Link>
           </nav>
         </header>
 
@@ -26,7 +28,7 @@ function App() {
         <main>
           <Routes>
             <Route path="/" element={<Home />} />
-            <Route path="/search" element={<SearchResults />} />
+            <Route path="/popular-plants" element={<PopularPlants />} />
           </Routes>
         </main>
 

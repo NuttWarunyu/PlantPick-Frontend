@@ -1,20 +1,25 @@
 import { useState } from "react";
 import { identifyPlant } from "../api/identify.js";
+import "../Home.css"; // ย้อนขึ้นไป 1 ระดับจาก /src/pages ไป /src
 
 function Home() {
+  const [searchMode, setSearchMode] = useState("image"); // "image" หรือ "name"
   const [plantInfo, setPlantInfo] = useState(null);
   const [relatedPlants, setRelatedPlants] = useState([]);
   const [image, setImage] = useState(null);
+  const [searchName, setSearchName] = useState("");
   const [loading, setLoading] = useState(false);
-
-  console.log("Rendering Home.jsx: Before input and button");
 
   const handleFileChange = (event) => {
     console.log("File selected:", event.target.files[0]);
     setImage(event.target.files[0]);
   };
 
-  const handleUpload = async () => {
+  const handleNameChange = (event) => {
+    setSearchName(event.target.value);
+  };
+
+  const handleImageSearch = async () => {
     if (!image) return alert("📸 กรุณาเลือกไฟล์รูปภาพ");
 
     setLoading(true);
@@ -23,7 +28,6 @@ function Home() {
     setLoading(false);
 
     if (result.plant_info) {
-      // ตรวจสอบว่า plantInfo เป็น string หรือ object
       if (typeof result.plant_info === "string") {
         setPlantInfo({
           name: result.plant_info.includes("ไม่สามารถระบุ")
@@ -50,26 +54,101 @@ function Home() {
     }
   };
 
+  const handleNameSearch = async () => {
+    if (!searchName) return alert("🌳 กรุณาป้อนชื่อต้นไม้");
+
+    setLoading(true);
+    console.log("Searching by name:", searchName);
+
+    try {
+      const response = await fetch(
+        `${
+          import.meta.env.VITE_API_URL
+        }/search-by-name?name=${encodeURIComponent(searchName)}`
+      );
+      if (!response.ok) {
+        throw new Error("Failed to search plant by name");
+      }
+      const result = await response.json();
+      setPlantInfo(result.plant_info);
+      setRelatedPlants(result.related_plants || []);
+    } catch (error) {
+      console.error("Error searching plant by name:", error);
+      alert("❌ ไม่สามารถค้นหาด้วยชื่อได้: " + error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="container">
-      {/* Intro Section (ก่อนอัปโหลด) */}
+      {/* Intro Section */}
       {!plantInfo && (
         <section className="intro-section">
-          <h2>ค้นหาต้นไม้จากรูปภาพ 🌳</h2>
-          <p>อัปโหลดรูปต้นไม้เพื่อระบุชื่อ ราคา และวิธีดูแล</p>
+          <h2>ค้นหาต้นไม้ 🌳</h2>
+          <p>ค้นหาด้วยรูปภาพหรือชื่อต้นไม้เพื่อดูข้อมูลและแหล่งซื้อ</p>
         </section>
       )}
 
-      {/* Upload Section */}
-      <section className="upload-section">
-        {console.log("Rendering input and button")}
-        <input type="file" accept="image/*" onChange={handleFileChange} />
-        <button onClick={handleUpload} disabled={loading}>
-          {loading ? "🔄 กำลังค้นหา..." : "🔍 ค้นหา"}
-        </button>
+      {/* Search Mode Selection */}
+      <section className="search-mode-section">
+        <label>
+          <input
+            type="radio"
+            value="image"
+            checked={searchMode === "image"}
+            onChange={() => setSearchMode("image")}
+          />
+          ค้นหาด้วยรูปภาพ
+        </label>
+        <label>
+          <input
+            type="radio"
+            value="name"
+            checked={searchMode === "name"}
+            onChange={() => setSearchMode("name")}
+          />
+          ค้นหาด้วยชื่อ
+        </label>
       </section>
 
-      {/* Result Section (หลังค้นหา) */}
+      {/* Search Input Section */}
+      <section className="search-section">
+        {searchMode === "image" ? (
+          <div className="search-input-group">
+            <input type="file" accept="image/*" onChange={handleFileChange} />
+            <button onClick={handleImageSearch} disabled={loading}>
+              {loading ? (
+                "🔄 กำลังค้นหา..."
+              ) : (
+                <>
+                  <span className="search-icon">🔍</span> ค้นหา
+                </>
+              )}
+            </button>
+          </div>
+        ) : (
+          <div className="search-input-group">
+            <input
+              type="text"
+              placeholder="ป้อนชื่อต้นไม้ (เช่น เฟื่องฟ้า)"
+              value={searchName}
+              onChange={handleNameChange}
+            />
+            <button onClick={handleNameSearch} disabled={loading}>
+              {loading ? (
+                "🔄 กำลังค้นหา..."
+              ) : (
+                <>
+                  <span className="search-icon">🔍</span> ค้นหา
+                </>
+              )}
+            </button>
+          </div>
+        )}
+      </section>
+
+      {/* Result Section */}
       {plantInfo && (
         <section className="result-section">
           {plantInfo.imageUrl && (
