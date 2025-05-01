@@ -1,16 +1,15 @@
 import React from "react";
 import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
 import Home from "./pages/Home.jsx";
-import SearchResults from "./pages/SearchResults.jsx";
-import "./App.css"; // นำเข้า App.css
-import PopularPlants from "./pages/PopularPlants"; // เพิ่มการ import
+import SearchResults from "./pages/SearchResults.jsx"; // ยังไม่ได้ใช้ อาจลบได้ถ้าไม่จำเป็น
+import "./App.css";
+import PopularPlants from "./pages/PopularPlants";
 
 function App() {
   console.log("Rendering App.jsx");
   return (
     <Router>
       <div className="app-container">
-        {/* Header */}
         <header className="header">
           <h1>
             <span role="img" aria-label="Leaf">
@@ -20,11 +19,10 @@ function App() {
           </h1>
           <nav className="header-links">
             <Link to="/">ค้นหาต้นไม้</Link> |{" "}
-            <Link to="/search">สำรวจต้นไม้ยอดนิยม</Link>
+            <Link to="/popular-plants">สำรวจต้นไม้ยอดนิยม</Link>
           </nav>
         </header>
 
-        {/* Main Content */}
         <main>
           <Routes>
             <Route path="/" element={<Home />} />
@@ -32,7 +30,6 @@ function App() {
           </Routes>
         </main>
 
-        {/* Footer */}
         <footer className="footer">ลิขสิทธิ์ ©️</footer>
       </div>
     </Router>
