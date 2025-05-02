@@ -15,11 +15,12 @@ function App() {
             <span role="img" aria-label="Leaf">
               🌱
             </span>{" "}
-            Welcome to PlantPick!
+            PlantPick - หาดีลต้นไม้ถูกสุด ดีสุด!
           </h1>
+          <p>แค่อัพรูปหรือเสิร์ชชื่อ ดีลดี ๆ รอคุณอยู่!</p>
           <nav className="header-links">
-            <Link to="/">ค้นหาต้นไม้</Link> |{" "}
-            <Link to="/popular-plants">สำรวจต้นไม้ยอดนิยม</Link>
+            <Link to="/">ค้นหาดีล</Link> |{" "}
+            <Link to="/popular-plants">ดีลยอดนิยม</Link>
           </nav>
         </header>
 
@@ -30,7 +31,7 @@ function App() {
           </Routes>
         </main>
 
-        <footer className="footer">ลิขสิทธิ์ ©️</footer>
+        <footer className="footer">ลิขสิทธิ์ ©️ 2025</footer>
       </div>
     </Router>
   );
