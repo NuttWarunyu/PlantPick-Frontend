@@ -127,6 +127,64 @@ main {
   margin-bottom: 20px;
 }
 
+/* เพิ่มสไตล์สำหรับหน้า Home */
+.home {
+  width: 100%;
+  padding: 20px;
+}
+
+.search-section {
+  margin-bottom: 30px;
+}
+
+.search-section h2 {
+  color: #27ae60;
+  font-size: 2rem;
+  margin-bottom: 15px;
+}
+
+.search-section input {
+  padding: 10px;
+  font-size: 1rem;
+  width: 300px;
+  max-width: 100%;
+  border: 2px solid #27ae60;
+  border-radius: 5px;
+  margin-right: 10px;
+}
+
+.search-section button {
+  padding: 10px 20px;
+  font-size: 1rem;
+  background-color: #ff9800; /* สีส้ม */
+  color: #ffffff; /* ขาวเพื่ออ่านง่าย */
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.search-section button:hover {
+  background-color: #f57c00; /* ส้มเข้มเมื่อ hover */
+}
+
+.search-section button:disabled {
+  background-color: #cccccc;
+  cursor: not-allowed;
+}
+
+.results h2 {
+  color: #27ae60;
+  font-size: 2rem;
+  margin-bottom: 20px;
+}
+
+.results h3 {
+  color: #27ae60;
+  font-size: 1.5rem;
+  margin: 20px 0 10px;
+}
+
 .deal-cards {
   display: flex;
   flex-wrap: wrap;
@@ -148,12 +206,18 @@ main {
   align-items: center;
 }
 
+.deal-card.best-deal {
+  border: 2px solid #27ae60;
+  background-color: #e8f5e9; /* เขียวอ่อนสำหรับดีลเด่น */
+}
+
 .deal-card:hover {
   transform: translateY(-5px);
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
 }
 
-.deal-card h3 {
+.deal-card h3,
+.deal-card h4 {
   margin: 0 0 10px;
   font-size: 1.5rem;
   color: #2c3e50;
@@ -211,5 +275,15 @@ main {
   .deal-card {
     width: 100%;
     max-width: 300px;
+  }
+
+  .search-section input {
+    width: 100%;
+    margin-bottom: 10px;
+    margin-right: 0;
+  }
+
+  .search-section button {
+    width: 100%;
   }
 }
