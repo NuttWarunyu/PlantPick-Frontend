@@ -246,11 +246,17 @@ main {
 }
 
 .loading,
-.error {
+.error,
+.no-results,
+.no-related {
   font-size: 1.2rem;
   color: #666;
   text-align: center;
   margin: 20px 0;
+}
+
+.error {
+  color: #ff0000; /* เปลี่ยนเป็นแดงเพื่อให้เห็นชัด */
 }
 
 @media (max-width: 768px) {
