@@ -133,17 +133,20 @@ main {
   padding: 20px;
 }
 
-.search-section {
+.search-section,
+.upload-section {
   margin-bottom: 30px;
 }
 
-.search-section h2 {
+.search-section h2,
+.upload-section h2 {
   color: #27ae60;
   font-size: 2rem;
   margin-bottom: 15px;
 }
 
-.search-section input {
+.search-section input,
+.upload-section input {
   padding: 10px;
   font-size: 1rem;
   width: 300px;
@@ -153,7 +156,8 @@ main {
   margin-right: 10px;
 }
 
-.search-section button {
+.search-section button,
+.upload-section button {
   padding: 10px 20px;
   font-size: 1rem;
   background-color: #ff9800; /* สีส้ม */
@@ -164,41 +168,48 @@ main {
   transition: background-color 0.3s;
 }
 
-.search-section button:hover {
+.search-section button:hover,
+.upload-section button:hover {
   background-color: #f57c00; /* ส้มเข้มเมื่อ hover */
 }
 
-.search-section button:disabled {
+.search-section button:disabled,
+.upload-section button:disabled {
   background-color: #cccccc;
   cursor: not-allowed;
 }
 
-.results h2 {
+.results h2,
+.identify-results h2 {
   color: #27ae60;
   font-size: 2rem;
   margin-bottom: 20px;
 }
 
-.results h3 {
+.results h3,
+.identify-results h3 {
   color: #27ae60;
   font-size: 1.5rem;
   margin: 20px 0 10px;
 }
 
-.deal-cards {
+.deal-cards,
+.related-plants {
   display: flex;
   flex-wrap: wrap;
   gap: 20px;
   justify-content: center;
 }
 
-.deal-card {
+.deal-card,
+.identify-card,
+.related-card {
   background-color: white;
   padding: 20px;
   border-radius: 10px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
   width: 250px;
-  text-align: center; /* ปรับให้ข้อความอยู่กึ่งกลาง */
+  text-align: center;
   transition: transform 0.3s, box-shadow 0.3s;
   display: flex;
   flex-direction: column;
@@ -211,38 +222,44 @@ main {
   background-color: #e8f5e9; /* เขียวอ่อนสำหรับดีลเด่น */
 }
 
-.deal-card:hover {
+.deal-card:hover,
+.identify-card:hover,
+.related-card:hover {
   transform: translateY(-5px);
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
 }
 
 .deal-card h3,
-.deal-card h4 {
+.deal-card h4,
+.identify-card h3,
+.related-card h4 {
   margin: 0 0 10px;
   font-size: 1.5rem;
   color: #2c3e50;
 }
 
-.deal-card p {
+.deal-card p,
+.identify-card p,
+.related-card p {
   margin: 5px 0;
   font-size: 1rem;
   color: #666;
-  text-align: center; /* ตรวจสอบให้ข้อความใน p อยู่กึ่งกลาง */
+  text-align: center;
 }
 
 .deal-card a {
   display: inline-block;
   margin-top: 10px;
   padding: 8px 15px;
-  background-color: #ff9800; /* เปลี่ยนเป็นส้มอ่อน */
-  color: #ffffff; /* เปลี่ยนเป็นขาวเพื่ออ่านง่าย */
+  background-color: #ff9800;
+  color: #ffffff;
   text-decoration: none;
   border-radius: 5px;
   transition: background-color 0.3s;
 }
 
 .deal-card a:hover {
-  background-color: #f57c00; /* ส้มเข้มเมื่อ hover */
+  background-color: #f57c00;
 }
 
 .loading,
@@ -256,7 +273,7 @@ main {
 }
 
 .error {
-  color: #ff0000; /* เปลี่ยนเป็นแดงเพื่อให้เห็นชัด */
+  color: #ff0000;
 }
 
 @media (max-width: 768px) {
@@ -278,18 +295,22 @@ main {
     padding: 6px 12px;
   }
 
-  .deal-card {
+  .deal-card,
+  .identify-card,
+  .related-card {
     width: 100%;
     max-width: 300px;
   }
 
-  .search-section input {
+  .search-section input,
+  .upload-section input {
     width: 100%;
     margin-bottom: 10px;
     margin-right: 0;
   }
 
-  .search-section button {
+  .search-section button,
+  .upload-section button {
     width: 100%;
   }
 }

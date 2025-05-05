@@ -5,7 +5,10 @@ function Home() {
   const [deals, setDeals] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [imageFile, setImageFile] = useState(null);
+  const [identifyResult, setIdentifyResult] = useState(null);
 
+  // เสิร์ชชื่อ
   const searchPlant = async () => {
     if (!plantName.trim()) {
       alert("กรุณากรอกชื่อต้นไม้");
@@ -36,7 +39,7 @@ function Home() {
       }
       const data = await response.json();
       console.log("API Response for search-by-name:", data);
-      setDeals(data); // ไม่เช็ค best_deal ที่นี่ ให้ไปเช็คตอน render
+      setDeals(data);
     } catch (error) {
       console.error("Error searching plant:", error);
       setError("เกิดข้อผิดพลาดในการค้นหาดีล: " + error.message);
@@ -48,6 +51,62 @@ function Home() {
   const handleSearch = () => {
     console.log("Search button clicked with plantName:", plantName);
     searchPlant();
+  };
+
+  // เสิร์ชรูป
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setImageFile(file);
+      console.log("File selected:", file);
+    }
+  };
+
+  const identifyPlant = async () => {
+    if (!imageFile) {
+      alert("กรุณาเลือกไฟล์ภาพ");
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+    setIdentifyResult(null);
+    try {
+      console.log("Uploading image...");
+      const formData = new FormData();
+      formData.append("image", imageFile);
+
+      console.log(
+        "Sending request to:",
+        "https://plantpick-backend.up.railway.app/identify/"
+      );
+      const response = await fetch(
+        "https://plantpick-backend.up.railway.app/identify/",
+        {
+          method: "POST",
+          body: formData,
+        }
+      );
+      console.log("Response status:", response.status);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data = await response.json();
+      console.log("API response:", data);
+      setIdentifyResult(data);
+
+      // อัตโนมัติเสิร์ชชื่อหลังจากได้ผลลัพธ์
+      if (data.plant_info && data.plant_info.name) {
+        setPlantName(data.plant_info.name);
+        console.log("Searching by name:", data.plant_info.name);
+        searchPlant();
+      }
+    } catch (error) {
+      console.error("Error identifying plant:", error);
+      setError("เกิดข้อผิดพลาดในการระบุต้นไม้: " + error.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -64,8 +123,57 @@ function Home() {
           {loading ? "กำลังค้นหา..." : "ค้นหาดีล"}
         </button>
       </section>
+
+      <section className="upload-section">
+        <h2>หรืออัพโหลดรูปภาพเพื่อระบุต้นไม้</h2>
+        <input type="file" accept="image/*" onChange={handleImageChange} />
+        <button onClick={identifyPlant} disabled={loading || !imageFile}>
+          {loading ? "กำลังระบุ..." : "ระบุต้นไม้"}
+        </button>
+      </section>
+
       {loading && <div className="loading">กำลังโหลด...</div>}
       {error && <div className="error">{error}</div>}
+
+      {identifyResult && identifyResult.plant_info ? (
+        <section className="identify-results">
+          <h2>ผลการระบุต้นไม้</h2>
+          <div className="identify-card">
+            <h3>{identifyResult.plant_info.name}</h3>
+            <p>
+              <strong>ราคา:</strong> {identifyResult.plant_info.price}
+            </p>
+            <p>
+              <strong>คำอธิบาย:</strong> {identifyResult.plant_info.description}
+            </p>
+            <p>
+              <strong>การดูแล:</strong>{" "}
+              {identifyResult.plant_info.careInstructions}
+            </p>
+            <p>
+              <strong>ไอเดียจัดสวน:</strong>{" "}
+              {identifyResult.plant_info.gardenIdeas}
+            </p>
+          </div>
+          {identifyResult.related_plants &&
+            identifyResult.related_plants.length > 0 && (
+              <>
+                <h3>ต้นไม้ที่เกี่ยวข้อง</h3>
+                <div className="related-plants">
+                  {identifyResult.related_plants.map((plant, index) => (
+                    <div key={index} className="related-card">
+                      <h4>{plant.name}</h4>
+                      <p>
+                        <strong>ราคา:</strong> {plant.price}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+        </section>
+      ) : null}
+
       {deals ? (
         deals.best_deal ? (
           <section className="results">
