@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { identifyPlant } from "../api/identify.js";
+import "../styles.css";
 
 function Home() {
   const [plantName, setPlantName] = useState("");
@@ -10,8 +11,9 @@ function Home() {
   const [identifyResult, setIdentifyResult] = useState(null);
 
   // เสิร์ชชื่อ
-  const searchPlant = async () => {
-    if (!plantName.trim()) {
+  const searchPlant = async (searchName) => {
+    const nameToSearch = searchName || plantName;
+    if (!nameToSearch.trim()) {
       alert("กรุณากรอกชื่อต้นไม้");
       return;
     }
@@ -23,12 +25,12 @@ function Home() {
       console.log(
         "Sending request to:",
         `https://plantpick-backend.up.railway.app/search-by-name?name=${encodeURIComponent(
-          plantName
+          nameToSearch
         )}`
       );
       const response = await fetch(
         `https://plantpick-backend.up.railway.app/search-by-name?name=${encodeURIComponent(
-          plantName
+          nameToSearch
         )}`,
         {
           headers: { accept: "application/json" },
@@ -88,7 +90,7 @@ function Home() {
       if (result.plant_info && result.plant_info.name) {
         setPlantName(result.plant_info.name);
         console.log("Searching by name:", result.plant_info.name);
-        searchPlant();
+        searchPlant(result.plant_info.name);
       }
     } catch (error) {
       console.error("Error identifying plant:", error);
@@ -107,30 +109,44 @@ function Home() {
           value={plantName}
           onChange={(e) => setPlantName(e.target.value)}
           placeholder="เช่น ไทรใบสัก"
+          className="border p-2 rounded"
         />
-        <button onClick={handleSearch} disabled={loading || !plantName.trim()}>
+        <button
+          onClick={handleSearch}
+          disabled={loading || !plantName.trim()}
+          className="ml-2 bg-blue-500 text-white p-2 rounded hover:bg-blue-600"
+        >
           {loading ? "กำลังค้นหา..." : "ค้นหาดีล"}
         </button>
       </section>
 
       <section className="upload-section">
         <h2>หรืออัพโหลดรูปภาพเพื่อระบุต้นไม้</h2>
-        <input type="file" accept="image/*" onChange={handleFileChange} />
-        <button onClick={handleUpload} disabled={loading || !imageFile}>
+        <input
+          type="file"
+          accept="image/*"
+          onChange={handleFileChange}
+          className="mb-2"
+        />
+        <button
+          onClick={handleUpload}
+          disabled={loading || !imageFile}
+          className="bg-green-500 text-white p-2 rounded hover:bg-green-600"
+        >
           {loading ? "🔄 กำลังระบุ..." : "🔍 ระบุต้นไม้"}
         </button>
       </section>
 
       {loading && <div className="loading">กำลังโหลด...</div>}
-      {error && <div className="error">{error}</div>}
+      {error && <div className="error text-red-500">{error}</div>}
 
-      {identifyResult && identifyResult.plant_info ? (
-        <section className="identify-results">
-          <h2>ผลการระบุต้นไม้</h2>
-          <div className="identify-card">
+      {identifyResult && identifyResult.plant_info && (
+        <section className="identify-results mt-4 flex justify-center">
+          <div className="identify-card bg-white p-4 rounded shadow-md w-1/2">
+            <h2 className="text-xl font-bold mb-2">ผลการระบุต้นไม้</h2>
             <h3>{identifyResult.plant_info.name}</h3>
             <p>
-              <strong>ราคา:</strong> {identifyResult.plant_info.price}
+              <strong>ราคา:</strong> {identifyResult.plant_info.price} บาท
             </p>
             <p>
               <strong>คำอธิบาย:</strong> {identifyResult.plant_info.description}
@@ -146,51 +162,58 @@ function Home() {
           </div>
           {identifyResult.related_plants &&
             identifyResult.related_plants.length > 0 && (
-              <>
-                <h3>ต้นไม้ที่เกี่ยวข้อง</h3>
-                <div className="related-plants">
+              <div className="mt-4">
+                <h3 className="text-lg font-bold">ต้นไม้ที่เกี่ยวข้อง</h3>
+                <div className="grid grid-cols-3 gap-4 mt-2">
                   {identifyResult.related_plants.map((plant, index) => (
-                    <div key={index} className="related-card">
+                    <div
+                      key={index}
+                      className="related-card bg-white p-2 rounded shadow"
+                    >
                       <h4>{plant.name}</h4>
                       <p>
-                        <strong>ราคา:</strong> {plant.price}
+                        <strong>ราคา:</strong> {plant.price} บาท
                       </p>
                     </div>
                   ))}
                 </div>
-              </>
+              </div>
             )}
         </section>
-      ) : null}
+      )}
 
-      {deals ? (
-        deals.best_deal ? (
-          <section className="results">
-            <h2>ดีลที่ดีที่สุดสำหรับคุณ!</h2>
-            <div className="deal-card best-deal">
-              <h3>{deals.best_deal.plant_name}</h3>
-              <p>
-                <strong>ร้าน:</strong> {deals.best_deal.shop_name}
-              </p>
-              <p>
-                <strong>ราคา:</strong> {deals.best_deal.price} บาท
-              </p>
-              <p>
-                <strong>คะแนน:</strong> {deals.best_deal.rating}/5
-              </p>
-              <a
-                href={deals.best_deal.link}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                ซื้อเลย!
-              </a>
-            </div>
-            <h3>ดีลอื่น ๆ ที่น่าสนใจ</h3>
-            <div className="deal-cards">
+      {deals && deals.best_deal && (
+        <section className="results mt-4 flex justify-center">
+          <div className="deal-card best-deal bg-white p-4 rounded shadow-md w-1/2">
+            <h2 className="text-xl font-bold mb-2">ผลลัพธ์การค้นหา</h2>
+            <h3>{deals.best_deal.plant_name}</h3>
+            <p>
+              <strong>ร้าน:</strong> {deals.best_deal.shop_name}
+            </p>
+            <p>
+              <strong>ราคา:</strong> {deals.best_deal.price} บาท
+            </p>
+            <p>
+              <strong>คะแนน:</strong> {deals.best_deal.rating}/5
+            </p>
+            <a
+              href={deals.best_deal.link}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-500 underline"
+            >
+              ซื้อเลย!
+            </a>
+          </div>
+          <div className="mt-4">
+            <h3 className="text-lg font-bold">ดีลที่เกี่ยวข้อง</h3>
+            <div className="grid grid-cols-3 gap-4 mt-2">
               {deals.related_deals && deals.related_deals.length > 0 ? (
                 deals.related_deals.map((deal, index) => (
-                  <div key={index} className="deal-card">
+                  <div
+                    key={index}
+                    className="deal-card bg-white p-2 rounded shadow"
+                  >
                     <h4>{deal.plant_name}</h4>
                     <p>
                       <strong>ร้าน:</strong> {deal.shop_name}
@@ -205,22 +228,24 @@ function Home() {
                       href={deal.link}
                       target="_blank"
                       rel="noopener noreferrer"
+                      className="text-blue-500 underline"
                     >
                       ดูดีลนี้
                     </a>
                   </div>
                 ))
               ) : (
-                <div className="no-related">ไม่มีดีลอื่น ๆ</div>
+                <div className="no-related">ไม่มีดีลที่เกี่ยวข้อง</div>
               )}
             </div>
-          </section>
-        ) : (
-          <div className="no-results">ไม่พบดีลสำหรับ {plantName}</div>
-        )
-      ) : (
-        !loading &&
-        !error && <div className="no-results">กรุณาค้นหาดีลเพื่อดูผลลัพธ์</div>
+          </div>
+        </section>
+      )}
+
+      {!loading && !error && !deals && !identifyResult && (
+        <div className="no-results mt-4 text-center">
+          กรุณาค้นหาดีลเพื่อดูผลลัพธ์
+        </div>
       )}
     </div>
   );
