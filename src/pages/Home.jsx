@@ -55,8 +55,8 @@ function Home() {
   };
 
   // เสิร์ชรูป
-  const handleImageChange = (e) => {
-    const file = e.target.files[0];
+  const handleFileChange = (event) => {
+    const file = event.target.files[0];
     if (file) {
       setImageFile(file);
       console.log(
@@ -71,10 +71,7 @@ function Home() {
   };
 
   const handleUpload = async () => {
-    if (!imageFile) {
-      alert("📸 กรุณาเลือกไฟล์รูปภาพ");
-      return;
-    }
+    if (!imageFile) return alert("📸 กรุณาเลือกไฟล์รูปภาพ");
 
     setLoading(true);
     setError(null);
@@ -118,7 +115,7 @@ function Home() {
 
       <section className="upload-section">
         <h2>หรืออัพโหลดรูปภาพเพื่อระบุต้นไม้</h2>
-        <input type="file" accept="image/*" onChange={handleImageChange} />
+        <input type="file" accept="image/*" onChange={handleFileChange} />
         <button onClick={handleUpload} disabled={loading || !imageFile}>
           {loading ? "🔄 กำลังระบุ..." : "🔍 ระบุต้นไม้"}
         </button>
