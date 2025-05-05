@@ -2,8 +2,16 @@ const API_URL = import.meta.env.VITE_API_URL;
 
 export const identifyPlant = async (file) => {
   const formData = new FormData();
-  formData.append("file", file);
+  formData.append("image", file);
 
+  console.log(
+    "File details:",
+    file.name,
+    "Size:",
+    file.size,
+    "Type:",
+    file.type
+  ); // Debug file
   console.log("Sending request to:", `${API_URL}/identify/`); // Debug URL
 
   try {
@@ -17,7 +25,7 @@ export const identifyPlant = async (file) => {
     if (!response.ok) {
       const errorText = await response.text();
       console.log("Error response:", errorText); // Debug error
-      throw new Error("Failed to identify plant");
+      throw new Error(errorText || "Failed to identify plant");
     }
 
     const data = await response.json();
@@ -25,6 +33,6 @@ export const identifyPlant = async (file) => {
     return data;
   } catch (error) {
     console.error("Error identifying plant:", error);
-    return { error: "Failed to identify plant" };
+    return { error: error.message };
   }
 };

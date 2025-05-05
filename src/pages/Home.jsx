@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { identifyPlant } from "../api/identify.js";
 
 function Home() {
   const [plantName, setPlantName] = useState("");
@@ -58,13 +59,20 @@ function Home() {
     const file = e.target.files[0];
     if (file) {
       setImageFile(file);
-      console.log("File selected:", file);
+      console.log(
+        "File selected:",
+        file.name,
+        "Size:",
+        file.size,
+        "Type:",
+        file.type
+      );
     }
   };
 
-  const identifyPlant = async () => {
+  const handleUpload = async () => {
     if (!imageFile) {
-      alert("กรุณาเลือกไฟล์ภาพ");
+      alert("📸 กรุณาเลือกไฟล์รูปภาพ");
       return;
     }
 
@@ -73,32 +81,16 @@ function Home() {
     setIdentifyResult(null);
     try {
       console.log("Uploading image...");
-      const formData = new FormData();
-      formData.append("image", imageFile);
-
-      console.log(
-        "Sending request to:",
-        "https://plantpick-backend.up.railway.app/identify/"
-      );
-      const response = await fetch(
-        "https://plantpick-backend.up.railway.app/identify/",
-        {
-          method: "POST",
-          body: formData,
-        }
-      );
-      console.log("Response status:", response.status);
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+      const result = await identifyPlant(imageFile);
+      if (result.error) {
+        throw new Error(result.error);
       }
-      const data = await response.json();
-      console.log("API response:", data);
-      setIdentifyResult(data);
+      console.log("API response:", result);
+      setIdentifyResult(result);
 
-      // อัตโนมัติเสิร์ชชื่อหลังจากได้ผลลัพธ์
-      if (data.plant_info && data.plant_info.name) {
-        setPlantName(data.plant_info.name);
-        console.log("Searching by name:", data.plant_info.name);
+      if (result.plant_info && result.plant_info.name) {
+        setPlantName(result.plant_info.name);
+        console.log("Searching by name:", result.plant_info.name);
         searchPlant();
       }
     } catch (error) {
@@ -127,8 +119,8 @@ function Home() {
       <section className="upload-section">
         <h2>หรืออัพโหลดรูปภาพเพื่อระบุต้นไม้</h2>
         <input type="file" accept="image/*" onChange={handleImageChange} />
-        <button onClick={identifyPlant} disabled={loading || !imageFile}>
-          {loading ? "กำลังระบุ..." : "ระบุต้นไม้"}
+        <button onClick={handleUpload} disabled={loading || !imageFile}>
+          {loading ? "🔄 กำลังระบุ..." : "🔍 ระบุต้นไม้"}
         </button>
       </section>
 
