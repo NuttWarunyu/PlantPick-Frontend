@@ -10,11 +10,17 @@ function Home() {
   const [imageFile, setImageFile] = useState(null);
   const [identifyResult, setIdentifyResult] = useState(null);
   const [specialDealLink, setSpecialDealLink] = useState("");
+  const [notification, setNotification] = useState({ message: "", type: "" });
+
+  const showNotification = (message, type = "info") => {
+    setNotification({ message, type });
+    setTimeout(() => setNotification({ message: "", type: "" }), 3000);
+  };
 
   const searchPlant = async (searchName) => {
     const nameToSearch = searchName || plantName;
     if (!nameToSearch.trim()) {
-      alert("กรุณากรอกชื่อต้นไม้");
+      showNotification("กรุณากรอกชื่อต้นไม้", "error");
       return;
     }
 
@@ -22,14 +28,12 @@ function Home() {
     setError(null);
     setDeals(null);
     try {
-      // ดึงข้อมูลต้นไม้จาก OpenAI ผ่าน identifyPlant
       const result = await identifyPlant(nameToSearch, false);
       if (result.error) {
         throw new Error(result.error);
       }
       setIdentifyResult(result);
 
-      // ดึงดีลจาก API เดิม
       const response = await fetch(
         `https://plantpick-backend.up.railway.app/search-by-name?name=${encodeURIComponent(
           nameToSearch
@@ -43,9 +47,11 @@ function Home() {
       }
       const data = await response.json();
       setDeals(data);
+      showNotification("ค้นหาสำเร็จ!", "success");
     } catch (error) {
       console.error("Error searching plant:", error);
       setError("เกิดข้อผิดพลาดในการค้นหา: " + error.message);
+      showNotification("เกิดข้อผิดพลาดในการค้นหา", "error");
     } finally {
       setLoading(false);
     }
@@ -59,11 +65,12 @@ function Home() {
     const file = event.target.files[0];
     if (file) {
       setImageFile(file);
+      showNotification("ไฟล์รูปภาพถูกเลือกแล้ว", "info");
     }
   };
 
   const handleUpload = async () => {
-    if (!imageFile) return alert("📸 กรุณาเลือกไฟล์รูปภาพ");
+    if (!imageFile) return showNotification("กรุณาเลือกไฟล์รูปภาพ", "error");
 
     setLoading(true);
     setError(null);
@@ -78,180 +85,237 @@ function Home() {
         setPlantName(result.plant_info.name);
         searchPlant(result.plant_info.name);
       }
+      showNotification("ระบุต้นไม้สำเร็จ!", "success");
     } catch (error) {
       setError("เกิดข้อผิดพลาดในการระบุต้นไม้: " + error.message);
+      showNotification("เกิดข้อผิดพลาดในการระบุต้นไม้", "error");
     } finally {
       setLoading(false);
     }
   };
 
+  const resetSearch = () => {
+    setPlantName("");
+    setImageFile(null);
+    setIdentifyResult(null);
+    setDeals(null);
+    setError(null);
+    setSpecialDealLink("");
+    showNotification("รีเซ็ตข้อมูลสำเร็จ", "info");
+  };
+
   const addSpecialDeal = () => {
     if (specialDealLink.includes("shopee")) {
-      alert("กำลังพัฒนาการเชื่อมต่อ Shopee API...");
+      showNotification("กำลังพัฒนาการเชื่อมต่อ Shopee API...", "info");
     } else {
-      alert("กรุณาใส่ลิงก์จาก Shopee เท่านั้น");
+      showNotification("กรุณาใส่ลิงก์จาก Shopee เท่านั้น", "error");
     }
   };
 
   return (
     <div className="home">
+      {notification.message && (
+        <div className={`notification notification-${notification.type}`}>
+          {notification.message}
+        </div>
+      )}
+
       <section className="search-section">
-        <h2>ค้นหาต้นไม้เดี๋ยวนี้!</h2>
-        <input
-          type="text"
-          value={plantName}
-          onChange={(e) => setPlantName(e.target.value)}
-          placeholder="เช่น ไทรใบสัก"
-          className="border p-2 rounded"
-        />
-        <button
-          onClick={handleSearch}
-          disabled={loading || !plantName.trim()}
-          className="ml-2 bg-blue-500 text-white p-2 rounded hover:bg-blue-600"
-        >
-          {loading ? "กำลังค้นหา..." : "ค้นหา"}
-        </button>
+        <h2 className="text-xl font-bold text-green-800">
+          🌿 ค้นหาต้นไม้เดี๋ยวนี้!
+        </h2>
+        <div className="flex items-center mt-2 justify-center">
+          <input
+            type="text"
+            value={plantName}
+            onChange={(e) => setPlantName(e.target.value)}
+            placeholder="เช่น ไทรใบสัก"
+            className="border p-2 rounded w-full max-w-md"
+          />
+          <button
+            onClick={handleSearch}
+            disabled={loading || !plantName.trim()}
+            className="ml-2 bg-green-500 text-white p-2 rounded hover:bg-green-600 flex items-center"
+          >
+            🔍 {loading ? "กำลังค้นหา..." : "ค้นหา"}
+          </button>
+          <button
+            onClick={resetSearch}
+            className="ml-2 bg-gray-500 text-white p-2 rounded hover:bg-gray-600"
+          >
+            รีเซ็ต
+          </button>
+        </div>
       </section>
 
       <section className="upload-section">
-        <h2>หรืออัพโหลดรูปภาพเพื่อระบุต้นไม้</h2>
-        <input
-          type="file"
-          accept="image/*"
-          onChange={handleFileChange}
-          className="mb-2"
-        />
-        <button
-          onClick={handleUpload}
-          disabled={loading || !imageFile}
-          className="bg-green-500 text-white p-2 rounded hover:bg-green-600"
-        >
-          {loading ? "🔄 กำลังระบุ..." : "🔍 ระบุต้นไม้"}
-        </button>
+        <h2 className="text-xl font-bold text-green-800">
+          📸 หรืออัพโหลดรูปภาพเพื่อระบุต้นไม้
+        </h2>
+        <div className="flex items-center mt-2 justify-center">
+          <input
+            type="file"
+            accept="image/*"
+            onChange={handleFileChange}
+            className="border p-2 rounded w-full max-w-md"
+          />
+          <button
+            onClick={handleUpload}
+            disabled={loading || !imageFile}
+            className="ml-2 bg-green-500 text-white p-2 rounded hover:bg-green-600 flex items-center"
+          >
+            📸 {loading ? "🔄 กำลังระบุ..." : "🔍 ระบุต้นไม้"}
+          </button>
+        </div>
       </section>
 
-      {loading && <div className="loading">กำลังโหลด...</div>}
-      {error && <div className="error text-red-500">{error}</div>}
+      {loading && (
+        <div className="loading text-center text-gray-600 mt-4">
+          กำลังโหลด...
+        </div>
+      )}
+      {error && (
+        <div className="error text-red-500 text-center mt-4">{error}</div>
+      )}
 
       {identifyResult && identifyResult.plant_info && (
         <section className="identify-results mt-4 flex justify-center">
-          <div className="identify-card bg-white p-4 rounded shadow-md w-1/2">
-            <h2 className="text-xl font-bold mb-2">ผลการระบุต้นไม้</h2>
-            <h3>{identifyResult.plant_info.name}</h3>
-            <p>
+          <div className="identify-card bg-white p-4 rounded shadow-md max-w-2xl mx-auto">
+            <h2 className="text-xl font-bold mb-2 text-green-800">
+              ผลการระบุต้นไม้
+            </h2>
+            <h3 className="text-lg font-semibold text-brown-700">
+              {identifyResult.plant_info.name}
+            </h3>
+            <p className="text-gray-700">
               <strong>ราคาตลาด:</strong> {identifyResult.plant_info.price}
             </p>
-            <p>
+            <p className="text-gray-700">
               <strong>คำอธิบาย:</strong> {identifyResult.plant_info.description}
             </p>
-            <p>
+            <p className="text-gray-700">
               <strong>การดูแล:</strong>{" "}
               {identifyResult.plant_info.careInstructions}
             </p>
-            <p>
+            <p className="text-gray-700">
               <strong>ไอเดียจัดสวน:</strong>{" "}
               {identifyResult.plant_info.gardenIdeas}
             </p>
           </div>
-          {identifyResult.related_plants &&
-            identifyResult.related_plants.length > 0 && (
-              <div className="mt-4">
-                <h3 className="text-lg font-bold">ต้นไม้ที่เกี่ยวข้อง</h3>
-                <div className="grid grid-cols-3 gap-4 mt-2">
-                  {identifyResult.related_plants.map((plant, index) => (
-                    <div
-                      key={index}
-                      className="related-card bg-white p-2 rounded shadow"
-                    >
-                      <h4>{plant.name}</h4>
-                      <p>
-                        <strong>ราคา:</strong> {plant.price}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
         </section>
       )}
 
+      {identifyResult &&
+        identifyResult.related_plants &&
+        identifyResult.related_plants.length > 0 && (
+          <section className="related-plants mt-4">
+            <h3 className="text-lg font-bold text-green-800 text-center">
+              ต้นไม้ที่เกี่ยวข้อง
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mt-2">
+              {identifyResult.related_plants.map((plant, index) => (
+                <div
+                  key={index}
+                  className="related-card bg-white p-2 rounded shadow mx-auto max-w-xs"
+                >
+                  <h4 className="text-brown-700">{plant.name}</h4>
+                  <p className="text-gray-600">
+                    <strong>ราคา:</strong> {plant.price}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
       {deals && deals.best_deal && (
         <section className="results mt-4 flex justify-center">
-          <div className="deal-card best-deal bg-white p-4 rounded shadow-md w-1/2">
-            <h2 className="text-xl font-bold mb-2">ผลลัพธ์การค้นหา</h2>
-            <h3>{deals.best_deal.plant_name}</h3>
-            <p>
+          <div className="deal-card best-deal bg-white p-4 rounded shadow-md max-w-2xl mx-auto">
+            <h2 className="text-xl font-bold mb-2 text-green-800">
+              ผลลัพธ์การค้นหา
+            </h2>
+            <h3 className="text-lg font-semibold text-brown-700">
+              {deals.best_deal.plant_name}
+            </h3>
+            <p className="text-gray-700">
               <strong>ร้าน:</strong> {deals.best_deal.shop_name}
             </p>
-            <p>
+            <p className="text-gray-700">
               <strong>ราคา:</strong> {deals.best_deal.price} บาท
             </p>
-            <p>
+            <p className="text-gray-700">
               <strong>คะแนน:</strong> {deals.best_deal.rating}/5
             </p>
             <a
               href={deals.best_deal.link}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-blue-500 underline"
+              className="text-green-600 underline hover:text-green-800"
             >
               ซื้อเลย!
             </a>
           </div>
-          <div className="mt-4">
-            <h3 className="text-lg font-bold">ดีลที่เกี่ยวข้อง</h3>
-            <div className="grid grid-cols-3 gap-4 mt-2">
-              {deals.related_deals && deals.related_deals.length > 0 ? (
-                deals.related_deals.map((deal, index) => (
-                  <div
-                    key={index}
-                    className="deal-card bg-white p-2 rounded shadow"
+        </section>
+      )}
+
+      {deals && (
+        <section className="related-deals mt-4">
+          <h3 className="text-lg font-bold text-green-800 text-center">
+            ดีลที่เกี่ยวข้อง
+          </h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mt-2">
+            {deals.related_deals && deals.related_deals.length > 0 ? (
+              deals.related_deals.map((deal, index) => (
+                <div
+                  key={index}
+                  className="deal-card bg-white p-2 rounded shadow mx-auto max-w-xs"
+                >
+                  <h4 className="text-brown-700">{deal.plant_name}</h4>
+                  <p className="text-gray-700">
+                    <strong>ร้าน:</strong> {deal.shop_name}
+                  </p>
+                  <p className="text-gray-700">
+                    <strong>ราคา:</strong> {deal.price} บาท
+                  </p>
+                  <p className="text-gray-700">
+                    <strong>คะแนน:</strong> {deal.rating}/5
+                  </p>
+                  <a
+                    href={deal.link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-green-600 underline hover:text-green-800"
                   >
-                    <h4>{deal.plant_name}</h4>
-                    <p>
-                      <strong>ร้าน:</strong> {deal.shop_name}
-                    </p>
-                    <p>
-                      <strong>ราคา:</strong> {deal.price} บาท
-                    </p>
-                    <p>
-                      <strong>คะแนน:</strong> {deal.rating}/5
-                    </p>
-                    <a
-                      href={deal.link}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-blue-500 underline"
-                    >
-                      ดูดีลนี้
-                    </a>
-                  </div>
-                ))
-              ) : (
-                <div className="no-related">ไม่มีดีลที่เกี่ยวข้อง</div>
-              )}
-            </div>
-            <div className="mt-4">
-              <input
-                type="text"
-                value={specialDealLink}
-                onChange={(e) => setSpecialDealLink(e.target.value)}
-                placeholder="ใส่ลิงก์ Shopee"
-                className="border p-2 rounded w-full"
-              />
-              <button
-                onClick={addSpecialDeal}
-                className="mt-2 bg-purple-500 text-white p-2 rounded hover:bg-purple-600"
-              >
-                เพิ่มดีลพิเศษ
-              </button>
-            </div>
+                    ดูดีลนี้
+                  </a>
+                </div>
+              ))
+            ) : (
+              <div className="no-related text-gray-600 text-center">
+                ไม่มีดีลที่เกี่ยวข้อง
+              </div>
+            )}
+          </div>
+          <div className="mt-4 flex justify-center">
+            <input
+              type="text"
+              value={specialDealLink}
+              onChange={(e) => setSpecialDealLink(e.target.value)}
+              placeholder="ใส่ลิงก์ Shopee"
+              className="border p-2 rounded w-full max-w-md"
+            />
+            <button
+              onClick={addSpecialDeal}
+              className="ml-2 bg-purple-500 text-white p-2 rounded hover:bg-purple-600"
+            >
+              เพิ่มดีลพิเศษ
+            </button>
           </div>
         </section>
       )}
 
       {!loading && !error && !deals && !identifyResult && (
-        <div className="no-results mt-4 text-center">
+        <div className="no-results mt-4 text-center text-gray-600">
           กรุณาค้นหาต้นไม้เพื่อดูผลลัพธ์
         </div>
       )}
