@@ -1,8 +1,12 @@
 const API_URL = import.meta.env.VITE_API_URL;
 
-export const identifyPlant = async (file) => {
+export const identifyPlant = async (input, isImage = true) => {
   const formData = new FormData();
-  formData.append("file", file);
+  if (isImage) {
+    formData.append("file", input);
+  } else {
+    formData.append("name", input);
+  }
 
   console.log("Sending request to:", `${API_URL}/identify/`); // Debug URL
 

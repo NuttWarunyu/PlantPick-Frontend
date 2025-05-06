@@ -9,8 +9,8 @@ function Home() {
   const [error, setError] = useState(null);
   const [imageFile, setImageFile] = useState(null);
   const [identifyResult, setIdentifyResult] = useState(null);
+  const [specialDealLink, setSpecialDealLink] = useState("");
 
-  // เสิร์ชชื่อ
   const searchPlant = async (searchName) => {
     const nameToSearch = searchName || plantName;
     if (!nameToSearch.trim()) {
@@ -22,12 +22,14 @@ function Home() {
     setError(null);
     setDeals(null);
     try {
-      console.log(
-        "Sending request to:",
-        `https://plantpick-backend.up.railway.app/search-by-name?name=${encodeURIComponent(
-          nameToSearch
-        )}`
-      );
+      // ดึงข้อมูลต้นไม้จาก OpenAI ผ่าน identifyPlant
+      const result = await identifyPlant(nameToSearch, false);
+      if (result.error) {
+        throw new Error(result.error);
+      }
+      setIdentifyResult(result);
+
+      // ดึงดีลจาก API เดิม
       const response = await fetch(
         `https://plantpick-backend.up.railway.app/search-by-name?name=${encodeURIComponent(
           nameToSearch
@@ -36,39 +38,27 @@ function Home() {
           headers: { accept: "application/json" },
         }
       );
-      console.log("Response status:", response.status);
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       const data = await response.json();
-      console.log("API Response for search-by-name:", data);
       setDeals(data);
     } catch (error) {
       console.error("Error searching plant:", error);
-      setError("เกิดข้อผิดพลาดในการค้นหาดีล: " + error.message);
+      setError("เกิดข้อผิดพลาดในการค้นหา: " + error.message);
     } finally {
       setLoading(false);
     }
   };
 
   const handleSearch = () => {
-    console.log("Search button clicked with plantName:", plantName);
     searchPlant();
   };
 
-  // เสิร์ชรูป
   const handleFileChange = (event) => {
     const file = event.target.files[0];
     if (file) {
       setImageFile(file);
-      console.log(
-        "File selected:",
-        file.name,
-        "Size:",
-        file.size,
-        "Type:",
-        file.type
-      );
     }
   };
 
@@ -79,31 +69,34 @@ function Home() {
     setError(null);
     setIdentifyResult(null);
     try {
-      console.log("Uploading image...");
-      const result = await identifyPlant(imageFile);
+      const result = await identifyPlant(imageFile, true);
       if (result.error) {
         throw new Error(result.error);
       }
-      console.log("API response:", result);
       setIdentifyResult(result);
-
       if (result.plant_info && result.plant_info.name) {
         setPlantName(result.plant_info.name);
-        console.log("Searching by name:", result.plant_info.name);
         searchPlant(result.plant_info.name);
       }
     } catch (error) {
-      console.error("Error identifying plant:", error);
       setError("เกิดข้อผิดพลาดในการระบุต้นไม้: " + error.message);
     } finally {
       setLoading(false);
     }
   };
 
+  const addSpecialDeal = () => {
+    if (specialDealLink.includes("shopee")) {
+      alert("กำลังพัฒนาการเชื่อมต่อ Shopee API...");
+    } else {
+      alert("กรุณาใส่ลิงก์จาก Shopee เท่านั้น");
+    }
+  };
+
   return (
     <div className="home">
       <section className="search-section">
-        <h2>ค้นหาดีลเดี๋ยวนี้!</h2>
+        <h2>ค้นหาต้นไม้เดี๋ยวนี้!</h2>
         <input
           type="text"
           value={plantName}
@@ -116,7 +109,7 @@ function Home() {
           disabled={loading || !plantName.trim()}
           className="ml-2 bg-blue-500 text-white p-2 rounded hover:bg-blue-600"
         >
-          {loading ? "กำลังค้นหา..." : "ค้นหาดีล"}
+          {loading ? "กำลังค้นหา..." : "ค้นหา"}
         </button>
       </section>
 
@@ -146,7 +139,7 @@ function Home() {
             <h2 className="text-xl font-bold mb-2">ผลการระบุต้นไม้</h2>
             <h3>{identifyResult.plant_info.name}</h3>
             <p>
-              <strong>ราคา:</strong> {identifyResult.plant_info.price} บาท
+              <strong>ราคาตลาด:</strong> {identifyResult.plant_info.price}
             </p>
             <p>
               <strong>คำอธิบาย:</strong> {identifyResult.plant_info.description}
@@ -172,7 +165,7 @@ function Home() {
                     >
                       <h4>{plant.name}</h4>
                       <p>
-                        <strong>ราคา:</strong> {plant.price} บาท
+                        <strong>ราคา:</strong> {plant.price}
                       </p>
                     </div>
                   ))}
@@ -238,13 +231,28 @@ function Home() {
                 <div className="no-related">ไม่มีดีลที่เกี่ยวข้อง</div>
               )}
             </div>
+            <div className="mt-4">
+              <input
+                type="text"
+                value={specialDealLink}
+                onChange={(e) => setSpecialDealLink(e.target.value)}
+                placeholder="ใส่ลิงก์ Shopee"
+                className="border p-2 rounded w-full"
+              />
+              <button
+                onClick={addSpecialDeal}
+                className="mt-2 bg-purple-500 text-white p-2 rounded hover:bg-purple-600"
+              >
+                เพิ่มดีลพิเศษ
+              </button>
+            </div>
           </div>
         </section>
       )}
 
       {!loading && !error && !deals && !identifyResult && (
         <div className="no-results mt-4 text-center">
-          กรุณาค้นหาดีลเพื่อดูผลลัพธ์
+          กรุณาค้นหาต้นไม้เพื่อดูผลลัพธ์
         </div>
       )}
     </div>
