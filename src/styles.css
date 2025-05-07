@@ -1,142 +1,155 @@
 .home {
+  background-color: #f5f7f5;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
   padding: 20px;
+}
+
+.home-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex-grow: 1;
+}
+
+.search-section {
+  width: 100%;
+  max-width: 400px;
+  margin-top: 20px;
+}
+
+.search-bar {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #ccc;
+  border-radius: 25px;
+  font-size: 16px;
+  font-family: "Poppins", sans-serif;
+  background-color: #fff;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  outline: none;
+}
+
+.action-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.action-button {
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-family: "Poppins", sans-serif;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  border: none;
+  cursor: pointer;
+}
+
+.camera-button {
+  background-color: #4caf50;
+  color: white;
+  position: relative;
+}
+
+.camera-button .file-input {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.search-button {
+  background-color: #2e7d32;
+  color: white;
+}
+
+.icon {
+  font-size: 20px;
+}
+
+/* Styles for PopularPlants */
+.popular-plants-page {
+  padding: 20px;
+  background-color: #f5f7f5;
+}
+
+.popular-plants {
   max-width: 1200px;
   margin: 0 auto;
 }
 
-.search-section,
-.upload-section,
-.related-plants,
-.related-deals {
-  margin-bottom: 20px;
-}
-
-.identify-results,
-.results {
-  margin-top: 20px;
-}
-
-.identify-card,
-.deal-card,
-.related-card {
-  border: 1px solid #ddd;
-  padding: 15px;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+.popular-card {
   background-color: #fff;
+  border-radius: 8px;
+  padding: 15px;
+  text-align: center;
+  transition: box-shadow 0.3s ease;
+  border: 1px solid #ddd; /* Debug border */
+}
+
+.popular-card img {
+  width: 100%;
+  height: 200px;
+  object-fit: cover;
+  border-radius: 8px;
+  margin-bottom: 10px;
+}
+
+.popular-card h4 {
+  font-size: 1.2rem;
+  margin-bottom: 5px;
+  color: #8d6e63;
+}
+
+.popular-card p {
+  font-size: 1rem;
+  color: #4b5563;
+  margin-bottom: 10px;
+}
+
+.popular-card a {
+  display: inline-block;
+  padding: 8px 16px;
+  background-color: #4caf50;
+  color: white;
+  text-decoration: none;
+  border-radius: 20px;
+  transition: background-color 0.3s ease;
+}
+
+.popular-card a:hover {
+  background-color: #2e7d32;
 }
 
 .grid {
   display: grid;
-  gap: 15px;
-  justify-items: center;
+  gap: 20px;
 }
 
 .grid-cols-1 {
   grid-template-columns: 1fr;
 }
 
-.grid-cols-2 {
-  grid-template-columns: repeat(2, 1fr);
-}
-
-.grid-cols-3 {
-  grid-template-columns: repeat(3, 1fr);
-}
-
-.text-center {
-  text-align: center;
-}
-
-.mt-4 {
-  margin-top: 1rem;
-}
-
-.mt-8 {
-  margin-top: 2rem;
-}
-
-.p-4 {
-  padding: 1rem;
-}
-
-.rounded {
-  border-radius: 0.25rem;
-}
-
-.shadow {
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-}
-
-.text-xl {
-  font-size: 1.25rem;
-}
-
-.font-bold {
-  font-weight: 700;
-}
-
-.mb-2 {
-  margin-bottom: 0.5rem;
-}
-
-.ml-2 {
-  margin-left: 0.5rem;
-}
-
-.border {
-  border: 1px solid #ccc;
-}
-
-.p-2 {
-  padding: 0.5rem;
-}
-
-.text-red-500 {
-  color: #ef4444;
-}
-
-.text-gray-600 {
-  color: #4b5563;
-}
-
-.text-green-800 {
-  color: #2e7d32;
-}
-
-.text-brown-700 {
-  color: #8d6e63;
-}
-
-.text-green-600 {
-  color: #4caf50;
-}
-
-.hover\:bg-blue-600:hover {
-  background-color: #2563eb;
-}
-
-.hover\:bg-green-600:hover {
-  background-color: #15803d;
-}
-
-.hover\:bg-purple-600:hover {
-  background-color: #6b21a8;
-}
-
-body {
-  font-family: "Inter", sans-serif;
-}
-
-h2,
-h3 {
-  font-family: "Poppins", sans-serif;
-}
-
-@media (max-width: 640px) {
-  .grid-cols-2,
+@media (min-width: 768px) {
   .grid-cols-3 {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(3, 1fr) !important; /* Force 3 columns */
+  }
+}
+
+/* Debug */
+@media (min-width: 768px) {
+  .popular-card {
+    outline: 1px solid red; /* Debug to see card layout */
   }
 }
 
@@ -148,7 +161,7 @@ h3 {
   padding: 10px 20px;
   border-radius: 5px;
   color: white;
-  font-family: "Inter", sans-serif;
+  font-family: "Poppins", sans-serif;
   z-index: 1000;
   animation: slideIn 0.3s ease-out;
 }

@@ -20,7 +20,7 @@ function App() {
           <p>แค่อัพรูปหรือเสิร์ชชื่อ ดีลดี ๆ รอคุณอยู่!</p>
           <nav className="header-links">
             <Link to="/">ค้นหาต้นไม้</Link> |{" "}
-            <Link to="/popular-plants">ต้นไม้ยอดนิยม</Link> |{" "}
+            <Link to="/diy-gardeners">จัดสวนเอง</Link> |{" "}
             <Link to="/marketplace">ตลาดต้นไม้เสรี</Link>
           </nav>
         </header>
@@ -28,7 +28,7 @@ function App() {
         <main>
           <Routes>
             <Route path="/" element={<Home />} />
-            <Route path="/popular-plants" element={<PopularPlants />} />
+            <Route path="/diy-gardeners" element={<PopularPlants />} />
             <Route path="/marketplace" element={<Marketplace />} />
           </Routes>
         </main>
