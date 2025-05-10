@@ -20,6 +20,7 @@
   width: 100%;
   max-width: 400px;
   margin-top: 0;
+  margin-bottom: 20px;
 }
 
 .search-bar {
@@ -78,7 +79,7 @@
   font-size: 20px;
 }
 
-/* Styles for Cute Shop (PopularPlants) */
+/* Styles for Search Results (ใช้คลาสเดียวกับ PopularPlants) */
 .cute-shop-page {
   padding: 20px;
   background-color: #fef7f6;
@@ -166,6 +167,12 @@
 .cute-price {
   font-size: 1rem;
   color: #ff6f61;
+  margin-bottom: 10px;
+}
+
+.cute-description {
+  font-size: 0.9rem;
+  color: #666;
   margin-bottom: 10px;
 }
 

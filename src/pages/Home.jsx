@@ -6,6 +6,7 @@ function Home() {
   const [plantName, setPlantName] = useState("");
   const [imageFile, setImageFile] = useState(null);
   const [notification, setNotification] = useState({ message: "", type: "" });
+  const [isUploading, setIsUploading] = useState(false);
 
   const showNotification = (message, type = "info") => {
     setNotification({ message, type });
@@ -17,6 +18,7 @@ function Home() {
     if (file) {
       setImageFile(file);
       showNotification("ไฟล์รูปภาพถูกเลือกแล้ว", "info");
+      handleUpload(); // เรียก handleUpload ทันทีหลังเลือกไฟล์
     }
   };
 
@@ -25,6 +27,7 @@ function Home() {
       showNotification("กรุณาเลือกไฟล์รูปภาพ", "error");
       return;
     }
+    setIsUploading(true);
     try {
       const result = await identifyPlant(imageFile, true);
       if (result.error) {
@@ -36,6 +39,8 @@ function Home() {
       )}`;
     } catch {
       showNotification("เกิดข้อผิดพลาดในการระบุต้นไม้", "error");
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -68,8 +73,8 @@ function Home() {
           />
           <div className="action-buttons">
             <button
-              onClick={handleUpload}
               className="action-button camera-button"
+              disabled={isUploading}
             >
               <span className="icon">📸</span> ใช้กล้อง
               <input
@@ -82,10 +87,17 @@ function Home() {
             <button
               onClick={handleSearch}
               className="action-button search-button"
+              disabled={isUploading}
             >
               <span className="icon">🔍</span> ค้นหาดีล
             </button>
           </div>
+
+          {isUploading && (
+            <div className="mt-4 text-center text-gray-500 animate-pulse">
+              กำลังวิเคราะห์...
+            </div>
+          )}
         </div>
       </div>
     </div>
