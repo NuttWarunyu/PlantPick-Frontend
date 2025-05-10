@@ -1,10 +1,9 @@
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import { identifyPlant } from "../api/identify.js";
 import "../styles.css";
 
 function Home() {
   const [plantName, setPlantName] = useState("");
-  const [imageFile, setImageFile] = useState(null);
   const [notification, setNotification] = useState({ message: "", type: "" });
   const [isUploading, setIsUploading] = useState(false);
 
@@ -13,23 +12,22 @@ function Home() {
     setTimeout(() => setNotification({ message: "", type: "" }), 3000);
   };
 
-  const handleFileChange = (event) => {
+  const handleFileChange = async (event) => {
     const file = event.target.files[0];
     if (file) {
-      setImageFile(file);
       showNotification("ไฟล์รูปภาพถูกเลือกแล้ว", "info");
-      handleUpload(); // เรียก handleUpload ทันทีหลังเลือกไฟล์
+      await handleUpload(file); // เรียก handleUpload ด้วยไฟล์ทันที
     }
   };
 
-  const handleUpload = async () => {
-    if (!imageFile) {
+  const handleUpload = useCallback(async (file) => {
+    if (!file) {
       showNotification("กรุณาเลือกไฟล์รูปภาพ", "error");
       return;
     }
     setIsUploading(true);
     try {
-      const result = await identifyPlant(imageFile, true);
+      const result = await identifyPlant(file, true);
       if (result.error) {
         throw new Error(result.error);
       }
@@ -37,19 +35,20 @@ function Home() {
       window.location.href = `/identify-result?name=${encodeURIComponent(
         result.plant_info.name
       )}`;
-    } catch {
+    } catch (error) {
+      console.error("Upload error:", error);
       showNotification("เกิดข้อผิดพลาดในการระบุต้นไม้", "error");
     } finally {
       setIsUploading(false);
     }
-  };
+  }, []); // ใช้ useCallback เพื่อป้องกันการ re-render สูญเปล่า
 
   const handleSearch = () => {
     if (!plantName.trim()) {
       showNotification("กรุณากรอกชื่อต้นไม้", "error");
       return;
     }
-    window.location.href = `/search-result?name=${encodeURIComponent(
+    window.location.href = `/search-results?name=${encodeURIComponent(
       plantName
     )}`;
   };

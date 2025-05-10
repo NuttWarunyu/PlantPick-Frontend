@@ -5,7 +5,7 @@ import PopularPlants from "./pages/PopularPlants";
 import Marketplace from "./pages/Marketplace";
 import "./App.css";
 import IdentifyResult from "./pages/IdentifyResult";
-import SearchResult from "./pages/SearchResults"; // แก้ชื่อไฟล์ให้ถูกต้อง
+import SearchResults from "./pages/SearchResults"; // แก้ Import ให้ถูกต้อง
 
 function App() {
   console.log("Rendering App.jsx");
@@ -33,8 +33,8 @@ function App() {
             <Route path="/diy-gardeners" element={<PopularPlants />} />
             <Route path="/marketplace" element={<Marketplace />} />
             <Route path="/identify-result" element={<IdentifyResult />} />
-            <Route path="/search-result" element={<SearchResult />} />{" "}
-            {/* เพิ่ม Route นี้ */}
+            <Route path="/search-results" element={<SearchResults />} />{" "}
+            {/* เปลี่ยน path เป็น /search-results */}
           </Routes>
         </main>
 
