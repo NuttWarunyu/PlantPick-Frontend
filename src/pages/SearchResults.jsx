@@ -18,6 +18,16 @@ function SearchResults() {
     const fetchPlantInfo = async () => {
       if (!plantName) {
         console.log("No plant name provided");
+        setPlantInfo({
+          name: "กรุณากรอกชื่อต้นไม้",
+          price: "ไม่มีข้อมูล",
+          description: "ไม่มีข้อมูล",
+          careInstructions: "ไม่มีข้อมูล",
+          gardenIdeas: "ไม่มีข้อมูล",
+          affiliateLink: "https://shopee.co.th/plant-link",
+        });
+        setRelatedPlants([]);
+        setImageBase64(null);
         return;
       }
       const encodedPlantName = encodeURIComponent(plantName);
@@ -30,10 +40,21 @@ function SearchResults() {
           credentials: "include",
         });
         console.log("Response status:", response.status);
+        if (!response.ok)
+          throw new Error(`HTTP error! status: ${response.status}`);
         const data = await response.json();
         console.log("Parsed response data:", data);
-        setPlantInfo(data.plant_info);
-        setRelatedPlants(data.related_plants);
+        setPlantInfo(
+          data.plant_info || {
+            name: "ไม่พบข้อมูล",
+            price: "ไม่มีข้อมูล",
+            description: "ไม่มีข้อมูล",
+            careInstructions: "ไม่มีข้อมูล",
+            gardenIdeas: "ไม่มีข้อมูล",
+            affiliateLink: "https://shopee.co.th/plant-link",
+          }
+        );
+        setRelatedPlants(data.related_plants || []);
         setImageBase64(data.image_base64);
       } catch (error) {
         console.error("Error fetching plant info:", error);
@@ -53,7 +74,6 @@ function SearchResults() {
     fetchPlantInfo();
   }, [plantName, API_URL]);
 
-  if (!plantName) return <div>กรุณากรอกชื่อต้นไม้ในช่องค้นหา</div>;
   if (!plantInfo) return <div>Loading...</div>;
 
   return (
