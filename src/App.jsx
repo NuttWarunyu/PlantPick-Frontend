@@ -5,7 +5,8 @@ import PopularPlants from "./pages/PopularPlants";
 import Marketplace from "./pages/Marketplace";
 import "./App.css";
 import IdentifyResult from "./pages/IdentifyResult";
-import SearchResults from "./pages/SearchResults"; // แก้ Import ให้ถูกต้อง
+import SearchResults from "./pages/SearchResults";
+import TestShopeeAPI from "./pages/TestShopeeAPI"; // เพิ่มการ Import
 
 function App() {
   console.log("Rendering App.jsx");
@@ -24,6 +25,7 @@ function App() {
             <Link to="/">ค้นหาต้นไม้</Link> |{" "}
             <Link to="/diy-gardeners">จัดสวนเอง</Link> |{" "}
             <Link to="/marketplace">ตลาดต้นไม้เสรี</Link>
+            <Link to="/test-shopee">ทดสอบ API</Link> {/* เพิ่มลิงก์ */}
           </nav>
         </header>
 
@@ -34,7 +36,7 @@ function App() {
             <Route path="/marketplace" element={<Marketplace />} />
             <Route path="/identify-result" element={<IdentifyResult />} />
             <Route path="/search-results" element={<SearchResults />} />{" "}
-            {/* เปลี่ยน path เป็น /search-results */}
+            <Route path="/test-shopee" element={<TestShopeeAPI />} />{" "}
           </Routes>
         </main>
 
