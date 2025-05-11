@@ -1,23 +1,21 @@
 import React, { useState, useEffect } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import "../styles.css";
 
 function SearchResults() {
   const [plantInfo, setPlantInfo] = useState(null);
-  const [relatedPlants, setRelatedPlants] = useState([]);
+  const [affiliateOffers, setAffiliateOffers] = useState([]);
   const [imageBase64, setImageBase64] = useState(null);
   const location = useLocation();
+  const navigate = useNavigate();
   const searchParams = new URLSearchParams(location.search);
   const plantName = searchParams.get("name");
 
   const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
-  console.log("API_URL being used:", API_URL);
-  console.log("Plant name from search:", plantName);
 
   useEffect(() => {
     const fetchPlantInfo = async () => {
       if (!plantName) {
-        console.log("No plant name provided");
         setPlantInfo({
           name: "กรุณากรอกชื่อต้นไม้",
           price: "ไม่มีข้อมูล",
@@ -26,24 +24,22 @@ function SearchResults() {
           gardenIdeas: "ไม่มีข้อมูล",
           affiliateLink: "https://shopee.co.th/plant-link",
         });
-        setRelatedPlants([]);
+        setAffiliateOffers([]);
         setImageBase64(null);
         return;
       }
       const encodedPlantName = encodeURIComponent(plantName);
-      console.log("Encoded plant name:", encodedPlantName);
-      const url = `${API_URL}/identify/?name=${encodedPlantName}`;
-      console.log("Fetching from:", url);
       try {
-        const response = await fetch(url, {
-          mode: "cors",
-          credentials: "include",
-        });
-        console.log("Response status:", response.status);
+        const response = await fetch(
+          `${API_URL}/identify/?name=${encodedPlantName}`,
+          {
+            mode: "cors",
+            credentials: "include",
+          }
+        );
         if (!response.ok)
           throw new Error(`HTTP error! status: ${response.status}`);
         const data = await response.json();
-        console.log("Parsed response data:", data);
         setPlantInfo(
           data.plant_info || {
             name: "ไม่พบข้อมูล",
@@ -54,7 +50,7 @@ function SearchResults() {
             affiliateLink: "https://shopee.co.th/plant-link",
           }
         );
-        setRelatedPlants(data.related_plants || []);
+        setAffiliateOffers(data.affiliate_offers || []);
         setImageBase64(data.image_base64);
       } catch (error) {
         console.error("Error fetching plant info:", error);
@@ -66,7 +62,7 @@ function SearchResults() {
           gardenIdeas: "ไม่มีข้อมูล",
           affiliateLink: "https://shopee.co.th/plant-link",
         });
-        setRelatedPlants([]);
+        setAffiliateOffers([]);
         setImageBase64(null);
       }
     };
@@ -74,62 +70,100 @@ function SearchResults() {
     fetchPlantInfo();
   }, [plantName, API_URL]);
 
+  const handleShare = () => {
+    if (navigator.share) {
+      navigator
+        .share({
+          title: `พบต้นไม้: ${plantInfo?.name}`,
+          text: `มาดูข้อมูลต้นไม้ ${plantInfo?.name} กัน!`,
+          url: window.location.href,
+        })
+        .catch((error) => console.error("Error sharing:", error));
+    } else {
+      alert("ฟังก์ชันแชร์ไม่รองรับในเบราว์เซอร์นี้");
+    }
+  };
+
   if (!plantInfo) return <div>Loading...</div>;
+
+  // เรียงลำดับ affiliateOffers จากราคาถูกสุดไปแพงสุด (จำกัด 5 อันดับแรก)
+  const sortedOffers = [...affiliateOffers]
+    .sort((a, b) => parseFloat(a.price) - parseFloat(b.price))
+    .slice(0, 5);
 
   return (
     <div className="home">
       <div className="home-container">
-        <div className="category-section">
+        {/* ส่วนที่ 1: สรุปต้นไม้หลัก */}
+        <div className="category-section plant-main">
           <h3 className="category-title">
-            <span className="category-icon">🔍</span> ผลการค้นหาต้นไม้:{" "}
-            {plantInfo.name}
+            <span className="category-icon">🌱</span> {plantInfo.name}
           </h3>
-          <div className="cute-items">
-            <div className="cute-card">
-              {imageBase64 && (
-                <img
-                  src={`data:image/jpeg;base64,${imageBase64}`}
-                  alt="Searched plant"
-                  className="cute-image"
-                  style={{
-                    maxWidth: "100%",
-                    height: "auto",
-                    marginBottom: "10px",
-                  }}
-                />
-              )}
-              <h4 className="cute-name">{plantInfo.name}</h4>
-              <p className="cute-price">{plantInfo.price}</p>
-              <p className="cute-description">{plantInfo.description}</p>
-              <p className="cute-description">{plantInfo.careInstructions}</p>
-              <p className="cute-description">{plantInfo.gardenIdeas}</p>
-              <a
-                href={plantInfo.affiliateLink}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="cute-button"
-              >
-                ซื้อที่ Shopee
-              </a>
+          <div className="plant-card">
+            {imageBase64 && (
+              <img
+                src={`data:image/jpeg;base64,${imageBase64}`}
+                alt="Plant"
+                className="plant-image"
+              />
+            )}
+            <div className="plant-info">
+              <h4 className="plant-price">ราคา: {plantInfo.price}</h4>
+              <p className="plant-description">
+                <strong>ลักษณะ:</strong> {plantInfo.description}
+              </p>
+              <p className="plant-description">
+                <strong>วิธีดูแล:</strong> {plantInfo.careInstructions}
+              </p>
+              <p className="plant-description">
+                <strong>ไอเดียจัดสวน:</strong> {plantInfo.gardenIdeas}
+              </p>
             </div>
           </div>
         </div>
 
-        {relatedPlants.length > 0 && (
-          <div className="category-section">
+        {/* ส่วนที่ 2: เปรียบเทียบสินค้า (Affiliate Offers) */}
+        {sortedOffers.length > 0 && (
+          <div className="category-section affiliate-offers">
             <h3 className="category-title">
-              <span className="category-icon">🌿</span> ต้นไม้ที่เกี่ยวข้อง
+              <span className="category-icon">📊</span> เปรียบเทียบดีล
             </h3>
-            <div className="cute-items">
-              {relatedPlants.map((plant, index) => (
-                <div key={index} className="cute-card">
-                  <h4 className="cute-name">{plant.name}</h4>
-                  <p className="cute-price">{plant.price}</p>
+            <div className="offers-grid">
+              {sortedOffers.map((offer, index) => (
+                <div
+                  key={index}
+                  className={`offer-card ${
+                    index === 0 ? "best-deal" : "" // ไฮไลท์ร้านถูกสุด
+                  }`}
+                >
+                  <h4 className="offer-price">{offer.price}</h4>
+                  <p className="offer-shop">{offer.shopName}</p>
+                  <a
+                    href={offer.offerLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="offer-button"
+                  >
+                    ดูดีล
+                  </a>
                 </div>
               ))}
             </div>
           </div>
         )}
+
+        {/* ส่วนที่ 3: เสริม (Optional) */}
+        <div className="category-section actions">
+          <button className="action-button share-button" onClick={handleShare}>
+            แชร์
+          </button>
+          <button
+            className="action-button search-again-button"
+            onClick={() => navigate("/identify-result")}
+          >
+            ค้นหาด้วยรูป
+          </button>
+        </div>
       </div>
     </div>
   );

@@ -1,26 +1,98 @@
-.home {
-  background-color: #f5f7f5;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-start;
-  padding: 10px;
+/* รีเซ็ตพื้นฐาน */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
 
+body {
+  font-family: "Arial", sans-serif;
+  line-height: 1.6;
+  background-color: #f9f9f9;
+}
+
+/* Container หลัก */
 .home-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+/* Section หัวข้อ */
+.category-section {
+  margin-bottom: 20px;
+}
+
+.category-title {
+  font-size: 1.5em;
+  margin-bottom: 15px;
+  display: flex;
+  align-items: center;
+  color: #333;
+}
+
+.category-icon {
+  margin-right: 10px;
+}
+
+/* ส่วนที่ 1: สรุปต้นไม้หลัก */
+.plant-main .plant-card {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  padding: 20px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: flex-start;
-  flex-grow: 0;
-  margin-top: 20px;
 }
 
+.plant-image {
+  width: 100%;
+  max-width: 300px;
+  height: auto;
+  border-radius: 8px;
+  margin-bottom: 15px;
+}
+
+.plant-info {
+  text-align: center;
+}
+
+.plant-price {
+  font-size: 1.2em;
+  color: #2ecc71;
+  margin-bottom: 10px;
+}
+
+.plant-description {
+  font-size: 0.95em;
+  color: #666;
+  margin-bottom: 10px;
+}
+
+.plant-button {
+  display: inline-block;
+  padding: 10px 20px;
+  background-color: #3498db;
+  color: white;
+  text-decoration: none;
+  border-radius: 6px;
+  margin-top: 10px;
+  transition: background-color 0.3s;
+}
+
+.plant-button:hover {
+  background-color: #2980b9;
+}
+
+/* ฟอร์มอัปโหลดรูปและการค้นหา */
 .search-section {
   width: 100%;
   max-width: 400px;
-  margin-top: 0;
-  margin-bottom: 20px;
+  margin: 0 auto 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 .search-bar {
@@ -29,29 +101,29 @@
   border: 1px solid #ccc;
   border-radius: 25px;
   font-size: 16px;
-  font-family: "Poppins", sans-serif;
   background-color: #fff;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   outline: none;
+  margin-bottom: 10px;
 }
 
 .action-buttons {
   display: flex;
   justify-content: center;
   gap: 10px;
-  margin-top: 10px;
+  width: 100%;
+  max-width: 400px;
 }
 
 .action-button {
-  padding: 8px 16px;
-  border-radius: 20px;
-  font-size: 14px;
-  font-family: "Poppins", sans-serif;
-  display: flex;
-  align-items: center;
-  gap: 5px;
+  padding: 10px 20px;
   border: none;
+  border-radius: 25px; /* ใช้ border-radius เดียวกับ search-bar */
+  font-size: 14px;
   cursor: pointer;
+  transition: background-color 0.3s;
+  flex: 1; /* ปรับให้ปุ่มขยายตามเนื้อหา */
+  text-align: center;
 }
 
 .camera-button {
@@ -75,170 +147,258 @@
   color: white;
 }
 
-.icon {
-  font-size: 20px;
+.action-button:hover {
+  opacity: 0.9; /* เปลี่ยนจากสีเป็น opacity เพื่อให้ดูนุ่มนวล */
 }
 
-/* Styles for Search Results (ใช้คลาสเดียวกับ PopularPlants) */
-.cute-shop-page {
-  padding: 20px;
-  background-color: #fef7f6;
-  font-family: "Poppins", sans-serif;
+/* ส่วนที่ 2: เปรียบเทียบสินค้า (Affiliate Offers) */
+.affiliate-offers .offers-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 15px;
 }
 
-.cute-section {
-  max-width: 1200px;
-  margin: 0 auto;
-}
-
-.cute-title {
-  font-size: 2rem;
-  font-weight: bold;
-  color: #ff6f61;
-  text-align: center;
-  margin-bottom: 30px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-}
-
-.cute-icon {
-  font-size: 2.5rem;
-}
-
-.category-section {
-  margin-bottom: 40px;
-}
-
-.category-title {
-  font-size: 1.5rem;
-  font-weight: 600;
-  color: #4a4a4a;
-  margin-bottom: 20px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  border-bottom: 2px solid #ffccc7;
-  padding-bottom: 5px;
-}
-
-.category-icon {
-  font-size: 1.8rem;
-}
-
-.cute-items {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 20px;
-  justify-content: center;
-}
-
-.cute-card {
-  background-color: #fff;
-  border-radius: 15px;
+.offer-card {
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
   padding: 15px;
-  width: 100%;
-  max-width: 300px;
   text-align: center;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  transition: transform 0.2s ease;
+  position: relative;
 }
 
-.cute-card:hover {
-  transform: translateY(-5px);
+.offer-card.best-deal {
+  border: 2px solid #2ecc71;
+  position: relative;
 }
 
-.cute-image {
+.offer-card.best-deal::before {
+  content: "ดีลดีที่สุด";
+  position: absolute;
+  top: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #2ecc71;
+  color: white;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.8em;
+}
+
+.offer-image {
   width: 100%;
-  height: 150px;
-  object-fit: cover;
-  border-radius: 10px;
+  max-width: 150px;
+  height: auto;
+  border-radius: 6px;
   margin-bottom: 10px;
 }
 
-.cute-name {
-  font-size: 1.1rem;
-  font-weight: 600;
-  color: #4a4a4a;
+.offer-price {
+  font-size: 1.1em;
+  color: #e74c3c;
   margin-bottom: 5px;
 }
 
-.cute-price {
-  font-size: 1rem;
-  color: #ff6f61;
-  margin-bottom: 10px;
-}
-
-.cute-description {
-  font-size: 0.9rem;
+.offer-shop {
+  font-size: 0.9em;
   color: #666;
+  margin-bottom: 5px;
+}
+
+.offer-commission {
+  font-size: 0.85em;
+  color: #888;
   margin-bottom: 10px;
 }
 
-.cute-button {
+.offer-button {
   display: inline-block;
   padding: 8px 16px;
-  background-color: #ff9999;
+  background-color: #e67e22;
   color: white;
   text-decoration: none;
-  border-radius: 20px;
-  font-size: 0.9rem;
-  transition: background-color 0.3s ease;
+  border-radius: 4px;
+  transition: background-color 0.3s;
 }
 
-.cute-button:hover {
-  background-color: #ff6666;
+.offer-button:hover {
+  background-color: #d35400;
 }
 
-/* Responsive */
-@media (max-width: 767px) {
-  .cute-card {
+/* ส่วนที่ 3: ต้นไม้ที่เกี่ยวข้อง (Related Plants) */
+.related-plants .related-scroll {
+  display: flex;
+  overflow-x: auto;
+  gap: 15px;
+  padding-bottom: 10px;
+}
+
+.related-scroll::-webkit-scrollbar {
+  height: 8px;
+}
+
+.related-scroll::-webkit-scrollbar-thumb {
+  background: #ccc;
+  border-radius: 4px;
+}
+
+.related-card {
+  flex: 0 0 auto;
+  width: 150px;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  padding: 10px;
+  text-align: center;
+}
+
+.related-image {
+  width: 100%;
+  max-width: 100px;
+  height: auto;
+  border-radius: 6px;
+  margin-bottom: 10px;
+}
+
+.related-name {
+  font-size: 1em;
+  margin-bottom: 5px;
+}
+
+.related-price {
+  font-size: 0.9em;
+  color: #2ecc71;
+  margin-bottom: 10px;
+}
+
+.related-button {
+  background: #7f8c8d;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.related-button:hover {
+  background: #95a5a6;
+}
+
+/* ส่วนที่ 4: ปุ่มเสริม */
+.actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+
+.action-button {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.share-button {
+  background: #3498db;
+  color: white;
+}
+
+.share-button:hover {
+  background: #2980b9;
+}
+
+.search-again-button {
+  background: #95a5a6;
+  color: white;
+}
+
+.search-again-button:hover {
+  background: #7f8c8d;
+}
+
+/* Responsive Design (Mobile-First) */
+@media (max-width: 768px) {
+  .home-container {
+    padding: 15px;
+  }
+
+  .category-title {
+    font-size: 1.3em;
+  }
+
+  .plant-card {
+    padding: 15px;
+  }
+
+  .plant-image {
+    max-width: 250px;
+  }
+
+  .affiliate-offers .offers-grid {
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  }
+
+  .offer-card {
+    padding: 10px;
+  }
+
+  .offer-image {
+    max-width: 120px;
+  }
+
+  .related-card {
+    width: 130px;
+  }
+
+  .related-image {
+    max-width: 80px;
+  }
+
+  .search-section {
     max-width: 100%;
   }
-}
 
-@media (min-width: 768px) {
-  .cute-items {
-    justify-content: space-between;
+  .action-buttons {
+    flex-direction: column;
+    gap: 10px;
   }
-  .cute-card {
-    width: calc(33.33% - 20px);
+
+  .action-button {
+    width: 100%;
   }
 }
 
-/* Custom Notification Styles */
-.notification {
-  position: fixed;
-  top: 20px;
-  right: 20px;
-  padding: 10px 20px;
-  border-radius: 5px;
-  color: white;
-  font-family: "Poppins", sans-serif;
-  z-index: 1000;
-  animation: slideIn 0.3s ease-out;
-}
-
-.notification-success {
-  background-color: #4caf50;
-}
-
-.notification-error {
-  background-color: #ef4444;
-}
-
-.notification-info {
-  background-color: #3b82f6;
-}
-
-@keyframes slideIn {
-  from {
-    transform: translateX(100%);
-    opacity: 0;
+@media (max-width: 480px) {
+  .category-title {
+    font-size: 1.2em;
   }
-  to {
-    transform: translateX(0);
-    opacity: 1;
+
+  .plant-image {
+    max-width: 200px;
+  }
+
+  .plant-price,
+  .plant-description {
+    font-size: 0.9em;
+  }
+
+  .offer-image {
+    max-width: 100px;
+  }
+
+  .related-card {
+    width: 120px;
+  }
+
+  .actions {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .action-button {
+    width: 100%;
+    padding: 12px;
   }
 }
