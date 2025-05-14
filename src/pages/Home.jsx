@@ -75,7 +75,7 @@ function Home() {
               className="action-button camera-button"
               disabled={isUploading}
             >
-              <span className="icon">📸</span> ใช้กล้อง
+              <span className="icon">📸</span> อัพรูป
               <input
                 type="file"
                 accept="image/*"

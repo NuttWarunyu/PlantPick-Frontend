@@ -1,370 +1,114 @@
 import React from "react";
-import "../styles.css";
 
-function PopularPlants() {
-  const popularPlants = [
+function PopularGardens() {
+  const popularGardens = [
     {
-      name: "ไทรใบสัก",
-      price: 150,
-      image: "https://example.com/thaiyak.jpg",
-      shopeeLink: "https://shopee.co.th/product/12345",
+      name: "สวนกระบองเพชรขนาดเล็ก",
+      popularityScore: 95,
+      price: 450,
+      image:
+        "https://down-th.img.susercontent.com/file/th-11134207-7r98y-lv4t2m5z3q5v95",
+      shopeeLink:
+        "https://shopee.co.th/สวนกระบองเพชร-ขนาดเล็ก-i.12345690.987654340",
     },
     {
-      name: "ยางอินเดีย",
-      price: 200,
-      image: "https://example.com/yangindia.jpg",
-      shopeeLink: "https://shopee.co.th/product/12346",
+      name: "สวนหิน Zen มินิ",
+      popularityScore: 88,
+      price: 600,
+      image:
+        "https://down-th.img.susercontent.com/file/th-11134207-7r98y-lv4t2m5z3q5v96",
+      shopeeLink: "https://shopee.co.th/สวนหิน-zen-มินิ-i.12345691.987654341",
     },
     {
-      name: "ลิ้นมังกร",
-      price: 120,
-      image: "https://example.com/linmangkon.jpg",
-      shopeeLink: "https://shopee.co.th/product/12347",
-    },
-    {
-      name: "มอนสเตร่า",
-      price: 300,
-      image: "https://example.com/monstera.jpg",
-      shopeeLink: "https://shopee.co.th/product/12348",
-    },
-    {
-      name: "เฟิร์นบอสตัน",
-      price: 180,
-      image: "https://example.com/fern.jpg",
-      shopeeLink: "https://shopee.co.th/product/12349",
-    },
-    {
-      name: "พลูด่าง",
-      price: 250,
-      image: "https://example.com/pludang.jpg",
-      shopeeLink: "https://shopee.co.th/product/12350",
-    },
-    {
-      name: "เดหลี",
-      price: 90,
-      image: "https://example.com/delee.jpg",
-      shopeeLink: "https://shopee.co.th/product/12351",
-    },
-    {
-      name: "บอนสี",
-      price: 220,
-      image: "https://example.com/bonsi.jpg",
-      shopeeLink: "https://shopee.co.th/product/12352",
-    },
-    {
-      name: "ว่านสี่ทิศ",
-      price: 160,
-      image: "https://example.com/wansitit.jpg",
-      shopeeLink: "https://shopee.co.th/product/12353",
-    },
-    {
-      name: "กุหลาบหิน",
-      price: 140,
-      image: "https://example.com/rose.jpg",
-      shopeeLink: "https://shopee.co.th/product/12354",
-    },
-    {
-      name: "ต้นเงินไหลมา",
-      price: 170,
-      image: "https://example.com/money.jpg",
-      shopeeLink: "https://shopee.co.th/product/12355",
-    },
-    {
-      name: "ต้นจั๋ง",
-      price: 130,
-      image: "https://example.com/jang.jpg",
-      shopeeLink: "https://shopee.co.th/product/12356",
-    },
-    {
-      name: "ต้นเขียวหมื่นปี",
-      price: 190,
-      image: "https://example.com/green.jpg",
-      shopeeLink: "https://shopee.co.th/product/12357",
-    },
-    {
-      name: "ต้นคลาสซูล่า",
-      price: 200,
-      image: "https://example.com/crassula.jpg",
-      shopeeLink: "https://shopee.co.th/product/12358",
-    },
-    {
-      name: "ต้นว่านหางจระเข้",
-      price: 110,
-      image: "https://example.com/aloe.jpg",
-      shopeeLink: "https://shopee.co.th/product/12359",
-    },
-    {
-      name: "ต้นออมเงิน",
-      price: 160,
-      image: "https://example.com/ommoney.jpg",
-      shopeeLink: "https://shopee.co.th/product/12360",
-    },
-    {
-      name: "ต้นกวักมรกต",
-      price: 180,
-      image: "https://example.com/gwak.jpg",
-      shopeeLink: "https://shopee.co.th/product/12361",
-    },
-    {
-      name: "ต้นว่านงาช้าง",
-      price: 150,
-      image: "https://example.com/ngachang.jpg",
-      shopeeLink: "https://shopee.co.th/product/12362",
-    },
-    {
-      name: "ต้นฟิโลเดนดรอน",
-      price: 220,
-      image: "https://example.com/philo.jpg",
-      shopeeLink: "https://shopee.co.th/product/12363",
-    },
-    {
-      name: "ต้นเข็ม",
-      price: 140,
-      image: "https://example.com/khem.jpg",
-      shopeeLink: "https://shopee.co.th/product/12364",
-    },
-    {
-      name: "ต้นชบา",
-      price: 130,
-      image: "https://example.com/chaba.jpg",
-      shopeeLink: "https://shopee.co.th/product/12365",
-    },
-    {
-      name: "ต้นกล้วยไม้",
-      price: 300,
-      image: "https://example.com/orchid.jpg",
-      shopeeLink: "https://shopee.co.th/product/12366",
-    },
-    {
-      name: "ต้นโป๊ยเซียน",
-      price: 120,
-      image: "https://example.com/poysean.jpg",
-      shopeeLink: "https://shopee.co.th/product/12367",
-    },
-    {
-      name: "ต้นลาเวนเดอร์",
-      price: 200,
-      image: "https://example.com/lavender.jpg",
-      shopeeLink: "https://shopee.co.th/product/12368",
-    },
-    {
-      name: "ต้นมะลิ",
-      price: 150,
-      image: "https://example.com/jasmine.jpg",
-      shopeeLink: "https://shopee.co.th/product/12369",
-    },
-  ];
-
-  const gardenDecorations = [
-    {
-      name: "กระถางเซรามิคเล็ก",
-      price: 120,
-      image: "https://example.com/ceramicpot1.jpg",
-      shopeeLink: "https://shopee.co.th/product/12370",
-    },
-    {
-      name: "กระถางเซรามิคใหญ่",
-      price: 250,
-      image: "https://example.com/ceramicpot2.jpg",
-      shopeeLink: "https://shopee.co.th/product/12371",
-    },
-    {
-      name: "ขอบพลาสติกสีขาว",
-      price: 150,
-      image: "https://example.com/plasticedge1.jpg",
-      shopeeLink: "https://shopee.co.th/product/12372",
-    },
-    {
-      name: "ขอบพลาสติกสีเขียว",
-      price: 150,
-      image: "https://example.com/plasticedge2.jpg",
-      shopeeLink: "https://shopee.co.th/product/12373",
-    },
-    {
-      name: "ตุ๊กตาแมวสีขาว",
-      price: 200,
-      image: "https://example.com/catstatue1.jpg",
-      shopeeLink: "https://shopee.co.th/product/12374",
-    },
-    {
-      name: "ตุ๊กตาแมวสีส้ม",
-      price: 200,
-      image: "https://example.com/catstatue2.jpg",
-      shopeeLink: "https://shopee.co.th/product/12375",
-    },
-    {
-      name: "กระถางลายดอกไม้",
-      price: 180,
-      image: "https://example.com/flowerpot.jpg",
-      shopeeLink: "https://shopee.co.th/product/12376",
-    },
-    {
-      name: "ป้ายไม้ชื่อต้นไม้",
-      price: 80,
-      image: "https://example.com/plantlabel.jpg",
-      shopeeLink: "https://shopee.co.th/product/12377",
-    },
-    {
-      name: "โคมไฟสวนขนาดเล็ก",
-      price: 300,
-      image: "https://example.com/gardenlight1.jpg",
-      shopeeLink: "https://shopee.co.th/product/12378",
-    },
-    {
-      name: "โคมไฟสวนลายดอก",
+      name: "สวนในกระถางกลม",
+      popularityScore: 82,
       price: 350,
-      image: "https://example.com/gardenlight2.jpg",
-      shopeeLink: "https://shopee.co.th/product/12379",
+      image:
+        "https://down-th.img.susercontent.com/file/th-11134207-7r98y-lv4t2m5z3q5v97",
+      shopeeLink: "https://shopee.co.th/สวนในกระถางกลม-i.12345692.987654342",
     },
     {
-      name: "ชิงช้าตุ๊กตา",
-      price: 220,
-      image: "https://example.com/swingset.jpg",
-      shopeeLink: "https://shopee.co.th/product/12380",
+      name: "สวนแนวตั้ง DIY",
+      popularityScore: 75,
+      price: 800,
+      image:
+        "https://down-th.img.susercontent.com/file/th-11134207-7r98y-lv4t2m5z3q5v98",
+      shopeeLink: "https://shopee.co.th/สวนแนวตั้ง-diy-i.12345693.987654343",
     },
     {
-      name: "น้ำพุจิ๋ว",
+      name: "สวนสมุนไพรชุดเล็ก",
+      popularityScore: 70,
       price: 400,
-      image: "https://example.com/fountain.jpg",
-      shopeeLink: "https://shopee.co.th/product/12381",
-    },
-    {
-      name: "หินตกแต่งสีขาว",
-      price: 100,
-      image: "https://example.com/whitestone.jpg",
-      shopeeLink: "https://shopee.co.th/product/12382",
-    },
-    {
-      name: "หินตกแต่งสีเทา",
-      price: 100,
-      image: "https://example.com/greystone.jpg",
-      shopeeLink: "https://shopee.co.th/product/12383",
-    },
-    {
-      name: "ตุ๊กตากระต่าย",
-      price: 180,
-      image: "https://example.com/rabbitstatue.jpg",
-      shopeeLink: "https://shopee.co.th/product/12384",
-    },
-    {
-      name: "กระถางแขวนลายจุด",
-      price: 150,
-      image: "https://example.com/hangingpot1.jpg",
-      shopeeLink: "https://shopee.co.th/product/12385",
-    },
-    {
-      name: "กระถางแขวนลายใบ",
-      price: 150,
-      image: "https://example.com/hangingpot2.jpg",
-      shopeeLink: "https://shopee.co.th/product/12386",
-    },
-    {
-      name: "ชั้นวางต้นไม้ไม้ไผ่",
-      price: 500,
-      image: "https://example.com/bambooshelf.jpg",
-      shopeeLink: "https://shopee.co.th/product/12387",
-    },
-    {
-      name: "ป้ายสวนลายดอก",
-      price: 90,
-      image: "https://example.com/gardensign.jpg",
-      shopeeLink: "https://shopee.co.th/product/12388",
-    },
-    {
-      name: "ที่รดน้ำลายการ์ตูน",
-      price: 120,
-      image: "https://example.com/wateringcan.jpg",
-      shopeeLink: "https://shopee.co.th/product/12389",
-    },
-    {
-      name: "ผ้าคลุมดินสีเขียว",
-      price: 200,
-      image: "https://example.com/groundcover.jpg",
-      shopeeLink: "https://shopee.co.th/product/12390",
-    },
-    {
-      name: "ตุ๊กตานกฮูก",
-      price: 180,
-      image: "https://example.com/owlstatue.jpg",
-      shopeeLink: "https://shopee.co.th/product/12391",
-    },
-    {
-      name: "ตาข่ายกันนก",
-      price: 250,
-      image: "https://example.com/birdnet.jpg",
-      shopeeLink: "https://shopee.co.th/product/12392",
-    },
-    {
-      name: "ลูกบอลไฟสวน",
-      price: 300,
-      image: "https://example.com/lightball.jpg",
-      shopeeLink: "https://shopee.co.th/product/12393",
-    },
-    {
-      name: "ม้านั่งจิ๋ว",
-      price: 220,
-      image: "https://example.com/minibench.jpg",
-      shopeeLink: "https://shopee.co.th/product/12394",
+      image:
+        "https://down-th.img.susercontent.com/file/th-11134207-7r98y-lv4t2m5z3q5v99",
+      shopeeLink:
+        "https://shopee.co.th/สวนสมุนไพร-ชุดเล็ก-i.12345694.987654344",
     },
   ];
+
+  const sortedGardens = [...popularGardens].sort(
+    (a, b) => b.popularityScore - a.popularityScore
+  );
 
   return (
-    <div className="cute-shop-page">
-      <section className="cute-section">
-        <h2 className="cute-title">
-          <span className="cute-icon">🌿</span> ร้าน DIY Gardeners
-        </h2>
+    <div className="bg-gradient-to-b from-green-50 to-white min-h-screen py-12 px-4">
+      <div className="max-w-6xl mx-auto">
+        {/* Header Section */}
+        <div className="text-center mb-12">
+          <h2 className="text-4xl font-bold text-green-800 mb-4 flex items-center justify-center">
+            <span className="mr-2">🌿</span> สวนยอดนิยมจาก Shopee
+          </h2>
+          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+            ไอเดียสวนสำเร็จรูปที่ลูกค้าชื่นชอบ จัดตามได้ง่าย
+            มาพร้อมลิงก์ช้อปปิ้งสุดสะดวก!
+          </p>
+        </div>
 
-        {/* หมวดหมู่ต้นไม้ยอดนิยม */}
-        <div className="category-section">
-          <h3 className="category-title">
-            <span className="category-icon">🌱</span> ต้นไม้ยอดนิยม
-          </h3>
-          <div className="cute-items">
-            {popularPlants.map((item, index) => (
-              <div key={index} className="cute-card">
-                <img src={item.image} alt={item.name} className="cute-image" />
-                <h4 className="cute-name">{item.name}</h4>
-                <p className="cute-price">{item.price} บาท</p>
+        {/* Garden Cards Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
+          {sortedGardens.map((item, index) => (
+            <div
+              key={index}
+              className="relative bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transform hover:-translate-y-2 transition-all duration-300"
+            >
+              {/* Badge for Popular Items */}
+              {item.popularityScore > 85 && (
+                <span className="absolute top-3 left-3 bg-red-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow-md">
+                  🔥 ยอดนิยม
+                </span>
+              )}
+              {/* Image */}
+              <div className="relative">
+                <img
+                  src={item.image}
+                  alt={item.name}
+                  className="w-full h-60 object-cover transition-opacity duration-300 hover:opacity-90"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent"></div>
+              </div>
+              {/* Content */}
+              <div className="p-6">
+                <h4 className="text-xl font-semibold text-gray-800 mb-2 truncate">
+                  {item.name}
+                </h4>
+                <p className="text-green-600 font-bold text-lg mb-4">
+                  {item.price.toLocaleString()} บาท
+                </p>
                 <a
                   href={item.shopeeLink}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="cute-button"
+                  className="block bg-orange-500 hover:bg-orange-600 text-white font-medium px-4 py-2 rounded-lg text-center transition-colors duration-300 shadow-md"
                 >
-                  ซื้อที่ Shopee
+                  🛒 ซื้อที่ Shopee
                 </a>
               </div>
-            ))}
-          </div>
+            </div>
+          ))}
         </div>
-
-        {/* หมวดหมู่ของตกแต่งสวน */}
-        <div className="category-section">
-          <h3 className="category-title">
-            <span className="category-icon">🌸</span> ของตกแต่งสวน
-          </h3>
-          <div className="cute-items">
-            {gardenDecorations.map((item, index) => (
-              <div key={index} className="cute-card">
-                <img src={item.image} alt={item.name} className="cute-image" />
-                <h4 className="cute-name">{item.name}</h4>
-                <p className="cute-price">{item.price} บาท</p>
-                <a
-                  href={item.shopeeLink}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="cute-button"
-                >
-                  ซื้อที่ Shopee
-                </a>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+      </div>
     </div>
   );
 }
 
-export default PopularPlants;
+export default PopularGardens;
