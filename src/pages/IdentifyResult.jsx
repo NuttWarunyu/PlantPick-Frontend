@@ -7,6 +7,7 @@ function IdentifyResult() {
   const [affiliateOffers, setAffiliateOffers] = useState([]);
   const [imageBase64, setImageBase64] = useState(null);
   const [uploadedImage, setUploadedImage] = useState(null);
+  const [loading, setLoading] = useState(false); // เพิ่ม state สำหรับการโหลด
   const location = useLocation();
   const navigate = useNavigate();
   const searchParams = new URLSearchParams(location.search);
@@ -21,6 +22,7 @@ function IdentifyResult() {
     const formData = new FormData();
     formData.append("file", file);
 
+    setLoading(true); // เริ่มโหลด
     try {
       const response = await fetch(`${API_URL}/identify/`, {
         method: "POST",
@@ -45,6 +47,8 @@ function IdentifyResult() {
       });
       setAffiliateOffers([]);
       setImageBase64(null);
+    } finally {
+      setLoading(false); // หยุดโหลดเมื่อเสร็จ
     }
   };
 
@@ -52,6 +56,7 @@ function IdentifyResult() {
     const fetchPlantInfo = async () => {
       if (!plantName) return;
       const encodedPlantName = encodeURIComponent(plantName);
+      setLoading(true); // เริ่มโหลด
       try {
         const response = await fetch(
           `${API_URL}/identify/?name=${encodedPlantName}`,
@@ -76,6 +81,8 @@ function IdentifyResult() {
         });
         setAffiliateOffers([]);
         setImageBase64(null);
+      } finally {
+        setLoading(false); // หยุดโหลดเมื่อเสร็จ
       }
     };
 
@@ -95,6 +102,16 @@ function IdentifyResult() {
       alert("ฟังก์ชันแชร์ไม่รองรับในเบราว์เซอร์นี้");
     }
   };
+
+  // แสดง spinner ขณะโหลด
+  if (loading) {
+    return (
+      <div className="loading-spinner">
+        <div className="spinner"></div>
+        <p>กำลังโหลดข้อมูล...</p>
+      </div>
+    );
+  }
 
   if (!plantInfo) return <div>Loading...</div>;
 
@@ -184,9 +201,7 @@ function IdentifyResult() {
               {sortedOffers.map((offer, index) => (
                 <div
                   key={index}
-                  className={`offer-card ${
-                    index === 0 ? "best-deal" : "" // ไฮไลท์ร้านถูกสุด
-                  }`}
+                  className={`offer-card ${index === 0 ? "best-deal" : ""}`}
                 >
                   <h4 className="offer-price">{offer.price}</h4>
                   <p className="offer-shop">{offer.shopName}</p>
