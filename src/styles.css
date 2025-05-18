@@ -95,16 +95,33 @@ body {
   align-items: center;
 }
 
+/* Container ของช่องค้นหา */
 .search-bar {
+  width: 100%;
+  max-width: 400px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+/* สไตล์สำหรับ input */
+.search-input {
   width: 100%;
   padding: 12px;
   border: 1px solid #ccc;
   border-radius: 25px;
   font-size: 16px;
-  background-color: #fff;
+  background-color: #fff; /* พื้นหลังสีขาว */
+  color: #000; /* ตัวอักษรสีดำ */
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   outline: none;
-  margin-bottom: 10px;
+}
+
+/* เมื่อโฟกัส */
+.search-input:focus {
+  border-color: #00c853; /* ขอบสีเขียวเมื่อโฟกัส */
+  color: #000; /* ตัวอักษรยังเป็นสีดำ */
 }
 
 .action-buttons {
@@ -142,9 +159,20 @@ body {
   cursor: pointer;
 }
 
+/* สไตล์ปุ่มค้นหา */
 .search-button {
   background-color: #2e7d32;
   color: white;
+  border: none;
+  padding: 12px 20px;
+  border-radius: 25px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.search-button:hover {
+  opacity: 0.9;
 }
 
 .action-button:hover {
@@ -415,5 +443,24 @@ body {
   100% {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+.spinner {
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #00c853;
+  border-radius: 50%;
+  width: 48px;
+  height: 48px;
+  animation: spin 1s linear infinite;
+  margin: 1rem auto;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
   }
 }

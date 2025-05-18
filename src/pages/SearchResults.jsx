@@ -6,6 +6,7 @@ function SearchResults() {
   const [plantInfo, setPlantInfo] = useState(null);
   const [affiliateOffers, setAffiliateOffers] = useState([]);
   const [imageBase64, setImageBase64] = useState(null);
+  const [loading, setLoading] = useState(true); // เพิ่ม state loading
   const location = useLocation();
   const navigate = useNavigate();
   const searchParams = new URLSearchParams(location.search);
@@ -15,6 +16,7 @@ function SearchResults() {
 
   useEffect(() => {
     const fetchPlantInfo = async () => {
+      setLoading(true); // เริ่มโหลด
       if (!plantName) {
         setPlantInfo({
           name: "กรุณากรอกชื่อต้นไม้",
@@ -26,6 +28,7 @@ function SearchResults() {
         });
         setAffiliateOffers([]);
         setImageBase64(null);
+        setLoading(false); // หยุดโหลดถ้าไม่มีชื่อ
         return;
       }
       const encodedPlantName = encodeURIComponent(plantName);
@@ -64,6 +67,8 @@ function SearchResults() {
         });
         setAffiliateOffers([]);
         setImageBase64(null);
+      } finally {
+        setLoading(false); // หยุดโหลดไม่ว่าผลจะสำเร็จหรือล้มเหลว
       }
     };
 
@@ -84,7 +89,16 @@ function SearchResults() {
     }
   };
 
-  if (!plantInfo) return <div>Loading...</div>;
+  if (loading) {
+    return (
+      <div className="loading-spinner">
+        <div className="spinner"></div>
+        <p>กำลังโหลดข้อมูล...</p>
+      </div>
+    ); // แสดง spinner ขณะโหลด
+  }
+
+  if (!plantInfo) return <div>ไม่พบข้อมูลต้นไม้</div>;
 
   // เรียงลำดับ affiliateOffers จากราคาถูกสุดไปแพงสุด (จำกัด 5 อันดับแรก)
   const sortedOffers = [...affiliateOffers]
@@ -132,12 +146,12 @@ function SearchResults() {
               {sortedOffers.map((offer, index) => (
                 <div
                   key={index}
-                  className={`offer-card ${
-                    index === 0 ? "best-deal" : "" // ไฮไลท์ร้านถูกสุด
-                  }`}
+                  className={`offer-card ${index === 0 ? "best-deal" : ""}`}
                 >
                   <h4 className="offer-price">{offer.price}</h4>
-                  <p className="offer-shop">{offer.shopName}</p>
+                  <p className="offer-shop">
+                    {offer.shopName || "Shopee Store"}
+                  </p>
                   <a
                     href={offer.offerLink}
                     target="_blank"
