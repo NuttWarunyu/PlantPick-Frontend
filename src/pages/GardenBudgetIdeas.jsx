@@ -280,7 +280,7 @@ export default function GardenImageMaskPage() {
         }
 
         const response = await axios.post(
-          "https://plantpick-backend-production.up.railway.app",
+          "https://plantpick-backend.up.railway.app",
           formData,
           {
             headers: {
