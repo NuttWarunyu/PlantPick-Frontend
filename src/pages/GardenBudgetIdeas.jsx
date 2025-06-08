@@ -14,7 +14,6 @@ export default function GardenImageMaskPage() {
   const imageRef = useRef(null);
   const containerRef = useRef(null);
   const [isDrawing, setIsDrawing] = useState(false);
-  const [tool, setTool] = useState("pen");
   const history = useRef([]);
   const [points, setPoints] = useState([]); // เก็บจุดที่วาด
   const [bbox, setBbox] = useState(null); // เก็บ bounding box
@@ -41,6 +40,8 @@ export default function GardenImageMaskPage() {
       const canvas = canvasRef.current;
       const container = containerRef.current;
 
+      if (!img || !canvas || !container) return;
+
       const realWidth = img.naturalWidth;
       const displayWidth = container.offsetWidth;
       const ratio = displayWidth / realWidth;
@@ -52,19 +53,18 @@ export default function GardenImageMaskPage() {
 
       const ctx = canvas.getContext("2d");
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      // วาดเส้นประรอบ canvas เพื่อบ่งบอกขอบเขตการทำงาน
       ctx.setLineDash([5, 5]);
-      ctx.strokeStyle = "rgba(128, 128, 128, 0.5)"; // เส้นประสีเทา
+      ctx.strokeStyle = "rgba(128, 128, 128, 0.5)";
       ctx.lineWidth = 2;
       ctx.strokeRect(0, 0, canvas.width, canvas.height);
-      ctx.setLineDash([]); // รีเซ็ตเส้นประ
+      ctx.setLineDash([]);
       history.current = [];
     });
 
     resizeObserver.observe(containerRef.current);
 
     return () => resizeObserver.disconnect();
-  }, [imagePreview]);
+  }, [imagePreview, resultImage]);
 
   useEffect(() => {
     if (!canvasRef.current) return;
@@ -75,13 +75,11 @@ export default function GardenImageMaskPage() {
     const getPosition = (e) => {
       const rect = canvas.getBoundingClientRect();
       if (e.touches && e.touches.length > 0) {
-        // Handle touch events
         return {
           x: (e.touches[0].clientX - rect.left) * (canvas.width / rect.width),
           y: (e.touches[0].clientY - rect.top) * (canvas.height / rect.height),
         };
       } else {
-        // Handle mouse events
         const x =
           (e.offsetX !== undefined ? e.offsetX : e.clientX - rect.left) *
           (canvas.width / rect.width);
@@ -93,39 +91,32 @@ export default function GardenImageMaskPage() {
     };
 
     const handleStartDraw = (e) => {
+      if (!isDrawing || (e.touches && e.touches.length > 0 && !isDrawing))
+        return;
       e.preventDefault();
       const { x, y } = getPosition(e);
-      ctx.lineWidth = 1; // เส้นบางสำหรับเส้นประ
+      ctx.lineWidth = 1;
       ctx.lineCap = "round";
       ctx.beginPath();
       ctx.moveTo(x, y);
       history.current.push(canvas.toDataURL());
-      setIsDrawing(true);
       setPoints((prev) => [...prev, [x, y]]);
     };
 
     const handleDraw = (e) => {
       if (!isDrawing) return;
+      e.preventDefault();
       const { x, y } = getPosition(e);
       setPoints((prev) => [...prev, [x, y]]);
 
-      if (tool === "pen") {
-        ctx.strokeStyle = "rgba(128, 128, 128, 0.5)"; // เส้นประสีเทา
-        ctx.lineWidth = 1;
-        ctx.setLineDash([5, 5]); // ทำให้เป็นเส้นประ
-        ctx.globalCompositeOperation = "source-over";
-        ctx.lineTo(x, y);
-        ctx.stroke();
-        ctx.setLineDash([]); // รีเซ็ตเส้นประ
-      } else if (tool === "eraser") {
-        ctx.globalCompositeOperation = "destination-out";
-        ctx.lineWidth = 10; // ปรับขนาด eraser ให้เล็กลง
-        ctx.lineTo(x, y);
-        ctx.stroke();
-        ctx.globalCompositeOperation = "source-over";
-      }
+      ctx.strokeStyle = "rgba(128, 128, 128, 0.5)";
+      ctx.lineWidth = 1;
+      ctx.setLineDash([5, 5]);
+      ctx.globalCompositeOperation = "source-over";
+      ctx.lineTo(x, y);
+      ctx.stroke();
+      ctx.setLineDash([]);
 
-      // คำนวณและวาด Bounding Box แบบเรียลไทม์
       if (points.length > 0) {
         const xs = points.map(([px]) => px).concat([x]);
         const ys = points.map(([, py]) => py).concat([y]);
@@ -137,13 +128,11 @@ export default function GardenImageMaskPage() {
         ];
         setBbox(newBbox);
 
-        // รีวาดจาก history และวาด bbox
         const last = history.current[history.current.length - 1];
         if (last) {
           const img = new Image();
           img.onload = () => {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            // วาดเส้นประรอบ canvas อีกครั้ง
             ctx.setLineDash([5, 5]);
             ctx.strokeStyle = "rgba(128, 128, 128, 0.5)";
             ctx.lineWidth = 2;
@@ -151,7 +140,6 @@ export default function GardenImageMaskPage() {
             ctx.setLineDash([]);
             ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
 
-            // วาดเส้นที่เพิ่งเพิ่ม
             ctx.beginPath();
             ctx.moveTo(points[0][0], points[0][1]);
             for (let i = 1; i < points.length; i++) {
@@ -164,8 +152,7 @@ export default function GardenImageMaskPage() {
             ctx.stroke();
             ctx.setLineDash([]);
 
-            // วาด Bounding Box
-            ctx.strokeStyle = "rgba(255, 0, 0, 1)"; // สีแดงสำหรับ bbox
+            ctx.strokeStyle = "rgba(255, 0, 0, 1)";
             ctx.lineWidth = 2;
             ctx.strokeRect(
               newBbox[0],
@@ -184,7 +171,7 @@ export default function GardenImageMaskPage() {
       ctx.closePath();
       setIsDrawing(false);
       if (points.length > 0) {
-        history.current.push(canvas.toDataURL()); // บันทึกหลังวาดเสร็จ
+        history.current.push(canvas.toDataURL());
       }
     };
 
@@ -205,13 +192,12 @@ export default function GardenImageMaskPage() {
       canvas.removeEventListener("touchmove", handleDraw);
       canvas.removeEventListener("touchend", handleEndDraw);
     };
-  }, [isDrawing, tool, points]);
+  }, [isDrawing, points]);
 
   const clearMask = () => {
     const canvas = canvasRef.current;
     const ctx = canvas.getContext("2d");
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    // วาดเส้นประรอบ canvas
     ctx.setLineDash([5, 5]);
     ctx.strokeStyle = "rgba(128, 128, 128, 0.5)";
     ctx.lineWidth = 2;
@@ -220,33 +206,6 @@ export default function GardenImageMaskPage() {
     history.current = [];
     setPoints([]);
     setBbox(null);
-  };
-
-  const undo = () => {
-    const ctx = canvasRef.current?.getContext("2d");
-    const last = history.current.pop();
-    if (last && ctx) {
-      const img = new Image();
-      img.onload = () => {
-        ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
-        // วาดเส้นประรอบ canvas
-        ctx.setLineDash([5, 5]);
-        ctx.strokeStyle = "rgba(128, 128, 128, 0.5)";
-        ctx.lineWidth = 2;
-        ctx.strokeRect(0, 0, canvasRef.current.width, canvasRef.current.height);
-        ctx.setLineDash([]);
-        ctx.drawImage(
-          img,
-          0,
-          0,
-          canvasRef.current.width,
-          canvasRef.current.height
-        );
-        setPoints([]); // รีเซ็ต points
-        setBbox(null); // รีเซ็ต bbox
-      };
-      img.src = last;
-    }
   };
 
   const handleImageChange = (e) => {
@@ -268,7 +227,7 @@ export default function GardenImageMaskPage() {
       canvasRef.current.toBlob(async (blob) => {
         formData.append("image", image);
         formData.append("mask", blob);
-        formData.append("prompt", stylePrompts[selectedStyle]); // ใช้ prompt จาก selected style
+        formData.append("prompt", stylePrompts[selectedStyle]);
         if (bbox) {
           const normalizedBbox = [
             bbox[0] / canvasRef.current.width,
@@ -310,29 +269,20 @@ export default function GardenImageMaskPage() {
             <>
               <div className="flex space-x-2 mt-4">
                 <Button
-                  onClick={() => setTool("pen")}
-                  variant={tool === "pen" ? "default" : "outline"}
+                  onClick={() => setIsDrawing(!isDrawing)}
+                  variant={isDrawing ? "default" : "outline"}
                 >
-                  ✏️ Pen
-                </Button>
-                <Button
-                  onClick={() => setTool("eraser")}
-                  variant={tool === "eraser" ? "default" : "outline"}
-                >
-                  🧽 Eraser
-                </Button>
-                <Button onClick={undo} variant="outline">
-                  ↩️ Undo
+                  📏 ลากกรอบ
                 </Button>
                 <Button onClick={clearMask} variant="outline">
-                  🗑 Clear
+                  🔄 Reset กรอบ
                 </Button>
               </div>
 
               <p className="text-sm text-muted-foreground mt-2">
-                <span title="ลากเพื่อเลือกส่วนที่ต้องการคงไว้ เช่น ถ้าครอบบ้าน บ้านจะไม่เปลี่ยน แต่ส่วนที่ไม่ได้ครอบจะกลายเป็นสวนตามสไตล์ที่เลือก">
-                  🎨 ลากเพื่อเลือกส่วนที่ต้องการคงไว้
-                  (ส่วนที่ไม่ได้ลากจะเปลี่ยนเป็นสวน)
+                <span title="ลากกรอบครอบส่วนที่ต้องการคงไว้ (เช่น บ้าน) ส่วนที่เหลือจะเปลี่ยนเป็นสวน">
+                  🎨 ลากกรอบครอบส่วนที่ต้องการคงไว้ (เช่น บ้าน)
+                  (ส่วนที่เหลือจะเปลี่ยนเป็นสวน)
                 </span>
               </p>
 
@@ -343,6 +293,8 @@ export default function GardenImageMaskPage() {
                   width: "100%",
                   position: "relative",
                   userSelect: "none",
+                  maxHeight: "70vh",
+                  overflow: "auto",
                 }}
               >
                 <img
@@ -368,8 +320,8 @@ export default function GardenImageMaskPage() {
                     left: "0",
                     transform: `scale(${scale})`,
                     transformOrigin: "top left",
-                    touchAction: "none",
-                    cursor: "crosshair",
+                    touchAction: isDrawing ? "none" : "auto",
+                    cursor: isDrawing ? "crosshair" : "default",
                     zIndex: 10,
                   }}
                 />
@@ -400,11 +352,28 @@ export default function GardenImageMaskPage() {
       {resultImage && (
         <div className="mt-4">
           <h2 className="text-xl font-semibold mb-2">Result</h2>
-          <img
-            src={resultImage}
-            alt="Generated Garden"
-            className="rounded w-full h-auto"
-          />
+          <div
+            ref={containerRef}
+            className="canvasWrapper"
+            style={{
+              width: "100%",
+              position: "relative",
+              userSelect: "none",
+              maxHeight: "70vh",
+              overflow: "auto",
+            }}
+          >
+            <img
+              src={resultImage}
+              alt="Generated Garden"
+              className="rounded block"
+              style={{
+                maxWidth: "100%",
+                maxHeight: "70vh",
+                objectFit: "contain",
+              }}
+            />
+          </div>
           <div className="flex space-x-2 mt-2">
             <Button
               onClick={() => window.open("https://shopee.co.th", "_blank")}
