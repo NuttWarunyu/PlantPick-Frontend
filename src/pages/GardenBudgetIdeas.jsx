@@ -8,27 +8,27 @@ import { Button } from "@/components/ui/button";
 export default function GardenImageMaskPage() {
   const [image, setImage] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
-  const [selectedStyle, setSelectedStyle] = useState("english"); // Default style
+  const [selectedStyle, setSelectedStyle] = useState("english");
   const [resultImage, setResultImage] = useState(null);
+  const [viewAngle, setViewAngle] = useState("front");
   const canvasRef = useRef(null);
   const imageRef = useRef(null);
   const containerRef = useRef(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const history = useRef([]);
-  const [points, setPoints] = useState([]); // เก็บจุดที่วาด
-  const [bbox, setBbox] = useState(null); // เก็บ bounding box
+  const [points, setPoints] = useState([]);
+  const [bbox, setBbox] = useState(null);
   const [scale, setScale] = useState(1);
 
-  // Define prompt templates for each style
   const stylePrompts = {
     english:
-      "In the masked area only, design a photorealistic English garden using botanically accurate trees and plants such as Rosa rugosa, English boxwood, and oak. Include curved stone pathways and a vintage fountain in the lower area. The composition should resemble a real garden designed by a landscape architect, with balance, symmetry, and a clear focal point. Avoid fantasy or surreal elements. Keep house, sky, and surroundings unchanged.",
+      "In the masked area only, design a photorealistic English garden using botanically accurate trees and plants such as Rosa rugosa, English boxwood, and oak. Include curved stone pathways and a vintage fountain in the lower area. For side angles, add low hedges along edges and ensure balance with the house structure. For front angles, emphasize symmetry and a central focal point. The composition should resemble a real garden designed by a landscape architect, with balance and harmony. Avoid fantasy or surreal elements. Keep house, sky, and surroundings unchanged.",
     tropical:
-      "In the masked area only, design a realistic tropical garden using botanically accurate species like coconut palms, banana plants, bird of paradise, and heliconia. Include a natural stone pathway and a small pond or water feature in the lower section. The layout should reflect real landscape design principles with focal points and flow. Avoid fantasy or imaginary trees. Keep house, sky, and surroundings unchanged.",
+      "In the masked area only, design a realistic tropical garden using botanically accurate species like coconut palms, banana plants, bird of paradise, and heliconia. Include a natural stone pathway and a small pond or water feature in the lower section. For side angles, add dense foliage along edges. For front angles, create a layered tropical layout. The layout should reflect real landscape design principles with focal points and flow. Avoid fantasy or imaginary trees. Keep house, sky, and surroundings unchanged.",
     japanese:
-      "In the masked area only, design a realistic Japanese Zen garden with elements such as moss, raked gravel, bonsai, stone lanterns, and koi ponds. Include asymmetrical composition, calm atmosphere, and harmony with nature. No fantasy or surreal elements. Keep house, sky, and surroundings unchanged.",
+      "In the masked area only, design a realistic Japanese Zen garden with elements such as moss, raked gravel, bonsai, stone lanterns, and koi ponds. Include asymmetrical composition and calm atmosphere. For side angles, extend gravel patterns along the edge. For front angles, emphasize a central Zen feature. No fantasy or surreal elements. Keep house, sky, and surroundings unchanged.",
     modern:
-      "In the masked area only, design a minimalist modern garden with clean lines, ornamental grasses, architectural plants, concrete or wooden decking, and a water feature. Emphasize structure, geometry, and simplicity. Avoid fantasy or surreal elements. Keep house, sky, and surroundings unchanged.",
+      "In the masked area only, design a minimalist modern garden with clean lines, ornamental grasses, architectural plants, concrete or wooden decking, and a water feature. Emphasize structure and geometry. For side angles, add vertical plant elements. For front angles, focus on symmetrical layouts. Avoid fantasy or surreal elements. Keep house, sky, and surroundings unchanged.",
   };
 
   useEffect(() => {
@@ -237,6 +237,7 @@ export default function GardenImageMaskPage() {
           ];
           formData.append("bounding_box", JSON.stringify(normalizedBbox));
         }
+        formData.append("view_angle", viewAngle);
 
         const response = await axios.post(
           "https://plantpick-backend.up.railway.app/garden/generate-garden-mask",
@@ -255,31 +256,39 @@ export default function GardenImageMaskPage() {
   };
 
   return (
-    <div className="max-w-3xl mx-auto p-4">
-      <h1 className="text-2xl font-bold mb-4">Garden Designer</h1>
-
-      <Card className="mb-4">
-        <CardContent className="p-4 space-y-4">
-          <div className="space-y-2">
-            <Label>Upload Your House Image</Label>
-            <Input type="file" accept="image/*" onChange={handleImageChange} />
+    <div className="max-w-3xl mx-auto p-6 bg-gray-50 min-h-screen">
+      <Card className="mb-6 shadow-lg bg-white rounded-xl">
+        <CardContent className="p-6 space-y-6">
+          <div className="space-y-4">
+            <Label className="text-lg font-semibold text-gray-700">
+              อัปโหลดภาพบ้าน
+            </Label>
+            <Input
+              type="file"
+              accept="image/*"
+              onChange={handleImageChange}
+              className="border-gray-300 rounded-lg"
+            />
           </div>
 
           {imagePreview && (
             <>
-              <div className="flex space-x-2 mt-4">
+              <div className="flex space-x-4 mt-4">
                 <Button
                   onClick={() => setIsDrawing(!isDrawing)}
-                  variant={isDrawing ? "default" : "outline"}
+                  className="bg-gradient-to-r from-green-400 to-green-600 text-white hover:from-green-500 hover:to-green-700 text-xl px-6 py-3 rounded-xl shadow-md transition duration-300"
                 >
                   📏 ลากกรอบ
                 </Button>
-                <Button onClick={clearMask} variant="outline">
+                <Button
+                  onClick={clearMask}
+                  className="bg-gradient-to-r from-red-400 to-red-600 text-white hover:from-red-500 hover:to-red-700 text-xl px-6 py-3 rounded-xl shadow-md transition duration-300"
+                >
                   🔄 Reset กรอบ
                 </Button>
               </div>
 
-              <p className="text-sm text-muted-foreground mt-2">
+              <p className="text-sm text-gray-600 mt-2">
                 <span title="ลากกรอบครอบส่วนที่ต้องการคงไว้ (เช่น บ้าน) ส่วนที่เหลือจะเปลี่ยนเป็นสวน">
                   🎨 ลากกรอบครอบส่วนที่ต้องการคงไว้ (เช่น บ้าน)
                   (ส่วนที่เหลือจะเปลี่ยนเป็นสวน)
@@ -288,7 +297,7 @@ export default function GardenImageMaskPage() {
 
               <div
                 ref={containerRef}
-                className="canvasWrapper"
+                className="canvasWrapper bg-gray-100 rounded-lg shadow-md p-4"
                 style={{
                   width: "100%",
                   position: "relative",
@@ -329,12 +338,14 @@ export default function GardenImageMaskPage() {
             </>
           )}
 
-          <div className="space-y-2">
-            <Label>Select Garden Style</Label>
+          <div className="space-y-4">
+            <Label className="text-lg font-semibold text-gray-700">
+              เลือกสไตล์สวน
+            </Label>
             <select
               value={selectedStyle}
               onChange={(e) => setSelectedStyle(e.target.value)}
-              className="w-full p-2 border rounded"
+              className="w-full p-2 border border-gray-300 rounded-lg"
             >
               <option value="english">สวนอังกฤษ</option>
               <option value="tropical">สวน Tropical</option>
@@ -343,47 +354,77 @@ export default function GardenImageMaskPage() {
             </select>
           </div>
 
+          <div className="space-y-4">
+            <Label className="text-lg font-semibold text-gray-700">
+              เลือกมุมมอง
+            </Label>
+            <select
+              value={viewAngle}
+              onChange={(e) => setViewAngle(e.target.value)}
+              className="w-full p-2 border border-gray-300 rounded-lg"
+            >
+              <option value="front">มุมหน้า</option>
+              <option value="side">มุมข้าง</option>
+              <option value="back">มุมหลัง</option>
+            </select>
+          </div>
+
           <div className="flex space-x-2">
-            <Button onClick={handleSubmit}>🌿 Generate Garden</Button>
+            <Button
+              onClick={handleSubmit}
+              className="bg-gradient-to-r from-green-400 to-green-600 text-white hover:from-green-500 hover:to-green-700 text-xl px-6 py-3 rounded-xl shadow-md w-full transition duration-300"
+            >
+              🌿 Generate Garden
+            </Button>
           </div>
         </CardContent>
       </Card>
 
       {resultImage && (
-        <div className="mt-4">
-          <h2 className="text-xl font-semibold mb-2">Result</h2>
-          <div
-            ref={containerRef}
-            className="canvasWrapper"
-            style={{
-              width: "100%",
-              position: "relative",
-              userSelect: "none",
-              maxHeight: "70vh",
-              overflow: "auto",
-            }}
-          >
-            <img
-              src={resultImage}
-              alt="Generated Garden"
-              className="rounded block"
-              style={{
-                maxWidth: "100%",
-                maxHeight: "70vh",
-                objectFit: "contain",
-              }}
-            />
-          </div>
-          <div className="flex space-x-2 mt-2">
-            <Button
-              onClick={() => window.open("https://shopee.co.th", "_blank")}
-            >
-              สั่งซื้ออุปกรณ์สวน
-            </Button>
-            <Button onClick={() => (window.location.href = "/contact")}>
-              จ้างออกแบบสวน
-            </Button>
-          </div>
+        <div className="mt-6">
+          <h2 className="text-2xl font-semibold text-center text-green-800 mb-4">
+            ผลลัพธ์
+          </h2>
+          <Card className="shadow-lg bg-white rounded-xl">
+            <CardContent className="p-6">
+              <div
+                ref={containerRef}
+                className="canvasWrapper bg-gray-100 rounded-lg shadow-md p-4"
+                style={{
+                  width: "100%",
+                  position: "relative",
+                  userSelect: "none",
+                  maxHeight: "70vh",
+                  overflow: "auto",
+                }}
+              >
+                <img
+                  src={resultImage}
+                  alt="Generated Garden"
+                  className="rounded block"
+                  style={{
+                    maxWidth: "100%",
+                    maxHeight: "70vh",
+                    objectFit: "contain",
+                  }}
+                />
+              </div>
+              <div className="flex space-x-2 mt-4">
+                <Button
+                  onClick={() => window.open("https://shopee.co.th", "_blank")}
+                  className="bg-gradient-to-r from-blue-400 to-blue-600 text-white hover:from-blue-500 hover:to-blue-700 text-xl px-6 py-3 rounded-xl shadow-md w-full transition duration-300"
+                >
+                  สั่งซื้ออุปกรณ์สวน
+                </Button>
+                <Button
+                  onClick={() => (window.location.href = "/contact")}
+                  className="bg-gradient-to-r from-blue-400 to-blue-600 text-white hover:from-blue-500 hover:to-blue-700 text-xl px-6 py-3 rounded-xl shadow-md w-full transition duration-300"
+                >
+                  จ้างออกแบบสวน
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       )}
     </div>

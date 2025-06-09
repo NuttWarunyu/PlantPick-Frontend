@@ -1,47 +1,54 @@
 import React from "react";
 import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
-import Home from "./pages/Home.jsx";
-import PopularPlants from "./pages/PopularPlants";
-import Marketplace from "./pages/Marketplace";
-import "./App.css";
-import IdentifyResult from "./pages/IdentifyResult";
-import SearchResults from "./pages/SearchResults";
+import SearchPage from "./pages/SearchPage.jsx";
 import GardenBudgetIdeas from "./pages/GardenBudgetIdeas";
+import IdentifyResult from "./pages/IdentifyResult.jsx"; // นำเข้า IdentifyResult
+import "./App.css";
 
 function App() {
   console.log("Rendering App.jsx");
   return (
     <Router>
-      <div className="app-container">
-        <header className="header">
-          <h1>
-            <span role="img" aria-label="Leaf">
-              🌱
-            </span>{" "}
-            PlantPick - หาดีลต้นไม้ถูกสุด ดีสุด!
+      <div className="app-container min-h-screen bg-gradient-to-b from-green-50 to-white">
+        <header className="header p-4 text-center bg-green-100 rounded-b-lg shadow-md">
+          <h1 className="text-3xl font-bold text-green-700 text-center">
+            <span role="img" aria-label="Leaf" className="block">
+              🌿
+            </span>
+            <span className="block mt-2">PlantPick</span>
           </h1>
-          <p>แค่อัพรูปหรือเสิร์ชชื่อ ดีลดี ๆ รอคุณอยู่!</p>
-          <nav className="header-links">
-            <Link to="/">ค้นหาต้นไม้</Link> |{" "}
-            <Link to="/garden-budget-ideas">จัดสวนตามงบ</Link>|{" "}
-            <Link to="/marketplace">ตลาดต้นไม้เสรี</Link>
+          <p className="text-gray-600 mt-2">ออกแบบ จัดสวน ชี้เป้า ให้เราช่วย</p>
+          <nav className="header-links mt-4 space-x-4">
+            <Link
+              to="/garden-budget-ideas"
+              className="text-green-600 hover:text-green-800"
+            >
+              จำลองสวนด้วย Ai
+            </Link>{" "}
+            |{" "}
+            <Link to="/search" className="text-green-600 hover:text-green-800">
+              วิเคราะห์ต้นไม้
+            </Link>
           </nav>
         </header>
 
-        <main>
+        <main className="p-6">
           <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/marketplace" element={<Marketplace />} />
-            <Route path="/identify-result" element={<IdentifyResult />} />
-            <Route path="/search-results" element={<SearchResults />} />{" "}
+            <Route path="/search" element={<SearchPage />} />
             <Route
               path="/garden-budget-ideas"
               element={<GardenBudgetIdeas />}
             />
+            <Route
+              path="/identify-result"
+              element={<IdentifyResult />} // เพิ่ม Route นี้
+            />
           </Routes>
         </main>
 
-        <footer className="footer">ลิขสิทธิ์ ©️ 2025</footer>
+        <footer className="footer p-4 text-center text-gray-500 bg-green-50">
+          ลิขสิทธิ์ ©️ 2025 PlantPick
+        </footer>
       </div>
     </Router>
   );
