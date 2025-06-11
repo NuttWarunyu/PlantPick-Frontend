@@ -18,13 +18,13 @@ export default function GardenImageMaskPage() {
 
   const stylePrompts = {
     english:
-      "Design an English garden in the masked area only, with rose bushes, white fences, brick paths, lavender flowers, and a large lawn. Add a romantic atmosphere. Use realistic perspective. Preserve the house, sky, and surroundings.",
+      "Create a professional English garden design in the masked area, featuring well-planned walkways, lush rose bushes, white picket fences, brick paths, lavender flowers, and a large lawn. Include a clear focal point visible from the house window, such as a charming fountain or seating area. Use realistic perspective and preserve the house, sky, and surroundings.",
     tropical:
-      "Design a tropical garden in the masked area only that connects a pathway from the visible door to the garden area. Add a focal point visible from the house window, such as a small fountain, a tree with flowers, or a seating area. Use curved paths, stepping stones, and balanced greenery. Keep the house and sky untouched.",
+      "Design a professional tropical garden in the masked area with curved pathways, stepping stones, and balanced greenery. Include a focal point visible from the house window, like a small fountain, flowering tree, or cozy seating nook. Emphasize natural beauty and harmony while preserving the house and sky.",
     japanese:
-      "Design a Japanese Zen garden in the masked area only using moss, raked gravel, bonsai, stone lanterns, and koi ponds. Use asymmetry and calm composition. Preserve the house, sky, and surroundings.",
+      "Create a professional Japanese Zen garden design in the masked area using moss, raked gravel, bonsai trees, stone lanterns, and koi ponds. Include a focal point visible from the house window to evoke calmness, such as a stone arrangement or water feature. Use asymmetry and calm composition, preserving the house, sky, and surroundings.",
     modern:
-      "Design a modern garden in the masked area only with clean lines, minimal plants, architectural shapes, and water features. Emphasize symmetry and contrast. Preserve the house, sky, and surroundings.",
+      "Design a professional modern garden in the masked area with clean lines, minimal plants, architectural shapes, and water features. Include a focal point visible from the house window that emphasizes symmetry and contrast, such as a sculptural water element or modern seating area. Preserve the house, sky, and surroundings.",
   };
 
   useEffect(() => {
