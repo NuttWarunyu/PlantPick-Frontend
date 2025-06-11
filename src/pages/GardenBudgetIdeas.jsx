@@ -11,6 +11,8 @@ export default function GardenImageMaskPage() {
   const [selectedStyle, setSelectedStyle] = useState("english");
   const [resultImage, setResultImage] = useState(null);
   const [viewAngle, setViewAngle] = useState("front");
+  const [loading, setLoading] = useState(false); // เพิ่ม loading state
+
   const containerRef = useRef(null);
   const imageRef = useRef(null);
 
@@ -52,6 +54,8 @@ export default function GardenImageMaskPage() {
   const handleSubmit = async () => {
     if (!image) return;
 
+    setLoading(true); // เริ่มแสดง loading
+
     try {
       let formData = new FormData();
       formData.append("image", image);
@@ -71,6 +75,8 @@ export default function GardenImageMaskPage() {
       setResultImage(response.data.result_url);
     } catch (error) {
       alert("Error generating garden: " + error.message);
+    } finally {
+      setLoading(false); // ปิด loading หลังจบ
     }
   };
 
@@ -87,6 +93,7 @@ export default function GardenImageMaskPage() {
               accept="image/*"
               onChange={handleImageChange}
               className="border-gray-300 rounded-lg"
+              disabled={loading} // ปิดตอน loading
             />
           </div>
 
@@ -127,6 +134,7 @@ export default function GardenImageMaskPage() {
               value={selectedStyle}
               onChange={(e) => setSelectedStyle(e.target.value)}
               className="w-full p-2 border border-gray-300 rounded-lg"
+              disabled={loading} // ปิดตอน loading
             >
               <option value="english">สวนอังกฤษ</option>
               <option value="tropical">สวน Tropical</option>
@@ -143,6 +151,7 @@ export default function GardenImageMaskPage() {
               value={viewAngle}
               onChange={(e) => setViewAngle(e.target.value)}
               className="w-full p-2 border border-gray-300 rounded-lg"
+              disabled={loading} // ปิดตอน loading
             >
               <option value="front">มุมหน้า</option>
               <option value="side">มุมข้าง</option>
@@ -153,11 +162,39 @@ export default function GardenImageMaskPage() {
           <div className="flex space-x-2 mt-6">
             <Button
               onClick={handleSubmit}
+              disabled={loading} // ปิดปุ่มตอน loading
               className="bg-gradient-to-r from-green-400 to-green-600 text-white hover:from-green-500 hover:to-green-700 text-xl px-6 py-3 rounded-xl shadow-md w-full transition duration-300"
             >
               🌿 Generate Garden
             </Button>
           </div>
+
+          {/* Loading Indicator */}
+          {loading && (
+            <div className="mt-6 text-center text-green-700 font-semibold">
+              <svg
+                className="animate-spin h-8 w-8 mx-auto mb-2 text-green-600"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                ></circle>
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                ></path>
+              </svg>
+              กำลังสร้างภาพสวน กรุณารอสักครู่...
+            </div>
+          )}
         </CardContent>
       </Card>
 
