@@ -240,7 +240,7 @@ export default function GardenImageMaskPage() {
         formData.append("view_angle", viewAngle);
 
         const response = await axios.post(
-          "https://plantpick-backend.up.railway.app/garden/generate-garden-mask",
+          "https://plantpick-backend.up.railway.app/garden/generate-garden",
           formData,
           {
             headers: {
