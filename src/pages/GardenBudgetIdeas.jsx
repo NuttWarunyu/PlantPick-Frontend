@@ -22,13 +22,13 @@ export default function GardenImageMaskPage() {
 
   const stylePrompts = {
     english:
-      "In the masked area only, design a photorealistic English garden using botanically accurate trees and plants such as Rosa rugosa, English boxwood, and oak. Include curved stone pathways and a vintage fountain in the lower area. For side angles, add low hedges along edges and ensure balance with the house structure. For front angles, emphasize symmetry and a central focal point. The composition should resemble a real garden designed by a landscape architect, with balance and harmony. Avoid fantasy or surreal elements. Keep house, sky, and surroundings unchanged.",
+      "Design an English garden in the masked area only, with rose bushes, white fences, brick paths, lavender flowers, and a large lawn. Add a romantic atmosphere. Use realistic perspective. Preserve the house, sky, and surroundings.",
     tropical:
-      "In the masked area only, design a realistic tropical garden using botanically accurate species like coconut palms, banana plants, bird of paradise, and heliconia. Include a natural stone pathway and a small pond or water feature in the lower section. For side angles, add dense foliage along edges. For front angles, create a layered tropical layout. The layout should reflect real landscape design principles with focal points and flow. Avoid fantasy or imaginary trees. Keep house, sky, and surroundings unchanged.",
+      "Design a tropical garden in the masked area only that connects a pathway from the visible door to the garden area. Add a focal point visible from the house window, such as a small fountain, a tree with flowers, or a seating area. Use curved paths, stepping stones, and balanced greenery. Keep the house and sky untouched.",
     japanese:
-      "In the masked area only, design a realistic Japanese Zen garden with elements such as moss, raked gravel, bonsai, stone lanterns, and koi ponds. Include asymmetrical composition and calm atmosphere. For side angles, extend gravel patterns along the edge. For front angles, emphasize a central Zen feature. No fantasy or surreal elements. Keep house, sky, and surroundings unchanged.",
+      "Design a Japanese Zen garden in the masked area only using moss, raked gravel, bonsai, stone lanterns, and koi ponds. Use asymmetry and calm composition. Preserve the house, sky, and surroundings.",
     modern:
-      "In the masked area only, design a minimalist modern garden with clean lines, ornamental grasses, architectural plants, concrete or wooden decking, and a water feature. Emphasize structure and geometry. For side angles, add vertical plant elements. For front angles, focus on symmetrical layouts. Avoid fantasy or surreal elements. Keep house, sky, and surroundings unchanged.",
+      "Design a modern garden in the masked area only with clean lines, minimal plants, architectural shapes, and water features. Emphasize symmetry and contrast. Preserve the house, sky, and surroundings.",
   };
 
   useEffect(() => {
