@@ -18,13 +18,13 @@ export default function GardenImageMaskPage() {
 
   const stylePrompts = {
     english:
-      "Create a professional English garden design in the masked area, featuring well-planned walkways, lush rose bushes, white picket fences, brick paths, lavender flowers, and a large lawn. Include a clear focal point visible from the house window, such as a charming fountain or seating area. Use realistic perspective and preserve the house, sky, and surroundings.",
+      "Create a professional English garden design in the masked area, featuring well-planned walkways, lush rose bushes, white picket fences, brick paths, lavender flowers, and a large lawn. Include a clear focal point visible from the house window, such as a charming fountain or seating area. Use realistic perspective. Preserve the house, roof, and its original color and structure. Do not alter the house in any way. Keep the sky and surroundings unchanged.",
     tropical:
-      "Design a professional tropical garden in the masked area with curved pathways, stepping stones, and balanced greenery. Include a focal point visible from the house window, like a small fountain, flowering tree, or cozy seating nook. Emphasize natural beauty and harmony while preserving the house and sky.",
+      "Design a professional tropical garden in the masked area with curved pathways, stepping stones, palm trees, and balanced greenery. Include a focal point visible from the house window, such as a small fountain, flowering tree, or cozy seating area. Emphasize harmony and natural aesthetics. Preserve the house, roof, and its original color and structure. Do not alter the house. Keep the sky and surroundings unchanged.",
     japanese:
-      "Create a professional Japanese Zen garden design in the masked area using moss, raked gravel, bonsai trees, stone lanterns, and koi ponds. Include a focal point visible from the house window to evoke calmness, such as a stone arrangement or water feature. Use asymmetry and calm composition, preserving the house, sky, and surroundings.",
+      "Create a professional Japanese Zen garden in the masked area using moss, raked gravel, bonsai, stone lanterns, and koi ponds. Include a focal point visible from the house window, such as a calm stone arrangement or water feature. Apply asymmetry and a serene composition. Preserve the house, roof, and its original color and structure. Do not alter the house. Keep the sky and surroundings unchanged.",
     modern:
-      "Design a professional modern garden in the masked area with clean lines, minimal plants, architectural shapes, and water features. Include a focal point visible from the house window that emphasizes symmetry and contrast, such as a sculptural water element or modern seating area. Preserve the house, sky, and surroundings.",
+      "Design a professional modern garden in the masked area with clean lines, minimalistic plants, geometric shapes, and water features. Include a focal point visible from the house window, such as a sculptural water feature or modern seating area. Emphasize contrast and symmetry. Preserve the house, roof, and its original color and structure. Do not alter the house. Keep the sky and surroundings unchanged.",
   };
 
   useEffect(() => {
