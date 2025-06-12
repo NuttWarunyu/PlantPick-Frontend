@@ -1,12 +1,15 @@
 import React from "react";
 import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
 import SearchPage from "./pages/SearchPage.jsx";
-import GardenBudgetIdeas from "./pages/GardenBudgetIdeas";
-import IdentifyResult from "./pages/IdentifyResult.jsx"; // นำเข้า IdentifyResult
+import GardenBudgetIdeas from "./pages/GardenBudgetIdeas.jsx";
+import IdentifyResult from "./pages/IdentifyResult.jsx";
+import About from "./pages/About.jsx"; // 👈 นำเข้าหน้า About
+
 import "./App.css";
 
 function App() {
   console.log("Rendering App.jsx");
+
   return (
     <Router>
       <div className="app-container min-h-screen bg-gradient-to-b from-green-50 to-white">
@@ -17,17 +20,31 @@ function App() {
             </span>
             <span className="block mt-2">PlantPick</span>
           </h1>
-          <p className="text-gray-600 mt-2">ออกแบบ จัดสวน ชี้เป้า ให้เราช่วย</p>
-          <nav className="header-links mt-4 space-x-4">
+          <p className="text-gray-600 mt-2">
+            ออกแบบสวน คลิ๊กเดียว ได้ที่ซื้อ ได้ทีมสวน
+          </p>
+
+          {/* Navigation Links */}
+          <nav className="header-links mt-4 flex flex-wrap justify-center gap-4">
             <Link
               to="/garden-budget-ideas"
-              className="text-green-600 hover:text-green-800"
+              className="text-green-600 hover:text-green-800 font-medium"
             >
-              จำลองสวนด้วย Ai
-            </Link>{" "}
-            |{" "}
-            <Link to="/search" className="text-green-600 hover:text-green-800">
+              จำลองสวนด้วย AI
+            </Link>
+            <span className="text-gray-400">|</span>
+            <Link
+              to="/search"
+              className="text-green-600 hover:text-green-800 font-medium"
+            >
               วิเคราะห์ต้นไม้
+            </Link>
+            <span className="text-gray-400">|</span>
+            <Link
+              to="/about"
+              className="text-green-600 hover:text-green-800 font-medium"
+            >
+              เกี่ยวกับเรา
             </Link>
           </nav>
         </header>
@@ -39,14 +56,13 @@ function App() {
               path="/garden-budget-ideas"
               element={<GardenBudgetIdeas />}
             />
-            <Route
-              path="/identify-result"
-              element={<IdentifyResult />} // เพิ่ม Route นี้
-            />
+            <Route path="/identify-result" element={<IdentifyResult />} />
+            <Route path="/about" element={<About />} />{" "}
+            {/* 👈 เพิ่มเส้นทาง About */}
           </Routes>
         </main>
 
-        <footer className="footer p-4 text-center text-gray-500 bg-green-50">
+        <footer className="footer p-4 text-center text-gray-500 bg-green-50 mt-auto">
           ลิขสิทธิ์ ©️ 2025 PlantPick
         </footer>
       </div>
