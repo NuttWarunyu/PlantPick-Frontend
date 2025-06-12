@@ -9,9 +9,9 @@ export default function GardenImageMaskPage() {
   const [image, setImage] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
   const [selectedStyle, setSelectedStyle] = useState("english");
+  const [budgetLevel, setBudgetLevel] = useState("medium");
   const [resultImage, setResultImage] = useState(null);
-  const [viewAngle, setViewAngle] = useState("front");
-  const [loading, setLoading] = useState(false); // เพิ่ม loading state
+  const [loading, setLoading] = useState(false);
 
   const containerRef = useRef(null);
   const imageRef = useRef(null);
@@ -25,6 +25,17 @@ export default function GardenImageMaskPage() {
       "Create a professional Japanese Zen garden in the masked area using moss, raked gravel, bonsai, stone lanterns, and koi ponds. Include a focal point visible from the house window, such as a calm stone arrangement or water feature. Apply asymmetry and a serene composition. Preserve the house, roof, and its original color and structure. Do not alter the house. Keep the sky and surroundings unchanged.",
     modern:
       "Design a professional modern garden in the masked area with clean lines, minimalistic plants, geometric shapes, and water features. Include a focal point visible from the house window, such as a sculptural water feature or modern seating area. Emphasize contrast and symmetry. Preserve the house, roof, and its original color and structure. Do not alter the house. Keep the sky and surroundings unchanged.",
+  };
+
+  const budgetPrompts = {
+    low: "Use affordable materials, minimal decoration, native plants, and a simple layout. Avoid luxury features. Focus on easy maintenance.",
+    medium:
+      "Use a balanced mix of cost-effective and aesthetic elements. Include a focal point like a small fountain or bench. Moderate decoration.",
+    high: "Use premium materials, advanced landscaping, decorative lighting, water features, and artistic elements. Showcase luxurious garden design.",
+  };
+
+  const getFullPrompt = (style, budget) => {
+    return `${stylePrompts[style]} ${budgetPrompts[budget]}`;
   };
 
   useEffect(() => {
@@ -54,14 +65,12 @@ export default function GardenImageMaskPage() {
   const handleSubmit = async () => {
     if (!image) return;
 
-    setLoading(true); // เริ่มแสดง loading
+    setLoading(true);
 
     try {
       let formData = new FormData();
       formData.append("image", image);
-      formData.append("prompt", stylePrompts[selectedStyle]);
-      // ไม่มี mask และ bounding box เพราะไม่ได้ลากกรอบแล้ว
-      formData.append("view_angle", viewAngle);
+      formData.append("prompt", getFullPrompt(selectedStyle, budgetLevel));
 
       const response = await axios.post(
         "https://plantpick-backend.up.railway.app/garden/generate-garden",
@@ -76,7 +85,7 @@ export default function GardenImageMaskPage() {
     } catch (error) {
       alert("Error generating garden: " + error.message);
     } finally {
-      setLoading(false); // ปิด loading หลังจบ
+      setLoading(false);
     }
   };
 
@@ -93,7 +102,7 @@ export default function GardenImageMaskPage() {
               accept="image/*"
               onChange={handleImageChange}
               className="border-gray-300 rounded-lg"
-              disabled={loading} // ปิดตอน loading
+              disabled={loading}
             />
           </div>
 
@@ -134,7 +143,7 @@ export default function GardenImageMaskPage() {
               value={selectedStyle}
               onChange={(e) => setSelectedStyle(e.target.value)}
               className="w-full p-2 border border-gray-300 rounded-lg"
-              disabled={loading} // ปิดตอน loading
+              disabled={loading}
             >
               <option value="english">สวนอังกฤษ</option>
               <option value="tropical">สวน Tropical</option>
@@ -145,31 +154,30 @@ export default function GardenImageMaskPage() {
 
           <div className="space-y-4 mt-4">
             <Label className="text-lg font-semibold text-gray-700">
-              เลือกมุมมอง
+              เลือกระดับงบประมาณในการจัดสวน
             </Label>
             <select
-              value={viewAngle}
-              onChange={(e) => setViewAngle(e.target.value)}
+              value={budgetLevel}
+              onChange={(e) => setBudgetLevel(e.target.value)}
               className="w-full p-2 border border-gray-300 rounded-lg"
-              disabled={loading} // ปิดตอน loading
+              disabled={loading}
             >
-              <option value="front">มุมหน้า</option>
-              <option value="side">มุมข้าง</option>
-              <option value="back">มุมหลัง</option>
+              <option value="low">งบจำกัด</option>
+              <option value="medium">งบปานกลาง</option>
+              <option value="high">งบสูง</option>
             </select>
           </div>
 
           <div className="flex space-x-2 mt-6">
             <Button
               onClick={handleSubmit}
-              disabled={loading} // ปิดปุ่มตอน loading
+              disabled={loading}
               className="bg-gradient-to-r from-green-400 to-green-600 text-white hover:from-green-500 hover:to-green-700 text-xl px-6 py-3 rounded-xl shadow-md w-full transition duration-300"
             >
               🌿 Generate Garden
             </Button>
           </div>
 
-          {/* Loading Indicator */}
           {loading && (
             <div className="mt-6 text-center text-green-700 font-semibold">
               <svg
