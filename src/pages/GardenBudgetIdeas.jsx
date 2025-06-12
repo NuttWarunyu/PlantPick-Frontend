@@ -240,18 +240,18 @@ export default function GardenImageMaskPage() {
                   }}
                 />
               </div>
-              <div className="flex space-x-2 mt-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6">
                 <Button
                   onClick={() => window.open("https://shopee.co.th", "_blank")}
-                  className="bg-gradient-to-r from-blue-400 to-blue-600 text-white hover:from-blue-500 hover:to-blue-700 text-xl px-6 py-3 rounded-xl shadow-md w-full transition duration-300"
+                  className="h-20 text-xl font-semibold bg-white text-green-700 border-2 border-green-500 hover:bg-green-100 rounded-2xl shadow-lg transition-all"
                 >
-                  สั่งซื้ออุปกรณ์สวน
+                  🛒 ซื้อของจัดสวนเอง
                 </Button>
                 <Button
                   onClick={() => (window.location.href = "/contact")}
-                  className="bg-gradient-to-r from-blue-400 to-blue-600 text-white hover:from-blue-500 hover:to-blue-700 text-xl px-6 py-3 rounded-xl shadow-md w-full transition duration-300"
+                  className="h-20 text-xl font-semibold bg-gradient-to-r from-green-500 to-green-700 text-white hover:from-green-600 hover:to-green-800 rounded-2xl shadow-lg transition-all"
                 >
-                  จ้างออกแบบสวน
+                  📄 ขอใบเสนอราคาจัดสวน
                 </Button>
               </div>
             </CardContent>
