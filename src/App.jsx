@@ -37,7 +37,7 @@ function App() {
               to="/search"
               className="text-green-600 hover:text-green-800 font-medium"
             >
-              วิเคราะห์ต้นไม้
+              วิเคราะห์ต้นไม้จากภาพ
             </Link>
             <span className="text-gray-400">|</span>
             <Link
