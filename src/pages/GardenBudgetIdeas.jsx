@@ -28,10 +28,10 @@ export default function GardenImageMaskPage() {
   };
 
   const budgetPrompts = {
-    low: "Use affordable materials, minimal decoration, native plants, and a simple layout. Avoid luxury features. Focus on easy maintenance.",
+    low: "Use a simple and affordable garden layout with large grass areas and minimal decorations. Include only a few low-cost, native plants such as small shrubs or bushes. Avoid luxury features, hardscape, lighting, or water systems. Emphasize open space and easy maintenance.",
     medium:
-      "Use a balanced mix of cost-effective and aesthetic elements. Include a focal point like a small fountain or bench. Moderate decoration.",
-    high: "Use premium materials, advanced landscaping, decorative lighting, water features, and artistic elements. Showcase luxurious garden design.",
+      "Create a balanced garden with a mix of greenery and decorative elements. Include a moderate number of medium-sized plants, flower beds, and a simple pathway such as stepping stones. Add one focal point like a small fountain, bench, or garden arch. Avoid excessive luxury. Focus on aesthetics and functionality.",
+    high: "Design a luxurious and professionally landscaped garden. Use a variety of trees, flowering plants, decorative stones, and well-designed pathways. Add premium features like lighting systems, sculptural elements, fountains, and automatic irrigation. Showcase a rich and elegant garden style with attention to detail.",
   };
 
   const getFullPrompt = (style, budget) => {
@@ -162,9 +162,9 @@ export default function GardenImageMaskPage() {
               className="w-full p-2 border border-gray-300 rounded-lg"
               disabled={loading}
             >
-              <option value="low">งบจำกัด</option>
-              <option value="medium">งบปานกลาง</option>
-              <option value="high">งบสูง</option>
+              <option value="low">ไม่เกิน 50,000 บาท</option>
+              <option value="medium">ไม่เกิน 200,000 บาท</option>
+              <option value="high">งบจัดเต็ม</option>
             </select>
           </div>
 
