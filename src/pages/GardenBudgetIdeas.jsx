@@ -1,4 +1,3 @@
-// GardenImageMaskPage.tsx
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
@@ -18,6 +17,7 @@ export default function GardenImageMaskPage() {
   const [bomLoading, setBomLoading] = useState(false);
   const [bomData, setBomData] = useState([]);
   const [historyId, setHistoryId] = useState(null);
+  const [error, setError] = useState(null);
 
   const containerRef = useRef(null);
   const imageRef = useRef(null);
@@ -46,7 +46,12 @@ export default function GardenImageMaskPage() {
 
   useEffect(() => {
     if (!imageRef.current || !containerRef.current) return;
-    const resizeObserver = new ResizeObserver(() => {});
+    const resizeObserver = new ResizeObserver(() => {
+      if (imageRef.current && containerRef.current) {
+        const containerWidth = containerRef.current.offsetWidth;
+        imageRef.current.style.width = `${containerWidth}px`;
+      }
+    });
     resizeObserver.observe(containerRef.current);
     return () => resizeObserver.disconnect();
   }, [imagePreview, resultImage]);
@@ -59,12 +64,17 @@ export default function GardenImageMaskPage() {
       setResultImage(null);
       setBomData([]);
       setHistoryId(null);
+      setError(null);
     }
   };
 
   const handleSubmit = async () => {
-    if (!image) return;
+    if (!image) {
+      setError("Please upload an image first.");
+      return;
+    }
     setLoading(true);
+    setError(null);
     setBomData([]);
     try {
       const formData = new FormData();
@@ -73,32 +83,57 @@ export default function GardenImageMaskPage() {
 
       const res = await axios.post(
         "https://plantpick-backend.up.railway.app/garden/generate-garden",
-        formData
+        formData,
+        {
+          headers: { "Content-Type": "multipart/form-data" },
+        }
       );
 
       setResultImage(res.data.result_url);
       setHistoryId(res.data.history_id);
     } catch (err) {
-      alert("Error generating image: " + err.message);
+      setError(
+        "Error generating image: " + (err.response?.data?.error || err.message)
+      );
     } finally {
       setLoading(false);
     }
   };
 
   const handleGenerateBOM = async () => {
-    if (!historyId) return;
+    if (!historyId) {
+      setError("Please generate a garden image first.");
+      return;
+    }
     setBomLoading(true);
+    setError(null);
     try {
       const res = await axios.post(
         "https://plantpick-backend.up.railway.app/garden/generate-bom",
-        { history_id: historyId }
+        { history_id: historyId },
+        {
+          headers: { "Content-Type": "application/json" },
+        }
       );
-      setBomData(res.data.bom || []);
+      setBomData(res.data.bom_details || []);
     } catch (err) {
-      alert("Error generating BOM: " + err.message);
+      setError(
+        "Error generating BOM: " + (err.response?.data?.error || err.message)
+      );
     } finally {
       setBomLoading(false);
     }
+  };
+
+  const handleReset = () => {
+    setImage(null);
+    setImagePreview(null);
+    setResultImage(null);
+    setSelectedStyle("english");
+    setBudgetLevel("medium");
+    setBomData([]);
+    setHistoryId(null);
+    setError(null);
   };
 
   return (
@@ -121,10 +156,12 @@ export default function GardenImageMaskPage() {
                 ref={imageRef}
                 src={imagePreview}
                 alt="Preview"
-                className="w-full rounded"
+                className="w-full rounded object-cover"
               />
             </div>
           )}
+
+          {error && <p className="text-red-500 text-center">{error}</p>}
 
           <div>
             <Label>สไตล์สวน</Label>
@@ -132,6 +169,7 @@ export default function GardenImageMaskPage() {
               value={selectedStyle}
               onChange={(e) => setSelectedStyle(e.target.value)}
               className="w-full p-2 border rounded"
+              disabled={loading}
             >
               <option value="english">สวนอังกฤษ</option>
               <option value="tropical">สวน Tropical</option>
@@ -146,6 +184,7 @@ export default function GardenImageMaskPage() {
               value={budgetLevel}
               onChange={(e) => setBudgetLevel(e.target.value)}
               className="w-full p-2 border rounded"
+              disabled={loading}
             >
               <option value="low">ไม่เกิน 50,000 บาท</option>
               <option value="medium">ไม่เกิน 200,000 บาท</option>
@@ -153,48 +192,71 @@ export default function GardenImageMaskPage() {
             </select>
           </div>
 
-          <Button onClick={handleSubmit} disabled={loading} className="w-full">
+          <Button
+            onClick={handleSubmit}
+            disabled={loading}
+            className="w-full bg-green-600 text-white hover:bg-green-700"
+          >
             🌿 Generate Garden
           </Button>
 
-          {loading && <p className="text-center">กำลังสร้างภาพ...</p>}
+          {loading && (
+            <p className="text-center text-gray-600">กำลังสร้างภาพ...</p>
+          )}
         </CardContent>
       </Card>
 
       {resultImage && (
         <Card className="shadow-lg bg-white rounded-xl mb-6">
           <CardContent className="p-6 space-y-4">
-            <img src={resultImage} alt="Result" className="w-full rounded" />
+            <img
+              src={resultImage}
+              alt="Result"
+              className="w-full rounded object-cover"
+            />
             <Button
               onClick={handleGenerateBOM}
               disabled={bomLoading}
-              className="w-full bg-green-600 text-white"
+              className="w-full bg-green-600 text-white hover:bg-green-700"
             >
               🌱 ขอรายการของที่ใช้จัดสวน
             </Button>
 
             {bomData.length > 0 && (
               <div className="mt-4 space-y-2">
-                <h3 className="font-semibold text-lg">รายการเบื้องต้น:</h3>
-                <ul className="list-disc list-inside text-gray-800">
+                <h3 className="font-semibold text-lg text-gray-800">
+                  รายการเบื้องต้น:
+                </h3>
+                <ul className="list-disc list-inside text-gray-700">
                   {bomData.map((item, idx) => (
                     <li key={idx}>
                       {item.material_name} - {item.quantity} ชิ้น (ประมาณ{" "}
-                      {item.estimated_cost} บาท)
+                      {(item.estimated_cost * 33).toFixed(2)} บาท)
                     </li>
                   ))}
                 </ul>
                 <Button
                   onClick={() => (window.location.href = "/contact")}
-                  className="w-full mt-4 bg-gradient-to-r from-green-500 to-green-700 text-white"
+                  className="w-full mt-4 bg-gradient-to-r from-green-500 to-green-700 text-white hover:from-green-600 hover:to-green-800"
                 >
                   📄 ขอใบเสนอราคาจัดสวน
                 </Button>
               </div>
             )}
+
+            {bomLoading && (
+              <p className="text-center text-gray-600">กำลังวิเคราะห์...</p>
+            )}
           </CardContent>
         </Card>
       )}
+
+      <Button
+        onClick={handleReset}
+        className="w-full bg-red-500 text-white hover:bg-red-600"
+      >
+        🔄 รีเซ็ตทั้งหมด
+      </Button>
     </div>
   );
 }
