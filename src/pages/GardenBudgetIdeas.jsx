@@ -40,6 +40,16 @@ export default function GardenImageMaskPage() {
     high: "Design a luxurious and professionally landscaped garden. Use a variety of trees, flowering plants, decorative stones, and well-designed pathways. Add premium features like lighting systems, sculptural elements, fountains, and automatic irrigation. Showcase a rich and elegant garden style with attention to detail.",
   };
 
+  const budgetValues = {
+    low: 50000,
+    medium: 100000,
+    high: 200000,
+  };
+
+  const getBudgetValue = (budgetLevel) => {
+    return budgetValues[budgetLevel] || 200000;
+  };
+
   const getFullPrompt = (style, budget) => {
     return `${stylePrompts[style]} ${budgetPrompts[budget]}`;
   };
@@ -108,12 +118,11 @@ export default function GardenImageMaskPage() {
     setBomLoading(true);
     setError(null);
     try {
+      const budget = getBudgetValue(budgetLevel);
       const res = await axios.post(
         "https://plantpick-backend.up.railway.app/garden/generate-bom",
-        { history_id: historyId },
-        {
-          headers: { "Content-Type": "application/json" },
-        }
+        { history_id: historyId, budget: budget },
+        { headers: { "Content-Type": "application/json" } }
       );
       setBomData(res.data.bom_details || []);
     } catch (err) {
