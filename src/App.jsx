@@ -3,7 +3,8 @@ import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
 import SearchPage from "./pages/SearchPage.jsx";
 import GardenBudgetIdeas from "./pages/GardenBudgetIdeas.jsx";
 import IdentifyResult from "./pages/IdentifyResult.jsx";
-import About from "./pages/About.jsx"; // 👈 นำเข้าหน้า About
+import About from "./pages/About.jsx";
+import BomResultPage from "./pages/BomResultPage.jsx";
 
 import "./App.css";
 
@@ -58,7 +59,7 @@ function App() {
             />
             <Route path="/identify-result" element={<IdentifyResult />} />
             <Route path="/about" element={<About />} />{" "}
-            {/* 👈 เพิ่มเส้นทาง About */}
+            <Route path="/bom-result" element={<BomResultPage />} />
           </Routes>
         </main>
 

@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import "./BOMSection.css";
 
 export default function GardenImageMaskPage() {
   const [image, setImage] = useState(null);
@@ -134,17 +135,6 @@ export default function GardenImageMaskPage() {
     }
   };
 
-  const handleReset = () => {
-    setImage(null);
-    setImagePreview(null);
-    setResultImage(null);
-    setSelectedStyle("english");
-    setBudgetLevel("medium");
-    setBomData([]);
-    setHistoryId(null);
-    setError(null);
-  };
-
   return (
     <div className="max-w-3xl mx-auto p-6 bg-gray-50 min-h-screen">
       <Card className="mb-6 shadow-lg bg-white rounded-xl">
@@ -223,6 +213,7 @@ export default function GardenImageMaskPage() {
               alt="Result"
               className="w-full rounded object-cover"
             />
+
             <Button
               onClick={handleGenerateBOM}
               disabled={bomLoading}
@@ -232,24 +223,28 @@ export default function GardenImageMaskPage() {
             </Button>
 
             {bomData.length > 0 && (
-              <div className="mt-4 space-y-2">
-                <h3 className="font-semibold text-lg text-gray-800">
-                  รายการเบื้องต้น:
-                </h3>
-                <ul className="list-disc list-inside text-gray-700">
-                  {bomData.map((item, idx) => (
-                    <li key={idx}>
-                      {item.material_name} - {item.quantity} ชิ้น (ประมาณ{" "}
-                      {(item.estimated_cost * 33).toFixed(2)} บาท)
-                    </li>
-                  ))}
-                </ul>
-                <Button
-                  onClick={() => (window.location.href = "/contact")}
-                  className="w-full mt-4 bg-gradient-to-r from-green-500 to-green-700 text-white hover:from-green-600 hover:to-green-800"
-                >
-                  📄 ขอใบเสนอราคาจัดสวน
-                </Button>
+              <div className="bom-container">
+                <div className="bom-list">
+                  <h3 className="font-semibold text-lg text-gray-800">
+                    รายการเบื้องต้น:
+                  </h3>
+                  <ul className="list-disc list-inside text-gray-700">
+                    {bomData.map((item, idx) => (
+                      <li key={idx}>
+                        {item.material_name} - {item.quantity} ชิ้น (ประมาณ{" "}
+                        {(item.estimated_cost * 33).toFixed(2)} บาท)
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                <div className="bom-button">
+                  <Button
+                    onClick={() => (window.location.href = "/contact")}
+                    className="w-full bg-gradient-to-r from-green-500 to-green-700 text-white hover:from-green-600 hover:to-green-800"
+                  >
+                    📄 ขอใบเสนอราคาจัดสวน
+                  </Button>
+                </div>
               </div>
             )}
 
@@ -259,13 +254,6 @@ export default function GardenImageMaskPage() {
           </CardContent>
         </Card>
       )}
-
-      <Button
-        onClick={handleReset}
-        className="w-full bg-red-500 text-white hover:bg-red-600"
-      >
-        🔄 รีเซ็ตทั้งหมด
-      </Button>
     </div>
   );
 }
