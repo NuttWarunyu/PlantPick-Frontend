@@ -6,7 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import "./BOMSection.css";
+import "../components/ui/BOMSection.css"; // ปรับ path ตามโครงสร้าง
 
 export default function GardenImageMaskPage() {
   const [image, setImage] = useState(null);

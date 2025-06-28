@@ -1,7 +1,7 @@
 // src/pages/BomResultPage.jsx
 import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import "./BOMSection.css";
+import "../components/ui/BOMSection.css"; // ปรับ path ตามโครงสร้าง
 
 const BomResultPage = () => {
   const location = useLocation();
