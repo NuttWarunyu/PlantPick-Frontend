@@ -13,8 +13,7 @@ export default function GardenImageMaskPage() {
   const navigate = useNavigate();
   const [image, setImage] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
-  const [selectedStyle, setSelectedStyle] = useState("english");
-  const [budgetLevel, setBudgetLevel] = useState("medium");
+  const [selectedStyle, setSelectedStyle] = useState("tropical");
   const [resultImage, setResultImage] = useState(null);
   const [loading, setLoading] = useState(false);
   const [bomLoading, setBomLoading] = useState(false);
@@ -26,34 +25,28 @@ export default function GardenImageMaskPage() {
 
   const stylePrompts = {
     english:
-      "Create a professional English garden design in the masked area, featuring well-planned walkways, lush rose bushes, white picket fences, brick paths, lavender flowers, and a large lawn. Include a clear focal point visible from the house window, such as a charming fountain or seating area. Use realistic perspective. Preserve the house, roof, and its original color and structure. Do not alter the house in any way. Keep the sky and surroundings unchanged.",
+      "Create a professional English garden design in the masked area, featuring natural-looking flowers (such as roses and lavender in realistic colors), a large lawn, white picket fences, and well-defined pathways blending modern design with brick or smooth concrete. Include a clear focal point visible from the house window, such as a charming fountain or seating area. Ensure pathways are always present and incorporate modern elements like clean lines or geometric stone layouts. Use realistic perspective. Suggest materials like roses, lavender, white picket fences, brick or smooth concrete pathways, and geometric stones for the BOM. Preserve the house, roof, and its original color and structure. Do not alter the house. Keep the sky and surroundings unchanged.",
     tropical:
-      "Design a professional tropical garden in the masked area with curved pathways, stepping stones, palm trees, and balanced greenery. Include a focal point visible from the house window, such as a small fountain, flowering tree, or cozy seating area. Emphasize harmony and natural aesthetics. Preserve the house, roof, and its original color and structure. Do not alter the house. Keep the sky and surroundings unchanged.",
+      "Design a professional tropical garden in the masked area with curved pathways, stepping stones, palm trees, and balanced greenery. Include a focal point visible from the house window, such as a small fountain, flowering tree, or cozy seating area. Emphasize harmony and natural aesthetics. Suggest materials like palm trees, hibiscus, and stepping stones for the BOM. Preserve the house, roof, and its original color and structure. Do not alter the house. Keep the sky and surroundings unchanged.",
     japanese:
-      "Create a professional Japanese Zen garden in the masked area using moss, raked gravel, bonsai, stone lanterns, and koi ponds. Include a focal point visible from the house window, such as a calm stone arrangement or water feature. Apply asymmetry and a serene composition. Preserve the house, roof, and its original color and structure. Do not alter the house. Keep the sky and surroundings unchanged.",
-    modern:
-      "Design a professional modern garden in the masked area with clean lines, minimalistic plants, geometric shapes, and water features. Include a focal point visible from the house window, such as a sculptural water feature or modern seating area. Emphasize contrast and symmetry. Preserve the house, roof, and its original color and structure. Do not alter the house. Keep the sky and surroundings unchanged.",
+      "Create a professional Japanese Zen garden in the masked area using moss, raked gravel, bonsai, stone lanterns, and koi ponds. Include a focal point visible from the house window, such as a calm stone arrangement or water feature. Apply asymmetry and a serene composition. Suggest materials like moss, gravel, bonsai, and stone lanterns for the BOM. Preserve the house, roof, and its original color and structure. Do not alter the house. Keep the sky and surroundings unchanged.",
   };
 
   const budgetPrompts = {
-    low: "Use a simple and affordable garden layout with large grass areas and minimal decorations. Include only a few low-cost, native plants such as small shrubs or bushes. Avoid luxury features, hardscape, lighting, or water systems. Emphasize open space and easy maintenance.",
-    medium:
-      "Create a balanced garden with a mix of greenery and decorative elements. Include a moderate number of medium-sized plants, flower beds, and a simple pathway such as stepping stones. Add one focal point like a small fountain, bench, or garden arch. Avoid excessive luxury. Focus on aesthetics and functionality.",
-    high: "Design a luxurious and professionally landscaped garden. Use a variety of trees, flowering plants, decorative stones, and well-designed pathways. Add premium features like lighting systems, sculptural elements, fountains, and automatic irrigation. Showcase a rich and elegant garden style with attention to detail.",
+    "under-100k":
+      "Use a simple and affordable garden layout with large grass areas, minimal decorations, and a few low-cost plants like small shrubs or native flowers. Avoid luxury features, hardscape beyond basic pathways, lighting, or water systems. Suggest affordable materials like grass, small shrubs (e.g., สนฉัตร, สนมังกร), and gravel for the BOM. Ensure the total cost does not exceed 100,000 บาท. Maintain realistic proportions and avoid overcrowding.",
   };
 
   const budgetValues = {
-    low: 50000,
-    medium: 100000,
-    high: 200000,
+    "under-100k": 100000,
   };
 
-  const getBudgetValue = (budgetLevel) => {
-    return budgetValues[budgetLevel] || 200000;
+  const getBudgetValue = () => {
+    return budgetValues["under-100k"]; // คงที่ที่ 100,000
   };
 
-  const getFullPrompt = (style, budget) => {
-    return `${stylePrompts[style]} ${budgetPrompts[budget]}`;
+  const getFullPrompt = (style) => {
+    return `${stylePrompts[style]} ${budgetPrompts["under-100k"]}`;
   };
 
   useEffect(() => {
@@ -89,7 +82,7 @@ export default function GardenImageMaskPage() {
     try {
       const formData = new FormData();
       formData.append("image", image);
-      formData.append("prompt", getFullPrompt(selectedStyle, budgetLevel));
+      formData.append("prompt", getFullPrompt(selectedStyle));
 
       const res = await axios.post(
         "https://plantpick-backend.up.railway.app/garden/generate-garden",
@@ -118,14 +111,13 @@ export default function GardenImageMaskPage() {
     setBomLoading(true);
     setError(null);
     try {
-      const budget = getBudgetValue(budgetLevel);
+      const budget = getBudgetValue();
       const res = await axios.post(
         "https://plantpick-backend.up.railway.app/garden/generate-bom",
         { history_id: historyId, budget: budget },
         { headers: { "Content-Type": "application/json" } }
       );
       const bomDetails = res.data.bom_details || [];
-      // ส่งทั้ง resultImage และ bomDetails ไปหน้า BomResultPage
       navigate("/bom-result", { state: { bom: bomDetails, resultImage } });
     } catch (err) {
       setError(
@@ -175,25 +167,17 @@ export default function GardenImageMaskPage() {
               className="w-full p-2 border rounded"
               disabled={loading}
             >
-              <option value="english">สวนอังกฤษ</option>
               <option value="tropical">สวน Tropical</option>
-              <option value="modern">สวน Modern</option>
+              <option value="english">สวนอังกฤษ</option>
               <option value="japanese">สวนญี่ปุ่น</option>
             </select>
           </div>
 
           <div>
             <Label>ระดับงบประมาณ</Label>
-            <select
-              value={budgetLevel}
-              onChange={(e) => setBudgetLevel(e.target.value)}
-              className="w-full p-2 border rounded"
-              disabled={loading}
-            >
-              <option value="low">ไม่เกิน 50,000 บาท</option>
-              <option value="medium">ไม่เกิน 200,000 บาท</option>
-              <option value="high">งบจัดเต็ม</option>
-            </select>
+            <p className="p-2 text-gray-600">
+              ภาพที่สร้างจะอยู่ในงบประมาณไม่เกิน 100,000 บาท
+            </p>
           </div>
 
           <Button
