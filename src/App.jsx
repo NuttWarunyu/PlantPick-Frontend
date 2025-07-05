@@ -3,8 +3,8 @@ import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
 import SearchPage from "./pages/SearchPage.jsx";
 import GardenBudgetIdeas from "./pages/GardenBudgetIdeas.jsx";
 import IdentifyResult from "./pages/IdentifyResult.jsx";
-import About from "./pages/About.jsx";
 import BomResultPage from "./pages/BomResultPage.jsx";
+import ThankYouPage from "./pages/ThankYouPage.jsx"; // เพิ่ม import ThankYouPage
 
 import "./App.css";
 
@@ -40,13 +40,7 @@ function App() {
             >
               วิเคราะห์ต้นไม้จากภาพ
             </Link>
-            <span className="text-gray-400">|</span>
-            <Link
-              to="/about"
-              className="text-green-600 hover:text-green-800 font-medium"
-            >
-              เกี่ยวกับเรา
-            </Link>
+            {/* ลบลิงก์ About ออกตามคำขอ */}
           </nav>
         </header>
 
@@ -58,8 +52,9 @@ function App() {
               element={<GardenBudgetIdeas />}
             />
             <Route path="/identify-result" element={<IdentifyResult />} />
-            <Route path="/about" element={<About />} />{" "}
             <Route path="/bom-result" element={<BomResultPage />} />
+            <Route path="/thank-you" element={<ThankYouPage />} />{" "}
+            {/* เพิ่ม route สำหรับ ThankYouPage */}
           </Routes>
         </main>
 

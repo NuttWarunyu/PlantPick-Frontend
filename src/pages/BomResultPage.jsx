@@ -24,9 +24,8 @@ const BomResultPage = () => {
     <div className="max-w-4xl mx-auto p-6 bg-gray-50 min-h-screen">
       <h1 className="text-2xl font-bold mb-4">🧾 รายการวัสดุจัดสวน</h1>
       <div className="bg-white p-4 rounded-lg shadow">
-        {/* แสดงรูปสวน */}
         <div className="mb-6">
-          <h2 className="text-lg font-semibold text-gray-700">
+          <h2 className="text-lg font-semibold text-gray-700 mb-2">
             ภาพสวนที่ออกแบบ
           </h2>
           <img
@@ -36,7 +35,6 @@ const BomResultPage = () => {
           />
         </div>
 
-        {/* ตาราง BOM */}
         <div className="overflow-x-auto">
           <table className="w-full border-collapse bg-white">
             <thead>
@@ -109,9 +107,23 @@ const BomResultPage = () => {
             * คลิกเพื่อขอใบเสนอราคาเต็มรูปแบบ อาจต้องสมัครสมาชิก
           </p>
         </div>
+
+        <Button
+          onClick={() => navigate("/thank-you", { state: { resultImage } })}
+          className="mt-6 w-full bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 transition-colors"
+        >
+          ถัดไป: หน้า Thank You
+        </Button>
       </div>
     </div>
   );
 };
+
+// คอมโพเนนต์ Button (ถ้ายังไม่มีในโปรเจกต์)
+const Button = ({ children, onClick, className }) => (
+  <button onClick={onClick} className={className}>
+    {children}
+  </button>
+);
 
 export default BomResultPage;
