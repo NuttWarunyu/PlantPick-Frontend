@@ -6,9 +6,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import "../components/ui/BOMSection.css"; // ปรับ path ตามโครงสร้าง
+import { useNavigate } from "react-router-dom";
+import "../components/ui/BOMSection.css";
 
 export default function GardenImageMaskPage() {
+  const navigate = useNavigate();
   const [image, setImage] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
   const [selectedStyle, setSelectedStyle] = useState("english");
@@ -16,7 +18,6 @@ export default function GardenImageMaskPage() {
   const [resultImage, setResultImage] = useState(null);
   const [loading, setLoading] = useState(false);
   const [bomLoading, setBomLoading] = useState(false);
-  const [bomData, setBomData] = useState([]);
   const [historyId, setHistoryId] = useState(null);
   const [error, setError] = useState(null);
 
@@ -73,7 +74,6 @@ export default function GardenImageMaskPage() {
       setImage(file);
       setImagePreview(URL.createObjectURL(file));
       setResultImage(null);
-      setBomData([]);
       setHistoryId(null);
       setError(null);
     }
@@ -86,7 +86,6 @@ export default function GardenImageMaskPage() {
     }
     setLoading(true);
     setError(null);
-    setBomData([]);
     try {
       const formData = new FormData();
       formData.append("image", image);
@@ -125,7 +124,9 @@ export default function GardenImageMaskPage() {
         { history_id: historyId, budget: budget },
         { headers: { "Content-Type": "application/json" } }
       );
-      setBomData(res.data.bom_details || []);
+      const bomDetails = res.data.bom_details || [];
+      // ส่งทั้ง resultImage และ bomDetails ไปหน้า BomResultPage
+      navigate("/bom-result", { state: { bom: bomDetails, resultImage } });
     } catch (err) {
       setError(
         "Error generating BOM: " + (err.response?.data?.error || err.message)
@@ -147,10 +148,14 @@ export default function GardenImageMaskPage() {
             accept="image/*"
             onChange={handleImageChange}
             disabled={loading}
+            className="w-full"
           />
 
           {imagePreview && (
-            <div ref={containerRef} className="bg-gray-100 rounded-lg p-4 mt-4">
+            <div
+              ref={containerRef}
+              className="bg-gray-100 rounded-lg p-4 mt-4 overflow-hidden"
+            >
               <img
                 ref={imageRef}
                 src={imagePreview}
@@ -194,66 +199,49 @@ export default function GardenImageMaskPage() {
           <Button
             onClick={handleSubmit}
             disabled={loading}
-            className="w-full bg-green-600 text-white hover:bg-green-700"
+            className="w-full bg-green-600 text-white hover:bg-green-700 transition-colors"
           >
             🌿 Generate Garden
           </Button>
 
           {loading && (
-            <p className="text-center text-gray-600">กำลังสร้างภาพ...</p>
+            <p className="text-center text-gray-600 animate-pulse">
+              กำลังสร้างภาพ...
+            </p>
           )}
         </CardContent>
       </Card>
 
       {resultImage && (
         <Card className="shadow-lg bg-white rounded-xl mb-6">
-          <CardContent className="p-6 space-y-4">
+          <CardContent className="p-6 space-y-6">
+            <h2 className="text-lg font-semibold text-gray-700">
+              ผลลัพธ์การออกแบบสวน
+            </h2>
             <img
               src={resultImage}
-              alt="Result"
+              alt="Generated Garden"
               className="w-full rounded object-cover"
             />
 
             <Button
               onClick={handleGenerateBOM}
               disabled={bomLoading}
-              className="w-full bg-green-600 text-white hover:bg-green-700"
+              className="w-full bg-green-600 text-white hover:bg-green-700 transition-colors"
             >
               🌱 ขอรายการของที่ใช้จัดสวน
             </Button>
 
-            {bomData.length > 0 && (
-              <div className="bom-container">
-                <div className="bom-list">
-                  <h3 className="font-semibold text-lg text-gray-800">
-                    รายการเบื้องต้น:
-                  </h3>
-                  <ul className="list-disc list-inside text-gray-700">
-                    {bomData.map((item, idx) => (
-                      <li key={idx}>
-                        {item.material_name} - {item.quantity} ชิ้น (ประมาณ{" "}
-                        {(item.estimated_cost * 33).toFixed(2)} บาท)
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-                <div className="bom-button">
-                  <Button
-                    onClick={() => (window.location.href = "/contact")}
-                    className="w-full bg-gradient-to-r from-green-500 to-green-700 text-white hover:from-green-600 hover:to-green-800"
-                  >
-                    📄 ขอใบเสนอราคาจัดสวน
-                  </Button>
-                </div>
-              </div>
-            )}
-
             {bomLoading && (
-              <p className="text-center text-gray-600">กำลังวิเคราะห์...</p>
+              <p className="text-center text-gray-600 animate-pulse">
+                กำลังวิเคราะห์...
+              </p>
             )}
           </CardContent>
         </Card>
       )}
+
+      {error && <p className="text-red-500 text-center">{error}</p>}
     </div>
   );
 }
