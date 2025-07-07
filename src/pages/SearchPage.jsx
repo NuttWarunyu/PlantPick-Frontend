@@ -1,6 +1,5 @@
 import React, { useState, useCallback } from "react";
 import { identifyPlant } from "../api/identify.js";
-import "../styles.css";
 
 function Home() {
   const [plantName, setPlantName] = useState("");

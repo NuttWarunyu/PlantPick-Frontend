@@ -4,48 +4,49 @@ import SearchPage from "./pages/SearchPage.jsx";
 import GardenBudgetIdeas from "./pages/GardenBudgetIdeas.jsx";
 import IdentifyResult from "./pages/IdentifyResult.jsx";
 import BomResultPage from "./pages/BomResultPage.jsx";
-import ThankYouPage from "./pages/ThankYouPage.jsx"; // เพิ่ม import ThankYouPage
-
-import "./App.css";
+import ThankYouPage from "./pages/ThankYouPage.jsx";
 
 function App() {
-  console.log("Rendering App.jsx");
-
   return (
     <Router>
-      <div className="app-container min-h-screen bg-gradient-to-b from-green-50 to-white">
-        <header className="header p-4 text-center bg-green-100 rounded-b-lg shadow-md">
-          <h1 className="text-3xl font-bold text-green-700 text-center">
-            <span role="img" aria-label="Leaf" className="block">
-              🌿
-            </span>
-            <span className="block mt-2">PlantPick</span>
-          </h1>
-          <p className="text-gray-600 mt-2">
-            ออกแบบสวน คลิ๊กเดียว ได้ที่ซื้อ ได้ทีมสวน
-          </p>
+      {/* div นอกสุดสำหรับคุมพื้นหลังและโครงสร้างหลักแบบ flex */}
+      <div className="flex min-h-screen flex-col bg-slate-50">
+        {/* Header แบบเต็มความกว้างและลอยติดด้านบน */}
+        <header className="sticky top-0 z-50 w-full border-b bg-white/95 backdrop-blur-sm">
+          <div className="mx-auto flex h-16 max-w-5xl items-center justify-between px-4 sm:px-6 lg:px-8">
+            {/* === จุดแก้ไขที่ 2: ทำให้โลโก้ไม่มีขีดเส้นใต้ === */}
+            <Link
+              to="/"
+              className="flex items-center gap-2 text-gray-800 transition-colors hover:text-green-600"
+            >
+              <span role="img" aria-label="Leaf" className="text-2xl">
+                🌿
+              </span>
+              <span className="text-xl font-bold">PlantPick</span>
+            </Link>
 
-          {/* Navigation Links */}
-          <nav className="header-links mt-4 flex flex-wrap justify-center gap-4">
-            <Link
-              to="/garden-budget-ideas"
-              className="text-green-600 hover:text-green-800 font-medium"
-            >
-              จำลองสวนด้วย AI
-            </Link>
-            <span className="text-gray-400">|</span>
-            <Link
-              to="/search"
-              className="text-green-600 hover:text-green-800 font-medium"
-            >
-              วิเคราะห์ต้นไม้จากภาพ
-            </Link>
-            {/* ลบลิงก์ About ออกตามคำขอ */}
-          </nav>
+            {/* === จุดแก้ไขที่ 3: เพิ่มระยะห่างเมนู === */}
+            <nav className="flex items-center gap-6 text-sm font-medium">
+              <Link
+                to="/garden-budget-ideas"
+                className="text-gray-600 transition-colors hover:text-green-600"
+              >
+                จำลองสวน AI
+              </Link>
+              <Link
+                to="/search"
+                className="text-gray-600 transition-colors hover:text-green-600"
+              >
+                วิเคราะห์ภาพ
+              </Link>
+            </nav>
+          </div>
         </header>
 
-        <main className="p-6">
+        {/* เนื้อหาหลัก จะถูกจำกัดความกว้างและอยู่ตรงกลาง */}
+        <main className="w-full max-w-5xl mx-auto flex-grow p-4 sm:p-6 lg:p-8">
           <Routes>
+            <Route path="/" element={<GardenBudgetIdeas />} />
             <Route path="/search" element={<SearchPage />} />
             <Route
               path="/garden-budget-ideas"
@@ -53,13 +54,15 @@ function App() {
             />
             <Route path="/identify-result" element={<IdentifyResult />} />
             <Route path="/bom-result" element={<BomResultPage />} />
-            <Route path="/thank-you" element={<ThankYouPage />} />{" "}
-            {/* เพิ่ม route สำหรับ ThankYouPage */}
+            <Route path="/thank-you" element={<ThankYouPage />} />
           </Routes>
         </main>
 
-        <footer className="footer p-4 text-center text-gray-500 bg-green-50 mt-auto">
-          ลิขสิทธิ์ ©️ 2025 PlantPick
+        {/* Footer แบบเต็มความกว้าง */}
+        <footer className="w-full border-t bg-white">
+          <div className="mx-auto max-w-5xl p-4 text-center text-xs text-gray-500">
+            ลิขสิทธิ์ ©️ 2025 PlantPick
+          </div>
         </footer>
       </div>
     </Router>

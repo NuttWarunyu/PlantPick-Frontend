@@ -2,12 +2,7 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import axios from "axios";
-import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
-import "../components/ui/BOMSection.css";
 
 export default function GardenImageMaskPage() {
   const navigate = useNavigate();
@@ -42,7 +37,7 @@ export default function GardenImageMaskPage() {
   };
 
   const getBudgetValue = () => {
-    return budgetValues["under-100k"]; // คงที่ที่ 100,000
+    return budgetValues["under-100k"];
   };
 
   const getFullPrompt = (style) => {
@@ -118,7 +113,13 @@ export default function GardenImageMaskPage() {
         { headers: { "Content-Type": "application/json" } }
       );
       const bomDetails = res.data.bom_details || [];
-      navigate("/bom-result", { state: { bom: bomDetails, resultImage } });
+      navigate("/bom-result", {
+        state: {
+          bom: bomDetails,
+          resultImage: resultImage,
+          projectId: historyId,
+        },
+      });
     } catch (err) {
       setError(
         "Error generating BOM: " + (err.response?.data?.error || err.message)
@@ -129,42 +130,47 @@ export default function GardenImageMaskPage() {
   };
 
   return (
-    <div className="max-w-3xl mx-auto p-6 bg-gray-50 min-h-screen">
-      <Card className="mb-6 shadow-lg bg-white rounded-xl">
-        <CardContent className="p-6 space-y-6">
-          <Label className="text-lg font-semibold text-gray-700">
-            อัปโหลดภาพบ้าน
-          </Label>
-          <Input
-            type="file"
-            accept="image/*"
-            onChange={handleImageChange}
-            disabled={loading}
-            className="w-full"
-          />
+    <div className="w-full shadow-2xl bg-white rounded-2xl overflow-hidden">
+      <div className="p-6 space-y-6">
+        <div className="text-center">
+          <label className="text-xl font-bold text-gray-800">
+            อัปโหลดภาพบ้านของคุณ
+          </label>
+          <p className="text-gray-500 text-sm mt-1">
+            เพื่อให้ AI ช่วยออกแบบสวนที่เข้ากับบ้านของคุณ
+          </p>
+        </div>
+        <input
+          type="file"
+          accept="image/*"
+          onChange={handleImageChange}
+          disabled={loading}
+          className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100"
+        />
 
-          {imagePreview && (
-            <div
-              ref={containerRef}
-              className="bg-gray-100 rounded-lg p-4 mt-4 overflow-hidden"
-            >
-              <img
-                ref={imageRef}
-                src={imagePreview}
-                alt="Preview"
-                className="w-full rounded object-cover"
-              />
-            </div>
-          )}
+        {imagePreview && (
+          <div
+            ref={containerRef}
+            className="bg-gray-100 rounded-lg p-2 mt-4 overflow-hidden"
+          >
+            <img
+              ref={imageRef}
+              src={imagePreview}
+              alt="Preview"
+              className="w-full rounded-md object-cover"
+            />
+          </div>
+        )}
 
-          {error && <p className="text-red-500 text-center">{error}</p>}
+        {error && <p className="text-red-500 text-center text-sm">{error}</p>}
 
+        <div className="space-y-4">
           <div>
-            <Label>สไตล์สวน</Label>
+            <label className="font-semibold text-gray-700">เลือกสไตล์สวน</label>
             <select
               value={selectedStyle}
               onChange={(e) => setSelectedStyle(e.target.value)}
-              className="w-full p-2 border rounded"
+              className="w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
               disabled={loading}
             >
               <option value="tropical">สวน Tropical</option>
@@ -174,58 +180,60 @@ export default function GardenImageMaskPage() {
           </div>
 
           <div>
-            <Label>ระดับงบประมาณ</Label>
-            <p className="p-2 text-gray-600">
+            <label className="font-semibold text-gray-700">ระดับงบประมาณ</label>
+            <p className="p-2 text-gray-600 bg-gray-100 rounded-lg mt-1">
               ภาพที่สร้างจะอยู่ในงบประมาณไม่เกิน 100,000 บาท
             </p>
           </div>
+        </div>
 
-          <Button
+        <div className="pt-4 flex justify-center">
+          <button
             onClick={handleSubmit}
             disabled={loading}
-            className="w-full bg-green-600 text-white hover:bg-green-700 transition-colors"
+            className="bg-green-600 text-white font-bold text-lg py-3 px-10 rounded-full shadow-lg transform transition-all hover:bg-green-700 hover:scale-105 disabled:bg-gray-400 disabled:scale-100"
           >
-            🌿 Generate Garden
-          </Button>
+            🌿 สร้างสวน AI
+          </button>
+        </div>
 
-          {loading && (
-            <p className="text-center text-gray-600 animate-pulse">
-              กำลังสร้างภาพ...
-            </p>
-          )}
-        </CardContent>
-      </Card>
+        {loading && (
+          <p className="text-center text-green-600 animate-pulse font-semibold">
+            กำลังสร้างภาพ... โปรดรอสักครู่ 🤖
+          </p>
+        )}
+      </div>
 
       {resultImage && (
-        <Card className="shadow-lg bg-white rounded-xl mb-6">
-          <CardContent className="p-6 space-y-6">
-            <h2 className="text-lg font-semibold text-gray-700">
+        <div className="bg-green-50/50 rounded-2xl mt-6">
+          <div className="p-6 space-y-6">
+            <h2 className="text-xl font-bold text-gray-800 text-center">
               ผลลัพธ์การออกแบบสวน
             </h2>
             <img
               src={resultImage}
               alt="Generated Garden"
-              className="w-full rounded object-cover"
+              className="w-full rounded-lg object-cover shadow-md"
             />
 
-            <Button
-              onClick={handleGenerateBOM}
-              disabled={bomLoading}
-              className="w-full bg-green-600 text-white hover:bg-green-700 transition-colors"
-            >
-              🌱 ขอรายการของที่ใช้จัดสวน
-            </Button>
+            <div className="pt-4 flex justify-center">
+              <button
+                onClick={handleGenerateBOM}
+                disabled={bomLoading}
+                className="bg-orange-500 text-white font-bold text-lg py-3 px-10 rounded-full shadow-lg transform transition-all hover:bg-orange-600 hover:scale-105 disabled:bg-gray-400 disabled:scale-100"
+              >
+                🌱 ขอรายการของและราคา
+              </button>
+            </div>
 
             {bomLoading && (
-              <p className="text-center text-gray-600 animate-pulse">
-                กำลังวิเคราะห์...
+              <p className="text-center text-orange-600 animate-pulse font-semibold">
+                กำลังวิเคราะห์รายการ... 📝
               </p>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       )}
-
-      {error && <p className="text-red-500 text-center">{error}</p>}
     </div>
   );
 }
