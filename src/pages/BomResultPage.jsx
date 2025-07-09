@@ -14,7 +14,7 @@ const BomResultPage = () => {
 
   const totalCost = useMemo(() => {
     if (!initialBom) return 0;
-    // แก้ไข: ไม่มีการคูณ 33 แล้ว เพราะถือว่า Backend ส่งราคา THB มาแล้ว
+    // Backend ส่งราคาเป็น THB มาแล้ว ไม่ต้องคูณอะไรอีก
     return initialBom.reduce((sum, item) => sum + item.estimated_cost, 0);
   }, [initialBom]);
 
@@ -79,8 +79,10 @@ const BomResultPage = () => {
                     <td className="border p-3 text-gray-800">
                       {item.material_name}
                     </td>
+                    {/* === จุดแก้ไข === */}
                     <td className="border p-3 text-gray-600 text-center">
-                      {item.quantity} {item.unit || ""} {/* แสดงหน่วย */}
+                      {item.quantity} {item.unit_type || ""}{" "}
+                      {/* แสดงหน่วยจาก unit_type */}
                     </td>
                     <td className="border p-3 text-gray-800 text-right font-mono">
                       {item.estimated_cost.toLocaleString("th-TH", {
@@ -108,13 +110,13 @@ const BomResultPage = () => {
             </table>
           </div>
 
-          {/* === เริ่มต้นส่วน Call to Action ใหม่ (นำโค้ดนี้ไปทับของเดิม) === */}
+          {/* ส่วน Call to Action */}
           <div className="mt-10 pt-6 border-t-2 border-dashed border-gray-300">
             <h2 className="text-2xl font-bold text-center text-gray-800 mb-6">
               ขั้นตอนต่อไป
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* การ์ด 1: บริการครบวงจร (เน้นเป็นพิเศษ) */}
+              {/* การ์ด 1: บริการครบวงจร */}
               <div className="bg-green-50 p-6 rounded-2xl shadow-lg flex flex-col border-2 border-green-600 transition-transform hover:scale-[1.02]">
                 <div className="flex-grow">
                   <FiMessageSquare className="text-4xl text-green-600 mb-3" />
@@ -127,7 +129,7 @@ const BomResultPage = () => {
                   </p>
                 </div>
                 <a
-                  href={lineOA_URL} // lineOA_URL ที่ประกาศไว้ด้านบน
+                  href={lineOA_URL}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="w-full mt-4 bg-green-600 text-white font-bold py-3 px-4 rounded-lg text-center hover:bg-green-700 transition-all flex items-center justify-center gap-2"
@@ -136,7 +138,6 @@ const BomResultPage = () => {
                   ปรึกษาทีมงานผ่าน LINE
                 </a>
               </div>
-
               {/* การ์ด 2: จัดเอง (DIY) */}
               <div className="bg-white p-6 rounded-2xl shadow-lg flex flex-col transition-transform hover:scale-[1.02]">
                 <div className="flex-grow">
@@ -150,7 +151,7 @@ const BomResultPage = () => {
                   </p>
                 </div>
                 <button
-                  onClick={handleRequestDIYLinks} // handleRequestDIYLinks ที่ประกาศไว้ด้านบน
+                  onClick={handleRequestDIYLinks}
                   className="w-full mt-4 bg-orange-500 text-white font-bold py-3 px-4 rounded-lg hover:bg-orange-600 transition-all flex items-center justify-center gap-2"
                 >
                   <FiShoppingCart />
@@ -159,7 +160,6 @@ const BomResultPage = () => {
               </div>
             </div>
           </div>
-          {/* === จบส่วน Call to Action ใหม่ === */}
         </div>
         <div className="text-center mt-8">
           <button

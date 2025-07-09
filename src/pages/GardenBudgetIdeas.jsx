@@ -4,6 +4,12 @@ import React, { useState, useRef, useEffect } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 
+// === จุดแก้ไขที่ 1: กำหนด Base URL ของ API ===
+// ถ้ามีตัวแปร VITE_API_BASE_URL ใน .env (สำหรับ Production) ให้ใช้ค่านั้น
+// ถ้าไม่มี (สำหรับ Local) ให้ใช้ http://127.0.0.1:8000
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
+
 export default function GardenImageMaskPage() {
   const navigate = useNavigate();
   const [image, setImage] = useState(null);
@@ -79,8 +85,9 @@ export default function GardenImageMaskPage() {
       formData.append("image", image);
       formData.append("prompt", getFullPrompt(selectedStyle));
 
+      // === จุดแก้ไขที่ 2: ใช้ Base URL ที่เรากำหนดไว้ ===
       const res = await axios.post(
-        "https://plantpick-backend.up.railway.app/garden/generate-garden",
+        `${API_BASE_URL}/garden/generate-garden`,
         formData,
         {
           headers: { "Content-Type": "multipart/form-data" },
@@ -107,8 +114,10 @@ export default function GardenImageMaskPage() {
     setError(null);
     try {
       const budget = getBudgetValue();
+
+      // === จุดแก้ไขที่ 3: ใช้ Base URL ที่เรากำหนดไว้ ===
       const res = await axios.post(
-        "https://plantpick-backend.up.railway.app/garden/generate-bom",
+        `${API_BASE_URL}/garden/generate-bom`,
         { history_id: historyId, budget: budget },
         { headers: { "Content-Type": "application/json" } }
       );
