@@ -9,11 +9,10 @@ import {
   FiSun,
   FiDroplet,
   FiCheckCircle,
-  FiPlusCircle,
 } from "react-icons/fi";
 
-// === คอมโพเนนท์สำหรับหน้าจอ Loading (เหมือนเดิม) ===
-const EngagingLoadingScreen = () => {
+// === คอมโพเนนท์สำหรับหน้าจอ Loading (มีการปรับปรุงเล็กน้อย) ===
+const EngagingLoadingScreen = ({ predictionId }) => {
   const [currentStep, setCurrentStep] = useState(0);
   const steps = [
     {
@@ -60,8 +59,11 @@ const EngagingLoadingScreen = () => {
         ></div>
       </div>
       <p className="text-sm text-gray-500 mt-4">
-        กระบวนการนี้อาจใช้เวลา 2-4 นาที ขึ้นอยู่กับความซับซ้อนของภาพ
+        กำลังประมวลผล... กระบวนการนี้อาจใช้เวลา 2-4 นาที
       </p>
+      {predictionId && (
+        <p className="text-xs text-gray-400 mt-2">ID: {predictionId}</p>
+      )}
     </div>
   );
 };
@@ -70,7 +72,6 @@ const EngagingLoadingScreen = () => {
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
 
-// === สร้างรายการแท็กและงบประมาณ ===
 const styleTags = [
   { id: "tropical", name: "Tropical", emoji: "🌴" },
   { id: "english", name: "English", emoji: "🌹" },
@@ -106,11 +107,61 @@ export default function GardenImageMaskPage() {
   const [historyId, setHistoryId] = useState(null);
   const [error, setError] = useState(null);
 
-  // === จุดแก้ไขที่ 1: แยก State สำหรับสไตล์ (เดี่ยว) และฟีเจอร์ (กลุ่ม) ===
+  // === จุดแก้ไขที่ 1: เพิ่ม State สำหรับเก็บ "บัตรคิว" ===
+  const [predictionId, setPredictionId] = useState(null);
+
   const [selectedStyle, setSelectedStyle] = useState("tropical");
   const [selectedFeatures, setSelectedFeatures] = useState(new Set());
   const [customKeywords, setCustomKeywords] = useState("");
   const [selectedBudgetLevel, setSelectedBudgetLevel] = useState(2);
+
+  // === จุดแก้ไขที่ 2: สร้าง `useEffect` สำหรับ Polling ===
+  useEffect(() => {
+    // ถ้าไม่มี predictionId หรือไม่ได้กำลัง loading ก็ไม่ต้องทำอะไร
+    if (!predictionId || !loading) {
+      return;
+    }
+
+    // เริ่มการ Polling ทุกๆ 5 วินาที
+    const interval = setInterval(async () => {
+      try {
+        const res = await axios.get(
+          `${API_BASE_URL}/garden/check-prediction/${predictionId}`
+        );
+        const {
+          status,
+          result_url,
+          history_id,
+          error: predictionError,
+        } = res.data;
+
+        if (status === "succeeded") {
+          console.log("Prediction succeeded!", res.data);
+          setResultImage(result_url);
+          setHistoryId(history_id);
+          setLoading(false); // หยุด Loading
+          setPredictionId(null); // เคลียร์ predictionId
+          clearInterval(interval); // หยุดการ Polling
+        } else if (status === "failed") {
+          console.error("Prediction failed:", predictionError);
+          setError(`การสร้างภาพล้มเหลว: ${predictionError}`);
+          setLoading(false);
+          setPredictionId(null);
+          clearInterval(interval);
+        }
+        // ถ้า status ยังเป็น 'processing' ก็ไม่ต้องทำอะไร รอรอบต่อไป
+      } catch (err) {
+        console.error("Polling error:", err);
+        setError("เกิดข้อผิดพลาดในการตรวจสอบสถานะ");
+        setLoading(false);
+        setPredictionId(null);
+        clearInterval(interval);
+      }
+    }, 5000); // เช็คทุก 5 วินาที
+
+    // Cleanup function: หยุดการ Polling เมื่อ component ถูก unmount
+    return () => clearInterval(interval);
+  }, [predictionId, loading]); // useEffect นี้จะทำงานเมื่อ predictionId หรือ loading เปลี่ยนแปลง
 
   const handleFeatureTagToggle = (tagId) => {
     setSelectedFeatures((prevTags) => {
@@ -148,6 +199,7 @@ export default function GardenImageMaskPage() {
     return prompt;
   };
 
+  // === จุดแก้ไขที่ 3: `handleSubmit` จะไม่รอผลลัพธ์ แต่จะรับ "บัตรคิว" แทน ===
   const handleSubmit = async () => {
     if (!image) {
       setError("Please upload an image first.");
@@ -155,6 +207,7 @@ export default function GardenImageMaskPage() {
     }
     setLoading(true);
     setError(null);
+    setResultImage(null); // เคลียร์รูปเก่า
     try {
       const formData = new FormData();
       const allTags = [selectedStyle, ...Array.from(selectedFeatures)];
@@ -171,18 +224,24 @@ export default function GardenImageMaskPage() {
         { headers: { "Content-Type": "multipart/form-data" } }
       );
 
-      setResultImage(res.data.result_url);
-      setHistoryId(res.data.history_id);
+      // รับ "บัตรคิว" (prediction_id) แล้วเก็บไว้ใน state
+      if (res.data.status === "processing" && res.data.prediction_id) {
+        setPredictionId(res.data.prediction_id);
+      } else {
+        throw new Error("Did not receive a valid prediction ID.");
+      }
     } catch (err) {
       setError(
-        "Error generating image: " + (err.response?.data?.error || err.message)
+        "Error starting image generation: " +
+          (err.response?.data?.error || err.message)
       );
-    } finally {
-      setLoading(false);
+      setLoading(false); // หยุด loading ถ้าเกิด error ทันที
     }
+    // ไม่ต้องมี finally { setLoading(false) } ที่นี่แล้ว เพราะเราจะรอให้ polling เสร็จ
   };
 
   const handleGenerateBOM = async () => {
+    // ... (ฟังก์ชันนี้เหมือนเดิม) ...
     if (!historyId) {
       setError("Please generate a garden image first.");
       return;
@@ -224,10 +283,10 @@ export default function GardenImageMaskPage() {
   return (
     <div className="w-full shadow-2xl bg-white rounded-2xl overflow-hidden">
       {loading ? (
-        <EngagingLoadingScreen />
+        <EngagingLoadingScreen predictionId={predictionId} />
       ) : (
         <div className="p-6 space-y-8">
-          {/* Section 1: Upload Image */}
+          {/* ... (ส่วนฟอร์มเหมือนเดิมทั้งหมด) ... */}
           <div className="text-center">
             <h2 className="text-2xl font-bold text-gray-800">
               ขั้นตอนที่ 1: อัปโหลดภาพบ้าน
@@ -283,7 +342,6 @@ export default function GardenImageMaskPage() {
             </div>
           )}
 
-          {/* Section 2: Define Style */}
           <div className="space-y-6 pt-6 border-t">
             <div className="text-center">
               <h2 className="text-2xl font-bold text-gray-800">
@@ -299,7 +357,6 @@ export default function GardenImageMaskPage() {
                 สไตล์หลัก (เลือก 1 อย่าง)
               </label>
               <div className="flex flex-wrap gap-3 mt-2">
-                {/* === จุดแก้ไขที่ 2: แยก Logic ปุ่มสไตล์ (Single-choice) === */}
                 {styleTags.map((tag) => (
                   <button
                     key={tag.id}
@@ -321,7 +378,6 @@ export default function GardenImageMaskPage() {
                 องค์ประกอบเพิ่มเติม (เลือกได้หลายอย่าง)
               </label>
               <div className="flex flex-wrap gap-3 mt-2">
-                {/* === จุดแก้ไขที่ 3: แยก Logic ปุ่มฟีเจอร์ (Multi-choice) === */}
                 {featureTags.map((tag) => (
                   <button
                     key={tag.id}
@@ -356,7 +412,6 @@ export default function GardenImageMaskPage() {
             </div>
           </div>
 
-          {/* Section 3: Generate */}
           <div className="pt-6 border-t">
             <div className="text-center mb-4">
               <h2 className="text-2xl font-bold text-gray-800">
