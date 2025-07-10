@@ -84,9 +84,11 @@ const featureTags = [
   { id: "pond", name: "มีบ่อปลา", emoji: "🐠" },
   { id: "easycare", name: "ดูแลง่าย", emoji: "👍" },
   { id: "seating", name: "มีมุมนั่งเล่น", emoji: "🪑" },
+  { id: "pavilion", name: "มีศาลา", emoji: "🛖" },
+  { id: "kid-friendly", name: "เหมาะกับเด็ก", emoji: "👧" },
+  { id: "pet-friendly", name: "เลี้ยงสัตว์ได้", emoji: "🐶" },
 ];
 
-// === จุดแก้ไขที่ 1: เปลี่ยนจากระดับงบประมาณเป็นตัวเลือกที่ชัดเจน ===
 const budgetOptions = [
   { label: "< 50,000", value: 50000, level: 1 },
   { label: "50,000 - 100,000", value: 100000, level: 2 },
@@ -104,13 +106,14 @@ export default function GardenImageMaskPage() {
   const [historyId, setHistoryId] = useState(null);
   const [error, setError] = useState(null);
 
-  // === จุดแก้ไขที่ 2: เปลี่ยน State ให้เก็บระดับงบประมาณที่เลือก ===
-  const [selectedTags, setSelectedTags] = useState(new Set(["tropical"]));
+  // === จุดแก้ไขที่ 1: แยก State สำหรับสไตล์ (เดี่ยว) และฟีเจอร์ (กลุ่ม) ===
+  const [selectedStyle, setSelectedStyle] = useState("tropical");
+  const [selectedFeatures, setSelectedFeatures] = useState(new Set());
   const [customKeywords, setCustomKeywords] = useState("");
-  const [selectedBudgetLevel, setSelectedBudgetLevel] = useState(2); // Default คือ level 2 (50k-100k)
+  const [selectedBudgetLevel, setSelectedBudgetLevel] = useState(2);
 
-  const handleTagToggle = (tagId) => {
-    setSelectedTags((prevTags) => {
+  const handleFeatureTagToggle = (tagId) => {
+    setSelectedFeatures((prevTags) => {
       const newTags = new Set(prevTags);
       if (newTags.has(tagId)) {
         newTags.delete(tagId);
@@ -133,8 +136,8 @@ export default function GardenImageMaskPage() {
   };
 
   const getFullPrompt = () => {
-    const tagsArray = Array.from(selectedTags);
-    let prompt = `Design a beautiful, photorealistic garden for the provided house image. Incorporate the following styles and elements: ${tagsArray.join(
+    const allTags = [selectedStyle, ...Array.from(selectedFeatures)];
+    let prompt = `Design a beautiful, photorealistic garden for the provided house image. Incorporate the following styles and elements: ${allTags.join(
       ", "
     )}.`;
     if (customKeywords) {
@@ -154,10 +157,11 @@ export default function GardenImageMaskPage() {
     setError(null);
     try {
       const formData = new FormData();
+      const allTags = [selectedStyle, ...Array.from(selectedFeatures)];
+
       formData.append("image", image);
       formData.append("prompt", getFullPrompt());
-      // ส่ง selected_tags ไปด้วย
-      Array.from(selectedTags).forEach((tag) => {
+      allTags.forEach((tag) => {
         formData.append("selected_tags", tag);
       });
 
@@ -186,18 +190,17 @@ export default function GardenImageMaskPage() {
     setBomLoading(true);
     setError(null);
     try {
-      // หา budget value จาก level ที่เลือก
       const budgetInfo = budgetOptions.find(
         (opt) => opt.level === selectedBudgetLevel
       );
-      const budget = budgetInfo ? budgetInfo.value : 100000; // Fallback
+      const budget = budgetInfo ? budgetInfo.value : 100000;
 
       const res = await axios.post(
         `${API_BASE_URL}/garden/generate-bom`,
         {
           history_id: historyId,
           budget: budget,
-          budget_level: selectedBudgetLevel, // ส่ง level ไปด้วย
+          budget_level: selectedBudgetLevel,
         },
         { headers: { "Content-Type": "application/json" } }
       );
@@ -287,20 +290,23 @@ export default function GardenImageMaskPage() {
                 ขั้นตอนที่ 2: กำหนดสไตล์และความต้องการ
               </h2>
               <p className="text-gray-500 text-sm mt-1">
-                เลือกสไตล์และองค์ประกอบที่คุณชอบได้หลายอย่าง
+                เลือกสไตล์หลัก 1 อย่าง และองค์ประกอบเสริมได้หลายอย่าง
               </p>
             </div>
 
             <div>
-              <label className="font-semibold text-gray-700">สไตล์หลัก</label>
-              <div className="flex flex-wrap gap-2 mt-2">
+              <label className="font-semibold text-gray-700">
+                สไตล์หลัก (เลือก 1 อย่าง)
+              </label>
+              <div className="flex flex-wrap gap-3 mt-2">
+                {/* === จุดแก้ไขที่ 2: แยก Logic ปุ่มสไตล์ (Single-choice) === */}
                 {styleTags.map((tag) => (
                   <button
                     key={tag.id}
-                    onClick={() => handleTagToggle(tag.id)}
-                    className={`px-4 py-2 text-sm font-medium rounded-full transition-all ${
-                      selectedTags.has(tag.id)
-                        ? "bg-green-600 text-white shadow-md"
+                    onClick={() => setSelectedStyle(tag.id)}
+                    className={`px-5 py-2.5 text-base font-semibold rounded-full transition-all duration-200 ease-in-out transform hover:scale-105 ${
+                      selectedStyle === tag.id
+                        ? "bg-green-600 text-white shadow-md ring-2 ring-offset-2 ring-green-500"
                         : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                     }`}
                   >
@@ -312,16 +318,17 @@ export default function GardenImageMaskPage() {
 
             <div>
               <label className="font-semibold text-gray-700">
-                องค์ประกอบเพิ่มเติม
+                องค์ประกอบเพิ่มเติม (เลือกได้หลายอย่าง)
               </label>
-              <div className="flex flex-wrap gap-2 mt-2">
+              <div className="flex flex-wrap gap-3 mt-2">
+                {/* === จุดแก้ไขที่ 3: แยก Logic ปุ่มฟีเจอร์ (Multi-choice) === */}
                 {featureTags.map((tag) => (
                   <button
                     key={tag.id}
-                    onClick={() => handleTagToggle(tag.id)}
-                    className={`px-4 py-2 text-sm font-medium rounded-full transition-all ${
-                      selectedTags.has(tag.id)
-                        ? "bg-blue-600 text-white shadow-md"
+                    onClick={() => handleFeatureTagToggle(tag.id)}
+                    className={`px-5 py-2.5 text-base font-semibold rounded-full transition-all duration-200 ease-in-out transform hover:scale-105 ${
+                      selectedFeatures.has(tag.id)
+                        ? "bg-blue-600 text-white shadow-md ring-2 ring-offset-2 ring-blue-500"
                         : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                     }`}
                   >
@@ -391,15 +398,14 @@ export default function GardenImageMaskPage() {
                   เลือกช่วงงบประมาณของคุณเพื่อดูรายการของและราคาประเมิน
                 </p>
               </div>
-              {/* === จุดแก้ไขที่ 3: เปลี่ยนจาก Slider เป็นปุ่มเลือก === */}
               <div className="flex flex-wrap justify-center gap-3 mt-4">
                 {budgetOptions.map((opt) => (
                   <button
                     key={opt.level}
                     onClick={() => setSelectedBudgetLevel(opt.level)}
-                    className={`px-5 py-2 text-sm font-bold rounded-full transition-all ${
+                    className={`px-5 py-2 text-sm font-bold rounded-full transition-all duration-200 ease-in-out transform hover:scale-105 ${
                       selectedBudgetLevel === opt.level
-                        ? "bg-green-600 text-white shadow-lg"
+                        ? "bg-green-600 text-white shadow-lg ring-2 ring-offset-2 ring-green-500"
                         : "bg-white text-gray-800 border hover:bg-green-50"
                     }`}
                   >
