@@ -4,8 +4,9 @@ import {
   FiMessageSquare,
   FiShoppingCart,
   FiHome,
-  FiTag,
   FiMapPin,
+  FiArrowRight,
+  FiThumbsUp,
 } from "react-icons/fi";
 
 const BomResultPage = () => {
@@ -33,134 +34,130 @@ const BomResultPage = () => {
 
   const lineOA_URL = "https://line.me/ti/p/@025hcugd";
 
+  // ฟังก์ชันสำหรับสร้างลิงก์ค้นหาสินค้า
+  const createSearchLink = (itemName) => {
+    const encodedItem = encodeURIComponent(itemName);
+    return `https://www.shopee.co.th/search?keyword=${encodedItem}`;
+  };
+
   if (!initialBom || !initialImage) {
     return <div className="text-center p-10">กำลังโหลดข้อมูล...</div>;
   }
 
   return (
-    <div className="w-full">
-      <div className="bg-white p-6 rounded-2xl shadow-lg">
-        <h1 className="text-2xl md:text-3xl font-bold text-green-800 mb-2 text-center">
-          🧾 สรุปรายการและงบประมาณ
+    <div className="w-full space-y-8">
+      {/* === ส่วนที่ 1: สรุปโปรเจค (Project Summary) === */}
+      <div className="bg-white p-6 rounded-2xl shadow-lg text-center">
+        <h1 className="text-2xl md:text-3xl font-bold text-green-800 mb-2">
+          สวนในฝันของคุณพร้อมแล้ว!
         </h1>
-
-        <div className="text-center mb-6">
-          <p className="text-gray-600">รหัสโปรเจคสำหรับอ้างอิง:</p>
+        <p className="text-gray-600 mb-4">
+          นี่คือรายการวัสดุและราคาประเมินสำหรับโปรเจคของคุณ
+        </p>
+        <div className="mb-6">
+          <p className="text-sm text-gray-500">รหัสโปรเจคสำหรับอ้างอิง:</p>
           <p className="text-xl font-bold text-green-700 bg-green-100 rounded-md px-2 py-1 inline-block">
             {projectId || "N/A"}
           </p>
         </div>
-
         <img
           src={initialImage}
           alt="Designed Garden"
-          className="w-full h-auto max-h-[400px] object-cover rounded-xl shadow-md mx-auto mb-6"
+          className="w-full h-auto max-h-[450px] object-cover rounded-xl shadow-md mx-auto"
         />
+      </div>
 
-        {/* === จุดแก้ไขหลัก: การแสดงผลตาราง BOM ใหม่ === */}
-        <div className="space-y-4">
-          <div className="flex justify-between items-center bg-green-100 p-3 rounded-t-lg font-semibold text-gray-700">
-            <span className="w-2/5">รายการ (จากร้านค้า)</span>
-            <span className="w-1/5 text-center">จำนวน</span>
-            <span className="w-2/5 text-right">ราคารวม (บาท)</span>
-          </div>
-
+      {/* === ส่วนที่ 2: รายการวัสดุแบบโต้ตอบได้ (Interactive BOM) === */}
+      <div className="bg-white p-6 rounded-2xl shadow-lg">
+        <h2 className="text-xl font-bold text-gray-800 mb-4">
+          รายการวัสดุ (สำหรับจัดสวนเอง)
+        </h2>
+        <div className="space-y-3">
           {initialBom.map((item, index) => (
-            <div key={index} className="border rounded-lg p-3 hover:bg-gray-50">
-              <div className="flex justify-between items-start">
-                {/* ส่วนชื่อวัสดุและร้านค้า */}
-                <div className="w-2/5">
-                  <p className="font-bold text-gray-800">
-                    {item.material_name}
-                  </p>
-                  <p className="text-sm text-gray-500 flex items-center gap-1">
-                    <FiMapPin size={12} /> {item.vendor_name}
+            <div
+              key={index}
+              className="border rounded-lg p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 hover:bg-slate-50 transition-colors"
+            >
+              <div className="flex-grow">
+                <p className="font-bold text-gray-800">{item.material_name}</p>
+                <p className="text-sm text-gray-500 flex items-center gap-1">
+                  <FiMapPin size={12} /> {item.vendor_name}
+                </p>
+              </div>
+              <div className="flex items-baseline gap-4 w-full sm:w-auto">
+                <div className="flex-grow text-left sm:text-center">
+                  <p className="text-gray-800 font-semibold">
+                    {item.quantity}
+                    <span className="text-xs text-gray-500 ml-1">
+                      {item.unit_type}
+                    </span>
                   </p>
                 </div>
-                {/* ส่วนจำนวน */}
-                <div className="w-1/5 text-center">
-                  <p className="text-gray-800">{item.quantity}</p>
-                  <p className="text-xs text-gray-400">{item.unit_type}</p>
-                </div>
-                {/* ส่วนราคา */}
-                <div className="w-2/5 text-right">
+                <div className="flex-grow text-right">
                   <p className="font-mono font-semibold text-gray-800">
                     {item.estimated_cost.toLocaleString("th-TH", {
                       minimumFractionDigits: 2,
                     })}
                   </p>
                   <p className="text-xs text-gray-400 font-mono">
-                    (@ {item.unit_price.toLocaleString("th-TH")} /{" "}
-                    {item.unit_type})
+                    (@{item.unit_price.toLocaleString("th-TH")})
                   </p>
                 </div>
               </div>
-            </div>
-          ))}
-
-          {/* ยอดรวม */}
-          <div className="flex justify-between items-center bg-green-200 p-3 rounded-b-lg font-bold text-green-900">
-            <span className="w-3/5 text-right">ยอดรวมประมาณการ</span>
-            <span className="w-2/5 text-right text-xl font-mono">
-              {totalCost.toLocaleString("th-TH", {
-                minimumFractionDigits: 2,
-              })}
-            </span>
-          </div>
-        </div>
-
-        {/* ส่วน Call to Action */}
-        <div className="mt-10 pt-6 border-t-2 border-dashed border-gray-300">
-          <h2 className="text-2xl font-bold text-center text-gray-800 mb-6">
-            ขั้นตอนต่อไป
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* การ์ด 1: บริการครบวงจร */}
-            <div className="bg-green-50 p-6 rounded-2xl shadow-lg flex flex-col border-2 border-green-600 transition-transform hover:scale-[1.02]">
-              <div className="flex-grow">
-                <FiMessageSquare className="text-4xl text-green-600 mb-3" />
-                <h3 className="text-xl font-bold text-gray-800 mb-2">
-                  ให้มืออาชีพดูแล
-                </h3>
-                <p className="text-gray-600 mb-4">
-                  สนใจให้ทีมงานของเราเข้าประเมินหน้างานและรับใบเสนอราคาเต็มรูปแบบ?
-                  ติดต่อเราได้เลย
-                </p>
-              </div>
               <a
-                href={lineOA_URL}
+                href={createSearchLink(item.material_name)}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-full mt-4 bg-green-600 text-white font-bold py-3 px-4 rounded-lg text-center hover:bg-green-700 transition-all flex items-center justify-center gap-2"
+                className="bg-gray-100 text-gray-700 text-sm font-semibold py-2 px-4 rounded-full hover:bg-gray-200 transition-colors flex items-center justify-center gap-2 w-full sm:w-auto"
               >
-                <FiMessageSquare />
-                ปรึกษาทีมงานผ่าน LINE
+                <FiShoppingCart size={14} />
+                หาซื้อเอง
               </a>
             </div>
-            {/* การ์ด 2: จัดเอง (DIY) */}
-            <div className="bg-white p-6 rounded-2xl shadow-lg flex flex-col transition-transform hover:scale-[1.02]">
-              <div className="flex-grow">
-                <FiShoppingCart className="text-4xl text-orange-500 mb-3" />
-                <h3 className="text-xl font-bold text-gray-800 mb-2">
-                  สั่งของไปจัดเอง
-                </h3>
-                <p className="text-gray-600 mb-4">
-                  รับรายการสินค้าพร้อมลิงก์สำหรับสั่งซื้อ
-                  เพื่อนำไปจัดสวนสวยด้วยตัวคุณเอง
-                </p>
-              </div>
-              <button
-                onClick={() =>
-                  alert("ฟีเจอร์ขอลิงก์สำหรับซื้อเองกำลังจะมาเร็วๆ นี้!")
-                }
-                className="w-full mt-4 bg-orange-500 text-white font-bold py-3 px-4 rounded-lg hover:bg-orange-600 transition-all flex items-center justify-center gap-2"
-              >
-                <FiShoppingCart />
-                ขอลิงก์สำหรับสั่งซื้อ
-              </button>
-            </div>
-          </div>
+          ))}
         </div>
+        {/* ยอดรวม */}
+        <div className="flex justify-end items-center mt-6 pt-4 border-t">
+          <span className="text-gray-600 font-bold mr-4">ยอดรวมประมาณการ:</span>
+          <span className="text-2xl font-bold text-green-700 font-mono">
+            {totalCost.toLocaleString("th-TH", {
+              minimumFractionDigits: 2,
+            })}
+          </span>
+        </div>
+      </div>
+
+      {/* === ส่วนที่ 3: ข้อเสนอสำหรับบริการครบวงจร (Full-Service Offer) === */}
+      <div className="bg-green-50 p-8 rounded-2xl shadow-lg text-center border border-green-200">
+        <FiThumbsUp className="text-5xl text-green-500 mx-auto mb-4" />
+        <h2 className="text-2xl font-bold text-green-800">
+          พร้อมเปลี่ยนฝันให้เป็นจริงหรือยัง?
+        </h2>
+        <p className="text-gray-600 mt-2 mb-6 max-w-2xl mx-auto">
+          ให้ทีมงานมืออาชีพของเราดูแลทุกขั้นตอน ตั้งแต่การจัดหาวัสดุคุณภาพ
+          จนถึงเนรมิตสวนสวยให้คุณถึงบ้าน สะดวกสบาย ได้ผลงานตรงตามแบบ
+          พร้อมรับประกันความพึงพอใจ
+        </p>
+        <a
+          href={lineOA_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center justify-center gap-2 bg-green-600 text-white font-bold text-lg py-3 px-10 rounded-full shadow-lg transform transition-all hover:bg-green-700 hover:scale-105"
+        >
+          <FiMessageSquare />
+          ปรึกษาทีมออกแบบ (ฟรี!)
+        </a>
+      </div>
+
+      {/* ส่วนท้าย: กลับไปออกแบบใหม่ */}
+      <div className="text-center mt-4">
+        <button
+          onClick={() => navigate("/")}
+          className="text-gray-600 hover:text-green-700 font-semibold flex items-center justify-center gap-2 mx-auto"
+        >
+          <FiHome />
+          กลับไปออกแบบใหม่
+        </button>
       </div>
     </div>
   );
