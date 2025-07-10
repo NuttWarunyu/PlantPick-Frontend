@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import {
@@ -9,10 +9,9 @@ import {
   FiSun,
   FiDroplet,
   FiCheckCircle,
-  FiImage,
 } from "react-icons/fi";
 
-// === ส่วนใหม่: คอมโพเนนท์สำหรับหน้าจอ Loading ที่น่าสนใจ ===
+// === คอมโพเนนท์สำหรับหน้าจอ Loading ที่น่าสนใจ (เหมือนเดิม) ===
 const EngagingLoadingScreen = () => {
   const [currentStep, setCurrentStep] = useState(0);
   const steps = [
@@ -39,7 +38,6 @@ const EngagingLoadingScreen = () => {
   ];
 
   useEffect(() => {
-    // เปลี่ยนข้อความทุกๆ 3 วินาที
     const interval = setInterval(() => {
       setCurrentStep((prevStep) => (prevStep + 1) % steps.length);
     }, 3000);
@@ -68,7 +66,7 @@ const EngagingLoadingScreen = () => {
   );
 };
 
-// === คอมโพเนนท์หลัก (มีการแก้ไขส่วน Loading และ Upload) ===
+// === คอมโพเนนท์หลัก (มีการแก้ไข) ===
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
 
@@ -83,8 +81,10 @@ export default function GardenImageMaskPage() {
   const [historyId, setHistoryId] = useState(null);
   const [error, setError] = useState(null);
 
-  const containerRef = useRef(null);
-  const imageRef = useRef(null);
+  // === จุดแก้ไขที่ 1: ลบ useRef และ useEffect ที่ซับซ้อนออกไป ===
+  // ไม่จำเป็นต้องใช้ useRef และ ResizeObserver อีกต่อไป
+  // const containerRef = useRef(null);
+  // const imageRef = useRef(null);
 
   const stylePrompts = {
     english:
@@ -112,6 +112,8 @@ export default function GardenImageMaskPage() {
     return `${stylePrompts[style]} ${budgetPrompts["under-100k"]}`;
   };
 
+  // === จุดแก้ไขที่ 2: ลบ useEffect ของ ResizeObserver ออกไปทั้งหมด ===
+  /*
   useEffect(() => {
     if (!imageRef.current || !containerRef.current) return;
     const resizeObserver = new ResizeObserver(() => {
@@ -123,6 +125,7 @@ export default function GardenImageMaskPage() {
     resizeObserver.observe(containerRef.current);
     return () => resizeObserver.disconnect();
   }, [imagePreview, resultImage]);
+  */
 
   const handleImageChange = (e) => {
     const file = e.target.files[0];
@@ -212,7 +215,6 @@ export default function GardenImageMaskPage() {
             </p>
           </div>
 
-          {/* === จุดแก้ไขหลัก: สร้างพื้นที่อัปโหลดที่โดดเด่น === */}
           <div className="w-full">
             <label
               htmlFor="file-upload"
@@ -237,20 +239,17 @@ export default function GardenImageMaskPage() {
             </label>
           </div>
 
+          {/* === จุดแก้ไขที่ 3: แก้ไขส่วนแสดงภาพพรีวิว === */}
           {imagePreview && (
             <div className="text-center">
               <p className="font-semibold text-gray-700 mb-2">
                 ภาพที่คุณเลือก:
               </p>
-              <div
-                ref={containerRef}
-                className="bg-gray-100 rounded-lg p-2 mt-2 overflow-hidden inline-block"
-              >
+              <div className="mt-2 inline-block">
                 <img
-                  ref={imageRef}
                   src={imagePreview}
                   alt="Preview"
-                  className="w-full max-w-md rounded-md object-cover"
+                  className="max-w-full h-auto max-h-80 rounded-lg shadow-md object-contain"
                 />
               </div>
             </div>
@@ -287,23 +286,25 @@ export default function GardenImageMaskPage() {
             </div>
           </div>
 
-          <div className="pt-6 flex justify-center border-t">
+          <div className="pt-6 border-t">
             <h2 className="text-2xl font-bold text-gray-800 text-center mb-4">
               ขั้นตอนที่ 3: สร้างสวน!
             </h2>
-            <button
-              onClick={handleSubmit}
-              disabled={loading || !image}
-              className="bg-green-600 text-white font-bold text-lg py-4 px-12 rounded-full shadow-lg transform transition-all hover:bg-green-700 hover:scale-105 disabled:bg-gray-400 disabled:scale-100 disabled:cursor-not-allowed"
-            >
-              🌿 สร้างสวน AI
-            </button>
+            <div className="flex justify-center">
+              <button
+                onClick={handleSubmit}
+                disabled={loading || !image}
+                className="bg-green-600 text-white font-bold text-lg py-4 px-12 rounded-full shadow-lg transform transition-all hover:bg-green-700 hover:scale-105 disabled:bg-gray-400 disabled:scale-100 disabled:cursor-not-allowed"
+              >
+                🌿 สร้างสวน AI
+              </button>
+            </div>
           </div>
         </div>
       )}
 
       {resultImage && !loading && (
-        <div className="bg-green-50/50 mt-6">
+        <div className="bg-green-50/50">
           <div className="p-6 space-y-6">
             <h2 className="text-xl font-bold text-gray-800 text-center">
               ผลลัพธ์การออกแบบสวน
