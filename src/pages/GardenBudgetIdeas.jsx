@@ -3,10 +3,72 @@
 import React, { useState, useRef, useEffect } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import {
+  FiUploadCloud,
+  FiTool,
+  FiSun,
+  FiDroplet,
+  FiCheckCircle,
+  FiImage,
+} from "react-icons/fi";
 
-// === จุดแก้ไขที่ 1: กำหนด Base URL ของ API ===
-// ถ้ามีตัวแปร VITE_API_BASE_URL ใน .env (สำหรับ Production) ให้ใช้ค่านั้น
-// ถ้าไม่มี (สำหรับ Local) ให้ใช้ http://127.0.0.1:8000
+// === ส่วนใหม่: คอมโพเนนท์สำหรับหน้าจอ Loading ที่น่าสนใจ ===
+const EngagingLoadingScreen = () => {
+  const [currentStep, setCurrentStep] = useState(0);
+  const steps = [
+    {
+      icon: <FiUploadCloud className="text-blue-500" />,
+      text: "กำลังส่งภาพบ้านของคุณขึ้นไปบนคลาวด์...",
+    },
+    {
+      icon: <FiTool className="text-purple-500" />,
+      text: "กำลังปลุก AI นักออกแบบของเราให้ตื่น...",
+    },
+    {
+      icon: <FiSun className="text-yellow-500" />,
+      text: "AI กำลังวิเคราะห์แสงและเงา...",
+    },
+    {
+      icon: <FiDroplet className="text-cyan-500" />,
+      text: "กำลังร่างแบบสวนและเลือกพรรณไม้...",
+    },
+    {
+      icon: <FiCheckCircle className="text-green-500" />,
+      text: "ใกล้เสร็จแล้ว! กำลังลงสีและเก็บรายละเอียด...",
+    },
+  ];
+
+  useEffect(() => {
+    // เปลี่ยนข้อความทุกๆ 3 วินาที
+    const interval = setInterval(() => {
+      setCurrentStep((prevStep) => (prevStep + 1) % steps.length);
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [steps.length]);
+
+  return (
+    <div className="w-full bg-gray-50 p-8 rounded-2xl text-center transition-all duration-500">
+      <div className="flex items-center justify-center text-2xl font-bold text-gray-700">
+        <div className="animate-spin text-3xl mr-4">
+          {steps[currentStep].icon}
+        </div>
+        <p>{steps[currentStep].text}</p>
+      </div>
+      <div className="w-full bg-gray-200 rounded-full h-2.5 mt-6">
+        <div
+          className="bg-green-500 h-2.5 rounded-full transition-all duration-1000"
+          style={{ width: `${((currentStep + 1) / steps.length) * 100}%` }}
+        ></div>
+      </div>
+      <p className="text-sm text-gray-500 mt-4">
+        กระบวนการนี้อาจใช้เวลา 2-4 นาที ขึ้นอยู่กับความซับซ้อนของภาพ
+      </p>
+    </div>
+  );
+};
+
+// === คอมโพเนนท์หลัก (มีการแก้ไขส่วน Loading และ Upload) ===
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
 
@@ -85,7 +147,6 @@ export default function GardenImageMaskPage() {
       formData.append("image", image);
       formData.append("prompt", getFullPrompt(selectedStyle));
 
-      // === จุดแก้ไขที่ 2: ใช้ Base URL ที่เรากำหนดไว้ ===
       const res = await axios.post(
         `${API_BASE_URL}/garden/generate-garden`,
         formData,
@@ -114,8 +175,6 @@ export default function GardenImageMaskPage() {
     setError(null);
     try {
       const budget = getBudgetValue();
-
-      // === จุดแก้ไขที่ 3: ใช้ Base URL ที่เรากำหนดไว้ ===
       const res = await axios.post(
         `${API_BASE_URL}/garden/generate-bom`,
         { history_id: historyId, budget: budget },
@@ -140,81 +199,111 @@ export default function GardenImageMaskPage() {
 
   return (
     <div className="w-full shadow-2xl bg-white rounded-2xl overflow-hidden">
-      <div className="p-6 space-y-6">
-        <div className="text-center">
-          <label className="text-xl font-bold text-gray-800">
-            อัปโหลดภาพบ้านของคุณ
-          </label>
-          <p className="text-gray-500 text-sm mt-1">
-            เพื่อให้ AI ช่วยออกแบบสวนที่เข้ากับบ้านของคุณ
-          </p>
-        </div>
-        <input
-          type="file"
-          accept="image/*"
-          onChange={handleImageChange}
-          disabled={loading}
-          className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100"
-        />
-
-        {imagePreview && (
-          <div
-            ref={containerRef}
-            className="bg-gray-100 rounded-lg p-2 mt-4 overflow-hidden"
-          >
-            <img
-              ref={imageRef}
-              src={imagePreview}
-              alt="Preview"
-              className="w-full rounded-md object-cover"
-            />
-          </div>
-        )}
-
-        {error && <p className="text-red-500 text-center text-sm">{error}</p>}
-
-        <div className="space-y-4">
-          <div>
-            <label className="font-semibold text-gray-700">เลือกสไตล์สวน</label>
-            <select
-              value={selectedStyle}
-              onChange={(e) => setSelectedStyle(e.target.value)}
-              className="w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
-              disabled={loading}
-            >
-              <option value="tropical">สวน Tropical</option>
-              <option value="english">สวนอังกฤษ</option>
-              <option value="japanese">สวนญี่ปุ่น</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="font-semibold text-gray-700">ระดับงบประมาณ</label>
-            <p className="p-2 text-gray-600 bg-gray-100 rounded-lg mt-1">
-              ภาพที่สร้างจะอยู่ในงบประมาณไม่เกิน 100,000 บาท
+      {loading ? (
+        <EngagingLoadingScreen />
+      ) : (
+        <div className="p-6 space-y-6">
+          <div className="text-center">
+            <h2 className="text-2xl font-bold text-gray-800">
+              ขั้นตอนที่ 1: อัปโหลดภาพบ้าน
+            </h2>
+            <p className="text-gray-500 text-sm mt-1">
+              เพื่อให้ AI ช่วยออกแบบสวนที่เข้ากับบ้านของคุณ
             </p>
           </div>
+
+          {/* === จุดแก้ไขหลัก: สร้างพื้นที่อัปโหลดที่โดดเด่น === */}
+          <div className="w-full">
+            <label
+              htmlFor="file-upload"
+              className="relative cursor-pointer bg-white rounded-lg border-2 border-dashed border-gray-300 flex flex-col items-center justify-center p-8 text-center transition-colors hover:border-green-500 hover:bg-green-50"
+            >
+              <FiUploadCloud className="w-12 h-12 text-gray-400" />
+              <span className="mt-2 block text-lg font-semibold text-green-600">
+                คลิกเพื่ออัปโหลด
+              </span>
+              <span className="mt-1 block text-xs text-gray-500">
+                หรือลากไฟล์มาวาง (PNG, JPG)
+              </span>
+              <input
+                id="file-upload"
+                name="file-upload"
+                type="file"
+                className="sr-only"
+                accept="image/*"
+                onChange={handleImageChange}
+                disabled={loading}
+              />
+            </label>
+          </div>
+
+          {imagePreview && (
+            <div className="text-center">
+              <p className="font-semibold text-gray-700 mb-2">
+                ภาพที่คุณเลือก:
+              </p>
+              <div
+                ref={containerRef}
+                className="bg-gray-100 rounded-lg p-2 mt-2 overflow-hidden inline-block"
+              >
+                <img
+                  ref={imageRef}
+                  src={imagePreview}
+                  alt="Preview"
+                  className="w-full max-w-md rounded-md object-cover"
+                />
+              </div>
+            </div>
+          )}
+
+          {error && <p className="text-red-500 text-center text-sm">{error}</p>}
+
+          <div className="space-y-4 pt-4 border-t">
+            <h2 className="text-2xl font-bold text-gray-800 text-center">
+              ขั้นตอนที่ 2: เลือกสไตล์
+            </h2>
+            <div>
+              <label className="font-semibold text-gray-700">
+                เลือกสไตล์สวน
+              </label>
+              <select
+                value={selectedStyle}
+                onChange={(e) => setSelectedStyle(e.target.value)}
+                className="w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                disabled={loading}
+              >
+                <option value="tropical">สวน Tropical</option>
+                <option value="english">สวนอังกฤษ</option>
+                <option value="japanese">สวนญี่ปุ่น</option>
+              </select>
+            </div>
+            <div>
+              <label className="font-semibold text-gray-700">
+                ระดับงบประมาณ
+              </label>
+              <p className="p-2 text-gray-600 bg-gray-100 rounded-lg mt-1">
+                ภาพที่สร้างจะอยู่ในงบประมาณไม่เกิน 100,000 บาท
+              </p>
+            </div>
+          </div>
+
+          <div className="pt-6 flex justify-center border-t">
+            <h2 className="text-2xl font-bold text-gray-800 text-center mb-4">
+              ขั้นตอนที่ 3: สร้างสวน!
+            </h2>
+            <button
+              onClick={handleSubmit}
+              disabled={loading || !image}
+              className="bg-green-600 text-white font-bold text-lg py-4 px-12 rounded-full shadow-lg transform transition-all hover:bg-green-700 hover:scale-105 disabled:bg-gray-400 disabled:scale-100 disabled:cursor-not-allowed"
+            >
+              🌿 สร้างสวน AI
+            </button>
+          </div>
         </div>
+      )}
 
-        <div className="pt-4 flex justify-center">
-          <button
-            onClick={handleSubmit}
-            disabled={loading}
-            className="bg-green-600 text-white font-bold text-lg py-3 px-10 rounded-full shadow-lg transform transition-all hover:bg-green-700 hover:scale-105 disabled:bg-gray-400 disabled:scale-100"
-          >
-            🌿 สร้างสวน AI
-          </button>
-        </div>
-
-        {loading && (
-          <p className="text-center text-green-600 animate-pulse font-semibold">
-            กำลังสร้างภาพ... โปรดรอสักครู่ 🤖
-          </p>
-        )}
-      </div>
-
-      {resultImage && (
-        <div className="bg-green-50/50 rounded-2xl mt-6">
+      {resultImage && !loading && (
+        <div className="bg-green-50/50 mt-6">
           <div className="p-6 space-y-6">
             <h2 className="text-xl font-bold text-gray-800 text-center">
               ผลลัพธ์การออกแบบสวน
