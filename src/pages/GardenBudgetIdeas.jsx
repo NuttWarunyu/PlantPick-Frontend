@@ -9,9 +9,10 @@ import {
   FiSun,
   FiDroplet,
   FiCheckCircle,
+  FiPlusCircle,
 } from "react-icons/fi";
 
-// === คอมโพเนนท์สำหรับหน้าจอ Loading ที่น่าสนใจ (เหมือนเดิม) ===
+// === คอมโพเนนท์สำหรับหน้าจอ Loading (เหมือนเดิม) ===
 const EngagingLoadingScreen = () => {
   const [currentStep, setCurrentStep] = useState(0);
   const steps = [
@@ -41,13 +42,12 @@ const EngagingLoadingScreen = () => {
     const interval = setInterval(() => {
       setCurrentStep((prevStep) => (prevStep + 1) % steps.length);
     }, 3000);
-
     return () => clearInterval(interval);
   }, [steps.length]);
 
   return (
     <div className="w-full bg-gray-50 p-8 rounded-2xl text-center transition-all duration-500">
-      <div className="flex items-center justify-center text-2xl font-bold text-gray-700">
+      <div className="flex items-center justify-center text-xl md:text-2xl font-bold text-gray-700">
         <div className="animate-spin text-3xl mr-4">
           {steps[currentStep].icon}
         </div>
@@ -66,66 +66,60 @@ const EngagingLoadingScreen = () => {
   );
 };
 
-// === คอมโพเนนท์หลัก (มีการแก้ไข) ===
+// === คอมโพเนนท์หลัก (มีการแก้ไขทั้งหมด) ===
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
+
+// === สร้างรายการแท็กและงบประมาณ ===
+const styleTags = [
+  { id: "tropical", name: "Tropical", emoji: "🌴" },
+  { id: "english", name: "English", emoji: "🌹" },
+  { id: "japanese", name: "Japanese", emoji: "⛩️" },
+  { id: "modern", name: "Modern", emoji: "🏢" },
+  { id: "minimal", name: "Minimal", emoji: "⚪" },
+];
+
+const featureTags = [
+  { id: "waterfall", name: "มีน้ำตก", emoji: "💧" },
+  { id: "pond", name: "มีบ่อปลา", emoji: "🐠" },
+  { id: "easycare", name: "ดูแลง่าย", emoji: "👍" },
+  { id: "seating", name: "มีมุมนั่งเล่น", emoji: "🪑" },
+];
+
+// === จุดแก้ไขที่ 1: เปลี่ยนจากระดับงบประมาณเป็นตัวเลือกที่ชัดเจน ===
+const budgetOptions = [
+  { label: "< 50,000", value: 50000, level: 1 },
+  { label: "50,000 - 100,000", value: 100000, level: 2 },
+  { label: "100,000 - 250,000", value: 250000, level: 3 },
+  { label: "> 250,000", value: 500000, level: 4 },
+];
 
 export default function GardenImageMaskPage() {
   const navigate = useNavigate();
   const [image, setImage] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
-  const [selectedStyle, setSelectedStyle] = useState("tropical");
-  const [resultImage, setResultImage] = useState(null);
   const [loading, setLoading] = useState(false);
   const [bomLoading, setBomLoading] = useState(false);
+  const [resultImage, setResultImage] = useState(null);
   const [historyId, setHistoryId] = useState(null);
   const [error, setError] = useState(null);
 
-  // === จุดแก้ไขที่ 1: ลบ useRef และ useEffect ที่ซับซ้อนออกไป ===
-  // ไม่จำเป็นต้องใช้ useRef และ ResizeObserver อีกต่อไป
-  // const containerRef = useRef(null);
-  // const imageRef = useRef(null);
+  // === จุดแก้ไขที่ 2: เปลี่ยน State ให้เก็บระดับงบประมาณที่เลือก ===
+  const [selectedTags, setSelectedTags] = useState(new Set(["tropical"]));
+  const [customKeywords, setCustomKeywords] = useState("");
+  const [selectedBudgetLevel, setSelectedBudgetLevel] = useState(2); // Default คือ level 2 (50k-100k)
 
-  const stylePrompts = {
-    english:
-      "Create a professional English garden design in the masked area, featuring natural-looking flowers (such as roses and lavender in realistic colors), a large lawn, white picket fences, and well-defined pathways blending modern design with brick or smooth concrete. Include a clear focal point visible from the house window, such as a charming fountain or seating area. Ensure pathways are always present and incorporate modern elements like clean lines or geometric stone layouts. Use realistic perspective. Suggest materials like roses, lavender, white picket fences, brick or smooth concrete pathways, and geometric stones for the BOM. Preserve the house, roof, and its original color and structure. Do not alter the house. Keep the sky and surroundings unchanged.",
-    tropical:
-      "Design a professional tropical garden in the masked area with curved pathways, stepping stones, palm trees, and balanced greenery. Include a focal point visible from the house window, such as a small fountain, flowering tree, or cozy seating area. Emphasize harmony and natural aesthetics. Suggest materials like palm trees, hibiscus, and stepping stones for the BOM. Preserve the house, roof, and its original color and structure. Do not alter the house. Keep the sky and surroundings unchanged.",
-    japanese:
-      "Create a professional Japanese Zen garden in the masked area using moss, raked gravel, bonsai, stone lanterns, and koi ponds. Include a focal point visible from the house window, such as a calm stone arrangement or water feature. Apply asymmetry and a serene composition. Suggest materials like moss, gravel, bonsai, and stone lanterns for the BOM. Preserve the house, roof, and its original color and structure. Do not alter the house. Keep the sky and surroundings unchanged.",
-  };
-
-  const budgetPrompts = {
-    "under-100k":
-      "Use a simple and affordable garden layout with large grass areas, minimal decorations, and a few low-cost plants like small shrubs or native flowers. Avoid luxury features, hardscape beyond basic pathways, lighting, or water systems. Suggest affordable materials like grass, small shrubs (e.g., สนฉัตร, สนมังกร), and gravel for the BOM. Ensure the total cost does not exceed 100,000 บาท. Maintain realistic proportions and avoid overcrowding.",
-  };
-
-  const budgetValues = {
-    "under-100k": 100000,
-  };
-
-  const getBudgetValue = () => {
-    return budgetValues["under-100k"];
-  };
-
-  const getFullPrompt = (style) => {
-    return `${stylePrompts[style]} ${budgetPrompts["under-100k"]}`;
-  };
-
-  // === จุดแก้ไขที่ 2: ลบ useEffect ของ ResizeObserver ออกไปทั้งหมด ===
-  /*
-  useEffect(() => {
-    if (!imageRef.current || !containerRef.current) return;
-    const resizeObserver = new ResizeObserver(() => {
-      if (imageRef.current && containerRef.current) {
-        const containerWidth = containerRef.current.offsetWidth;
-        imageRef.current.style.width = `${containerWidth}px`;
+  const handleTagToggle = (tagId) => {
+    setSelectedTags((prevTags) => {
+      const newTags = new Set(prevTags);
+      if (newTags.has(tagId)) {
+        newTags.delete(tagId);
+      } else {
+        newTags.add(tagId);
       }
+      return newTags;
     });
-    resizeObserver.observe(containerRef.current);
-    return () => resizeObserver.disconnect();
-  }, [imagePreview, resultImage]);
-  */
+  };
 
   const handleImageChange = (e) => {
     const file = e.target.files[0];
@@ -138,6 +132,19 @@ export default function GardenImageMaskPage() {
     }
   };
 
+  const getFullPrompt = () => {
+    const tagsArray = Array.from(selectedTags);
+    let prompt = `Design a beautiful, photorealistic garden for the provided house image. Incorporate the following styles and elements: ${tagsArray.join(
+      ", "
+    )}.`;
+    if (customKeywords) {
+      prompt += ` Also, specifically include: ${customKeywords}.`;
+    }
+    prompt +=
+      " The design should be high-quality, professional, and aesthetically pleasing. Preserve the original house structure and color.";
+    return prompt;
+  };
+
   const handleSubmit = async () => {
     if (!image) {
       setError("Please upload an image first.");
@@ -148,14 +155,16 @@ export default function GardenImageMaskPage() {
     try {
       const formData = new FormData();
       formData.append("image", image);
-      formData.append("prompt", getFullPrompt(selectedStyle));
+      formData.append("prompt", getFullPrompt());
+      // ส่ง selected_tags ไปด้วย
+      Array.from(selectedTags).forEach((tag) => {
+        formData.append("selected_tags", tag);
+      });
 
       const res = await axios.post(
         `${API_BASE_URL}/garden/generate-garden`,
         formData,
-        {
-          headers: { "Content-Type": "multipart/form-data" },
-        }
+        { headers: { "Content-Type": "multipart/form-data" } }
       );
 
       setResultImage(res.data.result_url);
@@ -177,10 +186,19 @@ export default function GardenImageMaskPage() {
     setBomLoading(true);
     setError(null);
     try {
-      const budget = getBudgetValue();
+      // หา budget value จาก level ที่เลือก
+      const budgetInfo = budgetOptions.find(
+        (opt) => opt.level === selectedBudgetLevel
+      );
+      const budget = budgetInfo ? budgetInfo.value : 100000; // Fallback
+
       const res = await axios.post(
         `${API_BASE_URL}/garden/generate-bom`,
-        { history_id: historyId, budget: budget },
+        {
+          history_id: historyId,
+          budget: budget,
+          budget_level: selectedBudgetLevel, // ส่ง level ไปด้วย
+        },
         { headers: { "Content-Type": "application/json" } }
       );
       const bomDetails = res.data.bom_details || [];
@@ -205,7 +223,8 @@ export default function GardenImageMaskPage() {
       {loading ? (
         <EngagingLoadingScreen />
       ) : (
-        <div className="p-6 space-y-6">
+        <div className="p-6 space-y-8">
+          {/* Section 1: Upload Image */}
           <div className="text-center">
             <h2 className="text-2xl font-bold text-gray-800">
               ขั้นตอนที่ 1: อัปโหลดภาพบ้าน
@@ -214,7 +233,6 @@ export default function GardenImageMaskPage() {
               เพื่อให้ AI ช่วยออกแบบสวนที่เข้ากับบ้านของคุณ
             </p>
           </div>
-
           <div className="w-full">
             <label
               htmlFor="file-upload"
@@ -234,12 +252,9 @@ export default function GardenImageMaskPage() {
                 className="sr-only"
                 accept="image/*"
                 onChange={handleImageChange}
-                disabled={loading}
               />
             </label>
           </div>
-
-          {/* === จุดแก้ไขที่ 3: แก้ไขส่วนแสดงภาพพรีวิว === */}
           {imagePreview && (
             <div className="text-center">
               <p className="font-semibold text-gray-700 mb-2">
@@ -255,54 +270,106 @@ export default function GardenImageMaskPage() {
             </div>
           )}
 
-          {error && <p className="text-red-500 text-center text-sm">{error}</p>}
-
-          <div className="space-y-4 pt-4 border-t">
-            <h2 className="text-2xl font-bold text-gray-800 text-center">
-              ขั้นตอนที่ 2: เลือกสไตล์
-            </h2>
-            <div>
-              <label className="font-semibold text-gray-700">
-                เลือกสไตล์สวน
-              </label>
-              <select
-                value={selectedStyle}
-                onChange={(e) => setSelectedStyle(e.target.value)}
-                className="w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
-                disabled={loading}
-              >
-                <option value="tropical">สวน Tropical</option>
-                <option value="english">สวนอังกฤษ</option>
-                <option value="japanese">สวนญี่ปุ่น</option>
-              </select>
+          {error && (
+            <div
+              className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg text-center"
+              role="alert"
+            >
+              <span className="font-bold">เกิดข้อผิดพลาด:</span>
+              <span className="block sm:inline ml-2">{error}</span>
             </div>
+          )}
+
+          {/* Section 2: Define Style */}
+          <div className="space-y-6 pt-6 border-t">
+            <div className="text-center">
+              <h2 className="text-2xl font-bold text-gray-800">
+                ขั้นตอนที่ 2: กำหนดสไตล์และความต้องการ
+              </h2>
+              <p className="text-gray-500 text-sm mt-1">
+                เลือกสไตล์และองค์ประกอบที่คุณชอบได้หลายอย่าง
+              </p>
+            </div>
+
+            <div>
+              <label className="font-semibold text-gray-700">สไตล์หลัก</label>
+              <div className="flex flex-wrap gap-2 mt-2">
+                {styleTags.map((tag) => (
+                  <button
+                    key={tag.id}
+                    onClick={() => handleTagToggle(tag.id)}
+                    className={`px-4 py-2 text-sm font-medium rounded-full transition-all ${
+                      selectedTags.has(tag.id)
+                        ? "bg-green-600 text-white shadow-md"
+                        : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                    }`}
+                  >
+                    {tag.emoji} {tag.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             <div>
               <label className="font-semibold text-gray-700">
-                ระดับงบประมาณ
+                องค์ประกอบเพิ่มเติม
               </label>
-              <p className="p-2 text-gray-600 bg-gray-100 rounded-lg mt-1">
-                ภาพที่สร้างจะอยู่ในงบประมาณไม่เกิน 100,000 บาท
-              </p>
+              <div className="flex flex-wrap gap-2 mt-2">
+                {featureTags.map((tag) => (
+                  <button
+                    key={tag.id}
+                    onClick={() => handleTagToggle(tag.id)}
+                    className={`px-4 py-2 text-sm font-medium rounded-full transition-all ${
+                      selectedTags.has(tag.id)
+                        ? "bg-blue-600 text-white shadow-md"
+                        : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                    }`}
+                  >
+                    {tag.emoji} {tag.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <label
+                htmlFor="custom-keywords"
+                className="font-semibold text-gray-700"
+              >
+                เพิ่มความต้องการพิเศษ (ถ้ามี)
+              </label>
+              <input
+                type="text"
+                id="custom-keywords"
+                value={customKeywords}
+                onChange={(e) => setCustomKeywords(e.target.value)}
+                placeholder="เช่น 'มุมสำหรับบาร์บีคิว', 'ที่เล่นสำหรับสุนัข'"
+                className="w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+              />
             </div>
           </div>
 
+          {/* Section 3: Generate */}
           <div className="pt-6 border-t">
-            <h2 className="text-2xl font-bold text-gray-800 text-center mb-4">
-              ขั้นตอนที่ 3: สร้างสวน!
-            </h2>
+            <div className="text-center mb-4">
+              <h2 className="text-2xl font-bold text-gray-800">
+                ขั้นตอนที่ 3: สร้างสวน!
+              </h2>
+            </div>
             <div className="flex justify-center">
               <button
                 onClick={handleSubmit}
-                disabled={loading || !image}
+                disabled={!image}
                 className="bg-green-600 text-white font-bold text-lg py-4 px-12 rounded-full shadow-lg transform transition-all hover:bg-green-700 hover:scale-105 disabled:bg-gray-400 disabled:scale-100 disabled:cursor-not-allowed"
               >
-                🌿 สร้างสวน AI
+                🌿 สร้างสวนในฝัน
               </button>
             </div>
           </div>
         </div>
       )}
 
+      {/* Result Section */}
       {resultImage && !loading && (
         <div className="bg-green-50/50">
           <div className="p-6 space-y-6">
@@ -314,6 +381,33 @@ export default function GardenImageMaskPage() {
               alt="Generated Garden"
               className="w-full rounded-lg object-cover shadow-md"
             />
+
+            <div className="pt-4 border-t">
+              <div className="text-center mb-4">
+                <h2 className="text-2xl font-bold text-gray-800">
+                  ขั้นตอนสุดท้าย: กำหนดงบประมาณ
+                </h2>
+                <p className="text-gray-500 text-sm mt-1">
+                  เลือกช่วงงบประมาณของคุณเพื่อดูรายการของและราคาประเมิน
+                </p>
+              </div>
+              {/* === จุดแก้ไขที่ 3: เปลี่ยนจาก Slider เป็นปุ่มเลือก === */}
+              <div className="flex flex-wrap justify-center gap-3 mt-4">
+                {budgetOptions.map((opt) => (
+                  <button
+                    key={opt.level}
+                    onClick={() => setSelectedBudgetLevel(opt.level)}
+                    className={`px-5 py-2 text-sm font-bold rounded-full transition-all ${
+                      selectedBudgetLevel === opt.level
+                        ? "bg-green-600 text-white shadow-lg"
+                        : "bg-white text-gray-800 border hover:bg-green-50"
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
 
             <div className="pt-4 flex justify-center">
               <button
