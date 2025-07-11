@@ -5,16 +5,14 @@ import GardenBudgetIdeas from "./pages/GardenBudgetIdeas.jsx";
 import IdentifyResult from "./pages/IdentifyResult.jsx";
 import BomResultPage from "./pages/BomResultPage.jsx";
 import ThankYouPage from "./pages/ThankYouPage.jsx";
+import InpaintingPage from "./pages/InpaintingPage.jsx"; // <-- 1. Import หน้าทดลองใหม่
 
 function App() {
   return (
     <Router>
-      {/* div นอกสุดสำหรับคุมพื้นหลังและโครงสร้างหลักแบบ flex */}
       <div className="flex min-h-screen flex-col bg-slate-50">
-        {/* Header แบบเต็มความกว้างและลอยติดด้านบน */}
         <header className="sticky top-0 z-50 w-full border-b bg-white/95 backdrop-blur-sm">
           <div className="mx-auto flex h-16 max-w-5xl items-center justify-between px-4 sm:px-6 lg:px-8">
-            {/* === จุดแก้ไขที่ 2: ทำให้โลโก้ไม่มีขีดเส้นใต้ === */}
             <Link
               to="/"
               className="flex items-center gap-2 text-gray-800 transition-colors hover:text-green-600"
@@ -25,40 +23,42 @@ function App() {
               <span className="text-xl font-bold">PlantPick</span>
             </Link>
 
-            {/* === จุดแก้ไขที่ 3: เพิ่มระยะห่างเมนู === */}
+            {/* === 2. เพิ่มลิงก์สำหรับสลับโหมด === */}
             <nav className="flex items-center gap-6 text-sm font-medium">
               <Link
                 to="/garden-budget-ideas"
                 className="text-gray-600 transition-colors hover:text-green-600"
               >
-                จำลองสวน AI
+                🎨 โหมดแรงบันดาลใจ
               </Link>
               <Link
-                to="/search"
-                className="text-gray-600 transition-colors hover:text-green-600"
+                to="/inpainting-test"
+                className="text-blue-600 transition-colors hover:text-blue-800 font-semibold"
               >
-                วิเคราะห์ภาพ
+                🧪 ทดลองโหมดสมจริง
               </Link>
             </nav>
           </div>
         </header>
 
-        {/* เนื้อหาหลัก จะถูกจำกัดความกว้างและอยู่ตรงกลาง */}
         <main className="w-full max-w-5xl mx-auto flex-grow p-4 sm:p-6 lg:p-8">
           <Routes>
+            {/* === 3. เพิ่ม Route สำหรับหน้าทดลอง === */}
             <Route path="/" element={<GardenBudgetIdeas />} />
-            <Route path="/search" element={<SearchPage />} />
             <Route
               path="/garden-budget-ideas"
               element={<GardenBudgetIdeas />}
             />
+            <Route path="/inpainting-test" element={<InpaintingPage />} />
+
+            {/* Route อื่นๆ ที่มีอยู่เดิม */}
+            <Route path="/search" element={<SearchPage />} />
             <Route path="/identify-result" element={<IdentifyResult />} />
             <Route path="/bom-result" element={<BomResultPage />} />
             <Route path="/thank-you" element={<ThankYouPage />} />
           </Routes>
         </main>
 
-        {/* Footer แบบเต็มความกว้าง */}
         <footer className="w-full border-t bg-white">
           <div className="mx-auto max-w-5xl p-4 text-center text-xs text-gray-500">
             ลิขสิทธิ์ ©️ 2025 PlantPick
