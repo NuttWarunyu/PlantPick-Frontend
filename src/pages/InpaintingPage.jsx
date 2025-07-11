@@ -1,18 +1,21 @@
 import React, { useState, useRef, useEffect } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
-import { Stage, Layer, Line } from "react-konva";
+// === จุดแก้ไขที่ 1: Import Image as KonvaImage เข้ามา ===
+import { Stage, Layer, Line, Image as KonvaImage } from "react-konva";
 import Konva from "konva";
 import {
   FiUploadCloud,
   FiTrash2,
   FiSend,
+  FiShoppingCart,
+  FiMessageSquare,
   FiThumbsUp,
   FiHome,
 } from "react-icons/fi";
+import useImage from "use-image"; // <-- และต้องมี use-image ด้วย
 
-// --- Components & Data ---
-
+// (EngagingLoadingScreen, API_BASE_URL, budgetOptions เหมือนเดิม)
 const EngagingLoadingScreen = ({ predictionId }) => (
   <div className="w-full bg-gray-50 p-8 rounded-2xl text-center">
     <p className="text-xl font-bold text-gray-700 animate-pulse">
@@ -26,28 +29,8 @@ const EngagingLoadingScreen = ({ predictionId }) => (
     )}
   </div>
 );
-
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
-
-const styleTags = [
-  { id: "tropical", name: "Tropical", emoji: "🌴" },
-  { id: "english", name: "English", emoji: "🌹" },
-  { id: "japanese", name: "Japanese", emoji: "⛩️" },
-  { id: "modern", name: "Modern", emoji: "🏢" },
-  { id: "minimal", name: "Minimal", emoji: "⚪" },
-];
-
-const featureTags = [
-  { id: "waterfall", name: "มีน้ำตก", emoji: "💧" },
-  { id: "pond", name: "มีบ่อปลา", emoji: "🐠" },
-  { id: "easycare", name: "ดูแลง่าย", emoji: "👍" },
-  { id: "seating", name: "มีมุมนั่งเล่น", emoji: "🪑" },
-  { id: "pavilion", name: "มีศาลา", emoji: "🛖" },
-  { id: "kid-friendly", name: "เหมาะกับเด็ก", emoji: "👧" },
-  { id: "pet-friendly", name: "เลี้ยงสัตว์ได้", emoji: "🐶" },
-];
-
 const budgetOptions = [
   { label: "< 50,000", value: 50000, level: 1 },
   { label: "50,000 - 100,000", value: 100000, level: 2 },
@@ -55,34 +38,42 @@ const budgetOptions = [
   { label: "> 250,000", value: 500000, level: 4 },
 ];
 
-// --- Main Component ---
-
 export default function InpaintingPage() {
   const navigate = useNavigate();
   const [originalFile, setOriginalFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
   const [lines, setLines] = useState([]);
-  const [brushSize, setBrushSize] = useState(30);
+  const [brushSize, setBrushSize] = useState(25);
   const [loading, setLoading] = useState(false);
   const [resultImage, setResultImage] = useState(null);
   const [error, setError] = useState(null);
   const [predictionId, setPredictionId] = useState(null);
+
   const [historyId, setHistoryId] = useState(null);
   const [bomLoading, setBomLoading] = useState(false);
-
-  // States for new prompt system
-  const [selectedStyle, setSelectedStyle] = useState("modern");
-  const [selectedFeatures, setSelectedFeatures] = useState(new Set());
-  const [customKeywords, setCustomKeywords] = useState("");
   const [selectedBudgetLevel, setSelectedBudgetLevel] = useState(2);
 
-  const [canvasSize, setCanvasSize] = useState({ width: 0, height: 0 });
+  const [canvasSize, setCanvasSize] = useState({ width: 800, height: 512 }); // ขนาดเริ่มต้น
 
   const isDrawing = useRef(false);
   const stageRef = useRef(null);
-  const imageRef = useRef(null);
 
-  // Polling effect
+  // === จุดแก้ไขที่ 2: ใช้ useImage เพื่อโหลดรูปภาพสำหรับ Konva ===
+  const [imageForCanvas] = useImage(imagePreview, "Anonymous");
+
+  // Effect นี้จะทำงานเมื่อรูปภาพถูกโหลดเข้ามาใน Konva แล้ว
+  useEffect(() => {
+    if (imageForCanvas) {
+      // คำนวณสัดส่วนของรูปภาพเพื่อให้พอดีกับ Container
+      const containerWidth = 800; // กำหนดความกว้างสูงสุดของ Editor
+      const scale = containerWidth / imageForCanvas.width;
+      setCanvasSize({
+        width: containerWidth,
+        height: imageForCanvas.height * scale,
+      });
+    }
+  }, [imageForCanvas]);
+
   useEffect(() => {
     if (!predictionId || !loading) return;
     const interval = setInterval(async () => {
@@ -124,34 +115,11 @@ export default function InpaintingPage() {
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        setOriginalFile(file);
-        setImagePreview(event.target.result);
-        setLines([]);
-        setResultImage(null);
-      };
-      reader.readAsDataURL(file);
+      setOriginalFile(file);
+      setImagePreview(URL.createObjectURL(file)); // สร้าง URL สำหรับแสดงผล
+      setLines([]);
+      setResultImage(null);
     }
-  };
-
-  const handleImageLoad = () => {
-    if (imageRef.current) {
-      const { clientWidth, clientHeight } = imageRef.current;
-      setCanvasSize({ width: clientWidth, height: clientHeight });
-    }
-  };
-
-  const handleFeatureTagToggle = (tagId) => {
-    setSelectedFeatures((prevTags) => {
-      const newTags = new Set(prevTags);
-      if (newTags.has(tagId)) {
-        newTags.delete(tagId);
-      } else {
-        newTags.add(tagId);
-      }
-      return newTags;
-    });
   };
 
   const handleMouseDown = (e) => {
@@ -173,6 +141,7 @@ export default function InpaintingPage() {
   const handleMouseUp = () => {
     isDrawing.current = false;
   };
+
   const handleClearMask = () => {
     setLines([]);
   };
@@ -180,6 +149,8 @@ export default function InpaintingPage() {
   const exportMaskAsFile = () => {
     const stage = stageRef.current;
     if (!stage) return null;
+
+    // สร้าง Layer ใหม่สำหรับ Mask โดยเฉพาะ
     const maskLayer = new Konva.Layer();
     lines.forEach((line) => {
       maskLayer.add(
@@ -193,13 +164,16 @@ export default function InpaintingPage() {
         })
       );
     });
+
     const tempStage = new Konva.Stage({
       width: canvasSize.width,
       height: canvasSize.height,
       container: document.createElement("div"),
     });
     tempStage.add(maskLayer);
+
     const dataURL = tempStage.toDataURL({ mimeType: "image/png" });
+
     const byteString = atob(dataURL.split(",")[1]);
     const mimeString = dataURL.split(",")[0].split(":")[1].split(";")[0];
     const ab = new ArrayBuffer(byteString.length);
@@ -209,17 +183,6 @@ export default function InpaintingPage() {
     }
     const blob = new Blob([ab], { type: mimeString });
     return new File([blob], "mask.png", { type: "image/png" });
-  };
-
-  const getFullPrompt = () => {
-    const allTags = [selectedStyle, ...Array.from(selectedFeatures)];
-    let prompt = `A beautiful, lush, photorealistic garden with ${allTags.join(
-      ", "
-    )} style.`;
-    if (customKeywords) {
-      prompt += ` Also include ${customKeywords}.`;
-    }
-    return prompt;
   };
 
   const handleSubmit = async () => {
@@ -245,13 +208,13 @@ export default function InpaintingPage() {
 
     try {
       const formData = new FormData();
-      const allTags = [selectedStyle, ...Array.from(selectedFeatures)];
       formData.append("image", originalFile);
       formData.append("mask", maskFile);
-      formData.append("prompt", getFullPrompt());
-      allTags.forEach((tag) => {
-        formData.append("selected_tags", tag);
-      });
+      formData.append(
+        "prompt",
+        "A beautiful, lush, photorealistic garden with a modern style"
+      );
+      formData.append("selected_tags", "inpainting-test");
 
       const res = await axios.post(
         `${API_BASE_URL}/garden/generate-inpainting`,
@@ -313,10 +276,10 @@ export default function InpaintingPage() {
     <div className="w-full space-y-6">
       <div className="text-center p-4 bg-blue-50 border border-blue-200 rounded-lg">
         <h1 className="text-2xl font-bold text-blue-800">
-          🧪 โหมดสมจริง (Inpainting)
+          🧪 ห้องทดลอง: โหมดสมจริง (Inpainting)
         </h1>
         <p className="text-gray-600 mt-1">
-          ทดลองสร้างสวนใหม่ โดยที่บ้านของคุณจะยังคงเหมือนเดิม 100%
+          ระบายพื้นที่ที่คุณต้องการให้ AI สร้างสวนทับลงไป
         </p>
       </div>
 
@@ -325,181 +288,107 @@ export default function InpaintingPage() {
       ) : (
         <>
           {!resultImage && (
-            <div className="bg-white p-6 rounded-2xl shadow-lg space-y-8">
-              {/* === ขั้นตอนที่ 1: อัปโหลด === */}
-              <div>
-                <h2 className="text-xl font-bold text-gray-800 mb-2">
-                  ขั้นตอนที่ 1: อัปโหลดภาพบ้าน
-                </h2>
-                <label
-                  htmlFor="file-upload"
-                  className="relative cursor-pointer bg-white rounded-lg border-2 border-dashed border-gray-300 flex flex-col items-center justify-center p-8 text-center transition-colors hover:border-green-500 hover:bg-green-50"
-                >
-                  <FiUploadCloud className="w-12 h-12 text-gray-400" />
-                  <span className="mt-2 block text-lg font-semibold text-green-600">
-                    คลิกเพื่ออัปโหลด
-                  </span>
-                  <span className="mt-1 block text-xs text-gray-500">
-                    หรือลากไฟล์มาวาง (PNG, JPG)
-                  </span>
+            <>
+              <div className="bg-white p-4 rounded-lg shadow-md space-y-4">
+                <div>
+                  <label htmlFor="file-upload" className="font-semibold">
+                    1. อัปโหลดรูปบ้านของคุณ:
+                  </label>
                   <input
                     id="file-upload"
-                    name="file-upload"
                     type="file"
-                    className="sr-only"
                     accept="image/*"
                     onChange={handleImageChange}
+                    className="mt-2 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:bg-gray-100 hover:file:bg-gray-200"
                   />
-                </label>
+                </div>
+                {imagePreview && (
+                  <div>
+                    <label className="font-semibold">
+                      2. ระบายพื้นที่สวน (ใช้เมาส์วาด):
+                    </label>
+                    <div className="flex items-center gap-4 mt-2">
+                      <span>ขนาดพู่กัน:</span>
+                      <input
+                        type="range"
+                        min="5"
+                        max="50"
+                        value={brushSize}
+                        onChange={(e) => setBrushSize(Number(e.target.value))}
+                        className="w-48"
+                      />
+                      <button
+                        onClick={handleClearMask}
+                        className="flex items-center gap-2 text-sm text-red-600 hover:text-red-800"
+                      >
+                        <FiTrash2 /> ล้างทั้งหมด
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
 
-              {/* === ขั้นตอนที่ 2: ระบายสี === */}
-              {imagePreview && (
-                <div className="pt-6 border-t">
-                  <h2 className="text-xl font-bold text-gray-800 mb-2">
-                    ขั้นตอนที่ 2: ระบายพื้นที่สวน
-                  </h2>
-                  <div className="flex items-center gap-4 mb-4">
-                    <span>ขนาดพู่กัน:</span>
-                    <input
-                      type="range"
-                      min="5"
-                      max="50"
-                      value={brushSize}
-                      onChange={(e) => setBrushSize(Number(e.target.value))}
-                      className="w-48"
-                    />
-                    <button
-                      onClick={handleClearMask}
-                      className="flex items-center gap-2 text-sm text-red-600 hover:text-red-800"
+              {/* === จุดแก้ไขหลัก: เปลี่ยนเป็น Canvas ที่มีพื้นหลังเป็นรูปภาพ === */}
+              <div className="w-full flex justify-center items-center bg-gray-100 rounded-lg p-2 min-h-[400px]">
+                {imagePreview ? (
+                  <div className="border-2 border-dashed border-pink-500">
+                    <Stage
+                      width={canvasSize.width}
+                      height={canvasSize.height}
+                      onMouseDown={handleMouseDown}
+                      onMousemove={handleMouseMove}
+                      onMouseup={handleMouseUp}
+                      onTouchStart={handleMouseDown}
+                      onTouchMove={handleMouseMove}
+                      onTouchEnd={handleMouseUp}
+                      ref={stageRef}
                     >
-                      <FiTrash2 /> ล้างทั้งหมด
-                    </button>
-                  </div>
-                  <div className="w-full flex justify-center items-center bg-gray-100 rounded-lg p-2">
-                    <div className="relative inline-block">
-                      <img
-                        ref={imageRef}
-                        src={imagePreview}
-                        alt="Uploaded preview"
-                        onLoad={handleImageLoad}
-                        className="block max-w-full h-auto max-h-[70vh] rounded-md"
-                      />
-                      <div
-                        className="absolute top-0 left-0 border-2 border-dashed border-pink-500"
-                        style={{
-                          width: canvasSize.width,
-                          height: canvasSize.height,
-                        }}
-                      >
-                        <Stage
+                      {/* Layer ที่ 1: สำหรับวาดรูปภาพพื้นหลัง */}
+                      <Layer>
+                        <KonvaImage
+                          image={imageForCanvas}
                           width={canvasSize.width}
                           height={canvasSize.height}
-                          onMouseDown={handleMouseDown}
-                          onMousemove={handleMouseMove}
-                          onMouseup={handleMouseUp}
-                          onTouchStart={handleMouseDown}
-                          onTouchMove={handleMouseMove}
-                          onTouchEnd={handleMouseUp}
-                          ref={stageRef}
-                        >
-                          <Layer>
-                            {lines.map((line, i) => (
-                              <Line
-                                key={i}
-                                points={line.points}
-                                stroke="#ff00ff"
-                                strokeWidth={line.brushSize}
-                                tension={0.5}
-                                lineCap="round"
-                                lineJoin="round"
-                                globalCompositeOperation={"source-over"}
-                                opacity={0.5}
-                              />
-                            ))}
-                          </Layer>
-                        </Stage>
-                      </div>
-                    </div>
+                        />
+                      </Layer>
+                      {/* Layer ที่ 2: สำหรับวาดเส้นที่ผู้ใช้ระบาย */}
+                      <Layer>
+                        {lines.map((line, i) => (
+                          <Line
+                            key={i}
+                            points={line.points}
+                            stroke="#ff00ff"
+                            strokeWidth={line.brushSize}
+                            tension={0.5}
+                            lineCap="round"
+                            lineJoin="round"
+                            globalCompositeOperation={"source-over"}
+                            opacity={0.5}
+                          />
+                        ))}
+                      </Layer>
+                    </Stage>
                   </div>
-                </div>
-              )}
+                ) : (
+                  <div className="text-gray-400">
+                    <p>โปรดอัปโหลดรูปภาพเพื่อเริ่มใช้งาน</p>
+                  </div>
+                )}
+              </div>
 
-              {/* === ขั้นตอนที่ 3: กำหนดสไตล์และสร้าง! === */}
               {imagePreview && (
-                <div className="space-y-6 pt-6 border-t">
-                  <h2 className="text-xl font-bold text-gray-800">
-                    ขั้นตอนที่ 3: กำหนดสไตล์และสร้างสวน!
-                  </h2>
-                  <div>
-                    <label className="font-semibold text-gray-700">
-                      สไตล์หลัก (เลือก 1 อย่าง)
-                    </label>
-                    <div className="flex flex-wrap gap-3 mt-2">
-                      {styleTags.map((tag) => (
-                        <button
-                          key={tag.id}
-                          onClick={() => setSelectedStyle(tag.id)}
-                          className={`px-5 py-2.5 text-base font-semibold rounded-full transition-all ${
-                            selectedStyle === tag.id
-                              ? "bg-green-600 text-white shadow-md"
-                              : "bg-gray-100 hover:bg-gray-200"
-                          }`}
-                        >
-                          {tag.emoji} {tag.name}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                  <div>
-                    <label className="font-semibold text-gray-700">
-                      องค์ประกอบเพิ่มเติม (เลือกได้หลายอย่าง)
-                    </label>
-                    <div className="flex flex-wrap gap-3 mt-2">
-                      {featureTags.map((tag) => (
-                        <button
-                          key={tag.id}
-                          onClick={() => handleFeatureTagToggle(tag.id)}
-                          className={`px-5 py-2.5 text-base font-semibold rounded-full transition-all ${
-                            selectedFeatures.has(tag.id)
-                              ? "bg-blue-600 text-white shadow-md"
-                              : "bg-gray-100 hover:bg-gray-200"
-                          }`}
-                        >
-                          {tag.emoji} {tag.name}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                  <div>
-                    <label
-                      htmlFor="custom-keywords"
-                      className="font-semibold text-gray-700"
-                    >
-                      เพิ่มความต้องการพิเศษ (ถ้ามี)
-                    </label>
-                    <input
-                      type="text"
-                      id="custom-keywords"
-                      value={customKeywords}
-                      onChange={(e) => setCustomKeywords(e.target.value)}
-                      placeholder="เช่น 'มุมสำหรับบาร์บีคิว', 'ที่เล่นสำหรับสุนัข'"
-                      className="w-full mt-1 p-2 border rounded-lg"
-                    />
-                  </div>
-                  <div className="flex justify-center pt-4">
-                    <button
-                      onClick={handleSubmit}
-                      disabled={loading}
-                      className="flex items-center gap-3 bg-blue-600 text-white font-bold text-lg py-3 px-8 rounded-full shadow-lg hover:bg-blue-700"
-                    >
-                      <FiSend />{" "}
-                      {loading ? "กำลังทดสอบ..." : "ทดสอบโมเดลสมจริง"}
-                    </button>
-                  </div>
+                <div className="flex justify-center pt-4">
+                  <button
+                    onClick={handleSubmit}
+                    disabled={loading}
+                    className="flex items-center gap-3 bg-blue-600 text-white font-bold text-lg py-3 px-8 rounded-full shadow-lg hover:bg-blue-700 transition-all"
+                  >
+                    <FiSend />{" "}
+                    {loading ? "กำลังทดสอบ..." : "ทดสอบโมเดล Inpainting"}
+                  </button>
                 </div>
               )}
-            </div>
+            </>
           )}
         </>
       )}
