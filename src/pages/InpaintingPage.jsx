@@ -52,10 +52,28 @@ export default function InpaintingPage() {
   const [bomLoading, setBomLoading] = useState(false);
   const [selectedBudgetLevel, setSelectedBudgetLevel] = useState(2);
 
-  const [canvasSize, setCanvasSize] = useState({ width: 0, height: 0 });
+  // === จุดแก้ไขที่ 1: ใช้ State และ Ref สำหรับ Container ===
+  const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
+  const imageContainerRef = useRef(null);
 
   const isDrawing = useRef(false);
   const stageRef = useRef(null);
+
+  // === จุดแก้ไขที่ 2: ใช้ ResizeObserver เพื่ออัปเดตขนาด Canvas อย่างแม่นยำ ===
+  useEffect(() => {
+    if (!imageContainerRef.current) return;
+
+    const observer = new ResizeObserver((entries) => {
+      for (let entry of entries) {
+        const { width, height } = entry.contentRect;
+        setContainerSize({ width, height });
+      }
+    });
+
+    observer.observe(imageContainerRef.current);
+
+    return () => observer.disconnect();
+  }, [imagePreview]); // ทำงานใหม่เมื่อมีรูปภาพใหม่
 
   useEffect(() => {
     if (!predictionId || !loading) return;
@@ -112,11 +130,6 @@ export default function InpaintingPage() {
     }
   };
 
-  const handleImageLoad = (e) => {
-    const { clientWidth, clientHeight } = e.target;
-    setCanvasSize({ width: clientWidth, height: clientHeight });
-  };
-
   const handleMouseDown = (e) => {
     isDrawing.current = true;
     const pos = e.target.getStage().getPointerPosition();
@@ -160,8 +173,8 @@ export default function InpaintingPage() {
     });
 
     const tempStage = new Konva.Stage({
-      width: canvasSize.width,
-      height: canvasSize.height,
+      width: containerSize.width,
+      height: containerSize.height,
       container: document.createElement("div"),
     });
     tempStage.add(maskLayer);
@@ -327,25 +340,21 @@ export default function InpaintingPage() {
               {/* === จุดแก้ไขหลัก: เปลี่ยนโครงสร้างการแสดงผลทั้งหมด === */}
               <div className="w-full flex justify-center items-center bg-gray-100 rounded-lg p-2 min-h-[400px]">
                 {imagePreview ? (
-                  <div className="relative inline-block">
-                    {/* รูปภาพจะถูกแสดงผลตามสัดส่วนจริง */}
+                  <div
+                    ref={imageContainerRef}
+                    className="relative inline-block"
+                  >
+                    {/* 1. รูปภาพจะถูกแสดงผลตามสัดส่วนจริง */}
                     <img
                       src={imagePreview}
                       alt="Uploaded preview"
-                      onLoad={handleImageLoad}
                       className="block max-w-full h-auto max-h-[70vh] rounded-md"
                     />
-                    {/* Canvas จะถูกสร้างขึ้นมาซ้อนทับ โดยมีขนาดเท่ากับรูปภาพที่แสดงผล */}
-                    <div
-                      className="absolute top-0 left-0 border-2 border-dashed border-pink-500 pointer-events-none"
-                      style={{
-                        width: canvasSize.width,
-                        height: canvasSize.height,
-                      }}
-                    >
+                    {/* 2. Canvas จะถูกสร้างขึ้นมาซ้อนทับ โดยมีขนาดเท่ากับ Container */}
+                    <div className="absolute top-0 left-0 w-full h-full border-2 border-dashed border-pink-500 pointer-events-none">
                       <Stage
-                        width={canvasSize.width}
-                        height={canvasSize.height}
+                        width={containerSize.width}
+                        height={containerSize.height}
                         onMouseDown={handleMouseDown}
                         onMousemove={handleMouseMove}
                         onMouseup={handleMouseUp}
@@ -353,7 +362,7 @@ export default function InpaintingPage() {
                         onTouchMove={handleMouseMove}
                         onTouchEnd={handleMouseUp}
                         ref={stageRef}
-                        style={{ pointerEvents: "auto" }} // ทำให้ Canvas รับ Event ได้
+                        style={{ pointerEvents: "auto" }}
                       >
                         <Layer>
                           {lines.map((line, i) => (
