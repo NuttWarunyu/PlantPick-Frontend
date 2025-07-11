@@ -56,6 +56,7 @@ export default function InpaintingPage() {
 
   const isDrawing = useRef(false);
   const stageRef = useRef(null);
+  const imageRef = useRef(null); // Ref สำหรับอ้างอิงถึง <img>
 
   useEffect(() => {
     if (!predictionId || !loading) return;
@@ -106,15 +107,13 @@ export default function InpaintingPage() {
         setImage(file);
         setImagePreview(event.target.result);
         setLines([]);
-        setResultImage(null); // เคลียร์รูปผลลัพธ์เก่า
+        setResultImage(null);
       };
       reader.readAsDataURL(file);
     }
   };
 
-  // === จุดแก้ไขที่ 1: สร้างฟังก์ชันสำหรับอัปเดตขนาด Canvas เมื่อรูปโหลดเสร็จ ===
   const handleImageLoad = (e) => {
-    // อ่านขนาดของรูปภาพที่แสดงผลจริงบนหน้าจอ
     const { clientWidth, clientHeight } = e.target;
     setCanvasSize({ width: clientWidth, height: clientHeight });
   };
@@ -326,17 +325,20 @@ export default function InpaintingPage() {
                 )}
               </div>
 
-              {/* === จุดแก้ไขที่ 2: เปลี่ยนโครงสร้างการแสดงผลรูปและ Canvas === */}
+              {/* === จุดแก้ไขหลัก: เปลี่ยนโครงสร้างการแสดงผลทั้งหมด === */}
               <div className="w-full flex justify-center items-center bg-gray-100 rounded-lg p-2 min-h-[400px]">
                 {imagePreview ? (
                   <div className="relative inline-block">
+                    {/* รูปภาพจะถูกแสดงผลตามสัดส่วนจริง */}
                     <img
+                      ref={imageRef}
                       src={imagePreview}
                       alt="Uploaded preview"
-                      onLoad={handleImageLoad} // <-- เรียกใช้ฟังก์ชันเมื่อรูปโหลดเสร็จ
-                      className="block max-w-full h-auto max-h-[70vh] rounded-md" // <-- ปล่อยให้รูปแสดงตามสัดส่วนจริง
+                      onLoad={handleImageLoad}
+                      className="block max-w-full h-auto max-h-[70vh] rounded-md"
                     />
-                    <div className="absolute top-0 left-0">
+                    {/* Canvas จะถูกสร้างขึ้นมาซ้อนทับ โดยมีขนาดเท่ากับรูปภาพที่แสดงผล */}
+                    <div className="absolute top-0 left-0 border-2 border-dashed border-pink-500 pointer-events-none">
                       <Stage
                         width={canvasSize.width}
                         height={canvasSize.height}
@@ -347,6 +349,7 @@ export default function InpaintingPage() {
                         onTouchMove={handleMouseMove}
                         onTouchEnd={handleMouseUp}
                         ref={stageRef}
+                        style={{ pointerEvents: "auto" }} // ทำให้ Canvas รับ Event ได้
                       >
                         <Layer>
                           {lines.map((line, i) => (
