@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
-import { Stage, Layer, Line } from "react-konva";
+import { Stage, Layer, Line, Image as KonvaImage } from "react-konva";
 import Konva from "konva";
 import {
   FiUploadCloud,
@@ -12,6 +12,7 @@ import {
   FiThumbsUp,
   FiHome,
 } from "react-icons/fi";
+import useImage from "use-image";
 
 const EngagingLoadingScreen = ({ predictionId }) => (
   <div className="w-full bg-gray-50 p-8 rounded-2xl text-center">
@@ -26,10 +27,8 @@ const EngagingLoadingScreen = ({ predictionId }) => (
     )}
   </div>
 );
-
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
-
 const budgetOptions = [
   { label: "< 50,000", value: 50000, level: 1 },
   { label: "50,000 - 100,000", value: 100000, level: 2 },
@@ -39,7 +38,7 @@ const budgetOptions = [
 
 export default function InpaintingPage() {
   const navigate = useNavigate();
-  const [image, setImage] = useState(null);
+  const [originalFile, setOriginalFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
   const [lines, setLines] = useState([]);
   const [brushSize, setBrushSize] = useState(25);
@@ -52,32 +51,27 @@ export default function InpaintingPage() {
   const [bomLoading, setBomLoading] = useState(false);
   const [selectedBudgetLevel, setSelectedBudgetLevel] = useState(2);
 
-  // === จุดแก้ไขที่ 1: ใช้ State และ Ref สำหรับ Container ===
-  const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
-  const imageContainerRef = useRef(null);
+  const [canvasSize, setCanvasSize] = useState({ width: 800, height: 512 });
 
   const isDrawing = useRef(false);
   const stageRef = useRef(null);
 
-  // === จุดแก้ไขที่ 2: ใช้ ResizeObserver เพื่ออัปเดตขนาด Canvas อย่างแม่นยำ ===
+  // === จุดแก้ไข: ไม่ต้องรับ setter function ที่ไม่ได้ใช้ ===
+  const [imageForCanvas] = useImage(imagePreview, "Anonymous");
+
   useEffect(() => {
-    if (!imageContainerRef.current) return;
-
-    const observer = new ResizeObserver((entries) => {
-      for (let entry of entries) {
-        const { width, height } = entry.contentRect;
-        setContainerSize({ width, height });
-      }
-    });
-
-    observer.observe(imageContainerRef.current);
-
-    return () => observer.disconnect();
-  }, [imagePreview]); // ทำงานใหม่เมื่อมีรูปภาพใหม่
+    if (imageForCanvas) {
+      const containerWidth = 800;
+      const scale = containerWidth / imageForCanvas.width;
+      setCanvasSize({
+        width: containerWidth,
+        height: imageForCanvas.height * scale,
+      });
+    }
+  }, [imageForCanvas]);
 
   useEffect(() => {
     if (!predictionId || !loading) return;
-
     const interval = setInterval(async () => {
       try {
         const res = await axios.get(
@@ -89,7 +83,6 @@ export default function InpaintingPage() {
           history_id,
           error: predictionError,
         } = res.data;
-
         if (status === "succeeded") {
           setResultImage(result_url);
           setHistoryId(history_id);
@@ -112,21 +105,16 @@ export default function InpaintingPage() {
         clearInterval(interval);
       }
     }, 5000);
-
     return () => clearInterval(interval);
   }, [predictionId, loading]);
 
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        setImage(file);
-        setImagePreview(event.target.result);
-        setLines([]);
-        setResultImage(null);
-      };
-      reader.readAsDataURL(file);
+      setOriginalFile(file);
+      setImagePreview(URL.createObjectURL(file));
+      setLines([]);
+      setResultImage(null);
     }
   };
 
@@ -173,8 +161,8 @@ export default function InpaintingPage() {
     });
 
     const tempStage = new Konva.Stage({
-      width: containerSize.width,
-      height: containerSize.height,
+      width: canvasSize.width,
+      height: canvasSize.height,
       container: document.createElement("div"),
     });
     tempStage.add(maskLayer);
@@ -193,7 +181,7 @@ export default function InpaintingPage() {
   };
 
   const handleSubmit = async () => {
-    if (!image) {
+    if (!originalFile) {
       setError("กรุณาอัปโหลดรูปภาพก่อน");
       return;
     }
@@ -215,7 +203,7 @@ export default function InpaintingPage() {
 
     try {
       const formData = new FormData();
-      formData.append("image", image);
+      formData.append("image", originalFile);
       formData.append("mask", maskFile);
       formData.append(
         "prompt",
@@ -251,7 +239,6 @@ export default function InpaintingPage() {
         (opt) => opt.level === selectedBudgetLevel
       );
       const budget = budgetInfo ? budgetInfo.value : 100000;
-
       const res = await axios.post(
         `${API_BASE_URL}/garden/generate-bom`,
         {
@@ -310,7 +297,6 @@ export default function InpaintingPage() {
                     className="mt-2 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:bg-gray-100 hover:file:bg-gray-200"
                   />
                 </div>
-
                 {imagePreview && (
                   <div>
                     <label className="font-semibold">
@@ -337,50 +323,43 @@ export default function InpaintingPage() {
                 )}
               </div>
 
-              {/* === จุดแก้ไขหลัก: เปลี่ยนโครงสร้างการแสดงผลทั้งหมด === */}
               <div className="w-full flex justify-center items-center bg-gray-100 rounded-lg p-2 min-h-[400px]">
                 {imagePreview ? (
-                  <div
-                    ref={imageContainerRef}
-                    className="relative inline-block"
-                  >
-                    {/* 1. รูปภาพจะถูกแสดงผลตามสัดส่วนจริง */}
-                    <img
-                      src={imagePreview}
-                      alt="Uploaded preview"
-                      className="block max-w-full h-auto max-h-[70vh] rounded-md"
-                    />
-                    {/* 2. Canvas จะถูกสร้างขึ้นมาซ้อนทับ โดยมีขนาดเท่ากับ Container */}
-                    <div className="absolute top-0 left-0 w-full h-full border-2 border-dashed border-pink-500 pointer-events-none">
-                      <Stage
-                        width={containerSize.width}
-                        height={containerSize.height}
-                        onMouseDown={handleMouseDown}
-                        onMousemove={handleMouseMove}
-                        onMouseup={handleMouseUp}
-                        onTouchStart={handleMouseDown}
-                        onTouchMove={handleMouseMove}
-                        onTouchEnd={handleMouseUp}
-                        ref={stageRef}
-                        style={{ pointerEvents: "auto" }}
-                      >
-                        <Layer>
-                          {lines.map((line, i) => (
-                            <Line
-                              key={i}
-                              points={line.points}
-                              stroke="#ff00ff"
-                              strokeWidth={line.brushSize}
-                              tension={0.5}
-                              lineCap="round"
-                              lineJoin="round"
-                              globalCompositeOperation={"source-over"}
-                              opacity={0.5}
-                            />
-                          ))}
-                        </Layer>
-                      </Stage>
-                    </div>
+                  <div className="border-2 border-dashed border-pink-500">
+                    <Stage
+                      width={canvasSize.width}
+                      height={canvasSize.height}
+                      onMouseDown={handleMouseDown}
+                      onMousemove={handleMouseMove}
+                      onMouseup={handleMouseUp}
+                      onTouchStart={handleMouseDown}
+                      onTouchMove={handleMouseMove}
+                      onTouchEnd={handleMouseUp}
+                      ref={stageRef}
+                    >
+                      <Layer>
+                        <KonvaImage
+                          image={imageForCanvas}
+                          width={canvasSize.width}
+                          height={canvasSize.height}
+                        />
+                      </Layer>
+                      <Layer>
+                        {lines.map((line, i) => (
+                          <Line
+                            key={i}
+                            points={line.points}
+                            stroke="#ff00ff"
+                            strokeWidth={line.brushSize}
+                            tension={0.5}
+                            lineCap="round"
+                            lineJoin="round"
+                            globalCompositeOperation={"source-over"}
+                            opacity={0.5}
+                          />
+                        ))}
+                      </Layer>
+                    </Stage>
                   </div>
                 ) : (
                   <div className="text-gray-400">
@@ -420,7 +399,6 @@ export default function InpaintingPage() {
               className="mt-4 max-w-full rounded-lg shadow-lg mx-auto"
             />
           </div>
-
           <div className="pt-6 border-t">
             <div className="text-center mb-4">
               <h2 className="text-2xl font-bold text-gray-800">
@@ -446,7 +424,6 @@ export default function InpaintingPage() {
               ))}
             </div>
           </div>
-
           <div className="pt-4 flex justify-center">
             <button
               onClick={handleGenerateBOM}
