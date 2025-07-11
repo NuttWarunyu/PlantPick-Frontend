@@ -1,10 +1,19 @@
 import React, { useState, useRef, useEffect } from "react";
 import axios from "axios";
+import { useNavigate } from "react-router-dom";
 import { Stage, Layer, Line } from "react-konva";
 import Konva from "konva";
-import { FiUploadCloud, FiTrash2, FiSend } from "react-icons/fi";
+import {
+  FiUploadCloud,
+  FiTrash2,
+  FiSend,
+  FiShoppingCart,
+  FiMessageSquare,
+  FiThumbsUp,
+  FiHome,
+} from "react-icons/fi";
+import useImage from "use-image";
 
-// Component สำหรับหน้าจอ Loading
 const EngagingLoadingScreen = ({ predictionId }) => (
   <div className="w-full bg-gray-50 p-8 rounded-2xl text-center">
     <p className="text-xl font-bold text-gray-700 animate-pulse">
@@ -22,15 +31,27 @@ const EngagingLoadingScreen = ({ predictionId }) => (
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
 
+const budgetOptions = [
+  { label: "< 50,000", value: 50000, level: 1 },
+  { label: "50,000 - 100,000", value: 100000, level: 2 },
+  { label: "100,000 - 250,000", value: 250000, level: 3 },
+  { label: "> 250,000", value: 500000, level: 4 },
+];
+
 export default function InpaintingPage() {
+  const navigate = useNavigate();
   const [originalFile, setOriginalFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
   const [lines, setLines] = useState([]);
-  const [brushSize, setBrushSize] = useState(30);
+  const [brushSize, setBrushSize] = useState(25);
   const [loading, setLoading] = useState(false);
   const [resultImage, setResultImage] = useState(null);
   const [error, setError] = useState(null);
   const [predictionId, setPredictionId] = useState(null);
+
+  const [historyId, setHistoryId] = useState(null);
+  const [bomLoading, setBomLoading] = useState(false);
+  const [selectedBudgetLevel, setSelectedBudgetLevel] = useState(2);
 
   const [canvasSize, setCanvasSize] = useState({ width: 0, height: 0 });
 
@@ -38,7 +59,6 @@ export default function InpaintingPage() {
   const stageRef = useRef(null);
   const imageRef = useRef(null); // Ref สำหรับอ้างอิงถึง <img>
 
-  // Polling effect to check prediction status
   useEffect(() => {
     if (!predictionId || !loading) return;
 
@@ -47,10 +67,16 @@ export default function InpaintingPage() {
         const res = await axios.get(
           `${API_BASE_URL}/garden/check-prediction/${predictionId}`
         );
-        const { status, result_url, error: predictionError } = res.data;
+        const {
+          status,
+          result_url,
+          history_id,
+          error: predictionError,
+        } = res.data;
 
         if (status === "succeeded") {
           setResultImage(result_url);
+          setHistoryId(history_id);
           setLoading(false);
           setPredictionId(null);
           clearInterval(interval);
@@ -88,7 +114,6 @@ export default function InpaintingPage() {
     }
   };
 
-  // ฟังก์ชันสำหรับอัปเดตขนาด Canvas เมื่อรูปโหลดเสร็จ
   const handleImageLoad = () => {
     if (imageRef.current) {
       const { clientWidth, clientHeight } = imageRef.current;
@@ -205,6 +230,46 @@ export default function InpaintingPage() {
     }
   };
 
+  const handleGenerateBOM = async () => {
+    if (!historyId) {
+      setError("เกิดข้อผิดพลาด: ไม่พบ History ID");
+      return;
+    }
+    setBomLoading(true);
+    setError(null);
+    try {
+      const budgetInfo = budgetOptions.find(
+        (opt) => opt.level === selectedBudgetLevel
+      );
+      const budget = budgetInfo ? budgetInfo.value : 100000;
+      const res = await axios.post(
+        `${API_BASE_URL}/garden/generate-bom`,
+        {
+          history_id: historyId,
+          budget: budget,
+          budget_level: selectedBudgetLevel,
+        },
+        { headers: { "Content-Type": "application/json" } }
+      );
+      const bomDetails = res.data.bom_details || [];
+      const suggestions = res.data.suggestions || {};
+      navigate("/bom-result", {
+        state: {
+          bom: bomDetails,
+          suggestions,
+          resultImage,
+          projectId: historyId,
+        },
+      });
+    } catch (err) {
+      setError(
+        "Error generating BOM: " + (err.response?.data?.error || err.message)
+      );
+    } finally {
+      setBomLoading(false);
+    }
+  };
+
   return (
     <div className="w-full space-y-6">
       <div className="text-center p-4 bg-blue-50 border border-blue-200 rounded-lg">
@@ -261,7 +326,6 @@ export default function InpaintingPage() {
                 )}
               </div>
 
-              {/* === จุดแก้ไขหลัก: สร้าง Container ที่มี position: relative === */}
               <div className="w-full flex justify-center items-center bg-gray-100 rounded-lg p-2 min-h-[400px]">
                 {imagePreview ? (
                   <div className="relative inline-block">
@@ -272,7 +336,13 @@ export default function InpaintingPage() {
                       onLoad={handleImageLoad}
                       className="block max-w-full h-auto max-h-[70vh] rounded-md"
                     />
-                    <div className="absolute top-0 left-0 border-2 border-dashed border-pink-500">
+                    <div
+                      className="absolute top-0 left-0 border-2 border-dashed border-pink-500"
+                      style={{
+                        width: canvasSize.width,
+                        height: canvasSize.height,
+                      }}
+                    >
                       <Stage
                         width={canvasSize.width}
                         height={canvasSize.height}
@@ -339,6 +409,40 @@ export default function InpaintingPage() {
               alt="Inpainting result"
               className="mt-4 max-w-full rounded-lg shadow-lg mx-auto"
             />
+          </div>
+          <div className="pt-6 border-t">
+            <div className="text-center mb-4">
+              <h2 className="text-2xl font-bold text-gray-800">
+                ขั้นตอนสุดท้าย: กำหนดงบประมาณ
+              </h2>
+              <p className="text-gray-500 text-sm mt-1">
+                เลือกช่วงงบประมาณของคุณเพื่อดูรายการของและราคาประเมิน
+              </p>
+            </div>
+            <div className="flex flex-wrap justify-center gap-3 mt-4">
+              {budgetOptions.map((opt) => (
+                <button
+                  key={opt.level}
+                  onClick={() => setSelectedBudgetLevel(opt.level)}
+                  className={`px-5 py-2 text-sm font-bold rounded-full transition-all ${
+                    selectedBudgetLevel === opt.level
+                      ? "bg-green-600 text-white shadow-lg"
+                      : "bg-white text-gray-800 border hover:bg-green-50"
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="pt-4 flex justify-center">
+            <button
+              onClick={handleGenerateBOM}
+              disabled={bomLoading}
+              className="bg-orange-500 text-white font-bold text-lg py-3 px-10 rounded-full shadow-lg hover:bg-orange-600 disabled:bg-gray-400"
+            >
+              {bomLoading ? "กำลังวิเคราะห์..." : "🌱 ขอรายการของและราคา"}
+            </button>
           </div>
         </div>
       )}
