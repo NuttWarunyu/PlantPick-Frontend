@@ -276,7 +276,7 @@ export default function InpaintingPage() {
           🧪 ห้องทดลอง: โหมดสมจริง (Inpainting)
         </h1>
         <p className="text-gray-600 mt-1">
-          ระบายพื้นที่ที่คุณต้องการให้ AI สร้างสวน
+          ระบายพื้นที่ที่คุณต้องการให้ AI สร้างสวนทับลงไป
         </p>
       </div>
 
