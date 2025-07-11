@@ -4,7 +4,6 @@ import { Stage, Layer, Line } from "react-konva";
 import Konva from "konva";
 import { FiUploadCloud, FiTrash2, FiSend } from "react-icons/fi";
 
-// (เราสามารถนำ EngagingLoadingScreen มาใช้ซ้ำได้)
 const EngagingLoadingScreen = ({ predictionId }) => (
   <div className="w-full bg-gray-50 p-8 rounded-2xl text-center">
     <p className="text-xl font-bold text-gray-700 animate-pulse">
@@ -32,8 +31,12 @@ export default function InpaintingPage() {
   const [error, setError] = useState(null);
   const [predictionId, setPredictionId] = useState(null);
 
+  // === จุดแก้ไขที่ 1: เพิ่ม State สำหรับเก็บขนาดของ Canvas ===
+  const [canvasSize, setCanvasSize] = useState({ width: 0, height: 0 });
+
   const isDrawing = useRef(false);
   const stageRef = useRef(null);
+  const imageRef = useRef(null); // Ref สำหรับอ้างอิงถึง <img>
 
   useEffect(() => {
     if (!predictionId || !loading) return;
@@ -57,7 +60,6 @@ export default function InpaintingPage() {
           clearInterval(interval);
         }
       } catch (err) {
-        // === จุดแก้ไข: เพิ่มการใช้งานตัวแปร err ===
         setError(
           "เกิดข้อผิดพลาดในการตรวจสอบสถานะ: " +
             (err.response?.data?.detail || err.message)
@@ -82,6 +84,23 @@ export default function InpaintingPage() {
       };
       reader.readAsDataURL(file);
     }
+  };
+
+  // === จุดแก้ไขที่ 2: สร้างฟังก์ชันสำหรับอัปเดตขนาด Canvas เมื่อรูปโหลดเสร็จ ===
+  const handleImageLoad = (e) => {
+    const { naturalWidth, naturalHeight } = e.target;
+    const aspectRatio = naturalWidth / naturalHeight;
+    const maxWidth = imageRef.current.parentElement.clientWidth; // ความกว้างของ container
+
+    let width = naturalWidth;
+    let height = naturalHeight;
+
+    if (width > maxWidth) {
+      width = maxWidth;
+      height = width / aspectRatio;
+    }
+
+    setCanvasSize({ width, height });
   };
 
   const handleMouseDown = (e) => {
@@ -127,8 +146,8 @@ export default function InpaintingPage() {
     });
 
     const tempStage = new Konva.Stage({
-      width: stage.width(),
-      height: stage.height(),
+      width: canvasSize.width,
+      height: canvasSize.height,
       container: document.createElement("div"),
     });
     tempStage.add(maskLayer);
@@ -175,6 +194,7 @@ export default function InpaintingPage() {
         "prompt",
         "A beautiful, lush, photorealistic garden with a modern style"
       );
+
       formData.append("selected_tags", "inpainting-test");
 
       const res = await axios.post(
@@ -248,42 +268,46 @@ export default function InpaintingPage() {
             )}
           </div>
 
-          <div className="relative w-full flex justify-center items-center bg-gray-200 rounded-lg">
+          {/* === จุดแก้ไขที่ 3: เปลี่ยนโครงสร้างการแสดงผลรูปและ Canvas === */}
+          <div className="relative w-full flex justify-center items-center bg-gray-100 rounded-lg p-2">
             {imagePreview ? (
-              <div
-                style={{
-                  backgroundImage: `url(${imagePreview})`,
-                  backgroundSize: "contain",
-                  backgroundPosition: "center",
-                  backgroundRepeat: "no-repeat",
-                }}
-              >
-                <Stage
-                  width={512}
-                  height={512}
-                  onMouseDown={handleMouseDown}
-                  onMousemove={handleMouseMove}
-                  onMouseup={handleMouseUp}
-                  onTouchStart={handleMouseDown}
-                  onTouchMove={handleMouseMove}
-                  onTouchEnd={handleMouseUp}
-                  ref={stageRef}
-                >
-                  <Layer>
-                    {lines.map((line, i) => (
-                      <Line
-                        key={i}
-                        points={line.points}
-                        stroke="#ff00ff"
-                        strokeWidth={line.brushSize}
-                        tension={0.5}
-                        lineCap="round"
-                        lineJoin="round"
-                        globalCompositeOperation={"source-over"}
-                      />
-                    ))}
-                  </Layer>
-                </Stage>
+              <div className="relative">
+                <img
+                  ref={imageRef}
+                  src={imagePreview}
+                  alt="Uploaded preview"
+                  onLoad={handleImageLoad}
+                  className="max-w-full h-auto rounded-md"
+                />
+                <div className="absolute top-0 left-0">
+                  <Stage
+                    width={canvasSize.width}
+                    height={canvasSize.height}
+                    onMouseDown={handleMouseDown}
+                    onMousemove={handleMouseMove}
+                    onMouseup={handleMouseUp}
+                    onTouchStart={handleMouseDown}
+                    onTouchMove={handleMouseMove}
+                    onTouchEnd={handleMouseUp}
+                    ref={stageRef}
+                  >
+                    <Layer>
+                      {lines.map((line, i) => (
+                        <Line
+                          key={i}
+                          points={line.points}
+                          stroke="#ff00ff"
+                          strokeWidth={line.brushSize}
+                          tension={0.5}
+                          lineCap="round"
+                          lineJoin="round"
+                          globalCompositeOperation={"source-over"}
+                          opacity={0.5} // <-- จุดแก้ไขที่ 4: เพิ่มความโปร่งแสง
+                        />
+                      ))}
+                    </Layer>
+                  </Stage>
+                </div>
               </div>
             ) : (
               <div className="w-full h-80 flex items-center justify-center text-gray-400">
