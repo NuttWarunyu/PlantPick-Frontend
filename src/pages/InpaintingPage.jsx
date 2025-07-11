@@ -56,7 +56,6 @@ export default function InpaintingPage() {
 
   const isDrawing = useRef(false);
   const stageRef = useRef(null);
-  const imageRef = useRef(null); // Ref สำหรับอ้างอิงถึง <img>
 
   useEffect(() => {
     if (!predictionId || !loading) return;
@@ -331,14 +330,19 @@ export default function InpaintingPage() {
                   <div className="relative inline-block">
                     {/* รูปภาพจะถูกแสดงผลตามสัดส่วนจริง */}
                     <img
-                      ref={imageRef}
                       src={imagePreview}
                       alt="Uploaded preview"
                       onLoad={handleImageLoad}
                       className="block max-w-full h-auto max-h-[70vh] rounded-md"
                     />
                     {/* Canvas จะถูกสร้างขึ้นมาซ้อนทับ โดยมีขนาดเท่ากับรูปภาพที่แสดงผล */}
-                    <div className="absolute top-0 left-0 border-2 border-dashed border-pink-500 pointer-events-none">
+                    <div
+                      className="absolute top-0 left-0 border-2 border-dashed border-pink-500 pointer-events-none"
+                      style={{
+                        width: canvasSize.width,
+                        height: canvasSize.height,
+                      }}
+                    >
                       <Stage
                         width={canvasSize.width}
                         height={canvasSize.height}
