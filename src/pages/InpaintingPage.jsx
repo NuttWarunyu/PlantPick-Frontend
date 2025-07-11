@@ -9,9 +9,10 @@ import {
   FiSend,
   FiShoppingCart,
   FiMessageSquare,
+  FiThumbsUp,
+  FiHome,
 } from "react-icons/fi";
 
-// (เราสามารถนำ EngagingLoadingScreen มาใช้ซ้ำได้)
 const EngagingLoadingScreen = ({ predictionId }) => (
   <div className="w-full bg-gray-50 p-8 rounded-2xl text-center">
     <p className="text-xl font-bold text-gray-700 animate-pulse">
@@ -29,7 +30,6 @@ const EngagingLoadingScreen = ({ predictionId }) => (
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
 
-// === จุดแก้ไข: เพิ่ม budgetOptions เข้ามา ===
 const budgetOptions = [
   { label: "< 50,000", value: 50000, level: 1 },
   { label: "50,000 - 100,000", value: 100000, level: 2 },
@@ -48,7 +48,6 @@ export default function InpaintingPage() {
   const [error, setError] = useState(null);
   const [predictionId, setPredictionId] = useState(null);
 
-  // === จุดแก้ไข: เพิ่ม State สำหรับ BOM ===
   const [historyId, setHistoryId] = useState(null);
   const [bomLoading, setBomLoading] = useState(false);
   const [selectedBudgetLevel, setSelectedBudgetLevel] = useState(2);
@@ -57,7 +56,6 @@ export default function InpaintingPage() {
 
   const isDrawing = useRef(false);
   const stageRef = useRef(null);
-  const imageContainerRef = useRef(null); // Ref สำหรับ div ที่ครอบรูป
 
   useEffect(() => {
     if (!predictionId || !loading) return;
@@ -76,7 +74,7 @@ export default function InpaintingPage() {
 
         if (status === "succeeded") {
           setResultImage(result_url);
-          setHistoryId(history_id); // <-- บันทึก history_id ที่ได้กลับมา
+          setHistoryId(history_id);
           setLoading(false);
           setPredictionId(null);
           clearInterval(interval);
@@ -105,27 +103,20 @@ export default function InpaintingPage() {
     if (file) {
       const reader = new FileReader();
       reader.onload = (event) => {
-        const img = new Image();
-        img.src = event.target.result;
-        img.onload = () => {
-          // คำนวณขนาดที่เหมาะสมก่อนแสดงผล
-          const aspectRatio = img.naturalWidth / img.naturalHeight;
-          const maxWidth = 800; // กำหนดความกว้างสูงสุดของรูป
-          let width = img.naturalWidth;
-          let height = img.naturalHeight;
-
-          if (width > maxWidth) {
-            width = maxWidth;
-            height = width / aspectRatio;
-          }
-          setCanvasSize({ width, height });
-          setImage(file);
-          setImagePreview(event.target.result);
-          setLines([]);
-        };
+        setImage(file);
+        setImagePreview(event.target.result);
+        setLines([]);
+        setResultImage(null); // เคลียร์รูปผลลัพธ์เก่า
       };
       reader.readAsDataURL(file);
     }
+  };
+
+  // === จุดแก้ไขที่ 1: สร้างฟังก์ชันสำหรับอัปเดตขนาด Canvas เมื่อรูปโหลดเสร็จ ===
+  const handleImageLoad = (e) => {
+    // อ่านขนาดของรูปภาพที่แสดงผลจริงบนหน้าจอ
+    const { clientWidth, clientHeight } = e.target;
+    setCanvasSize({ width: clientWidth, height: clientHeight });
   };
 
   const handleMouseDown = (e) => {
@@ -237,7 +228,6 @@ export default function InpaintingPage() {
     }
   };
 
-  // === จุดแก้ไข: เพิ่มฟังก์ชัน handleGenerateBOM ===
   const handleGenerateBOM = async () => {
     if (!historyId) {
       setError("เกิดข้อผิดพลาด: ไม่พบ History ID");
@@ -336,22 +326,15 @@ export default function InpaintingPage() {
                 )}
               </div>
 
-              <div
-                ref={imageContainerRef}
-                className="relative w-full flex justify-center items-center bg-gray-100 rounded-lg p-2 min-h-[400px]"
-              >
+              {/* === จุดแก้ไขที่ 2: เปลี่ยนโครงสร้างการแสดงผลรูปและ Canvas === */}
+              <div className="w-full flex justify-center items-center bg-gray-100 rounded-lg p-2 min-h-[400px]">
                 {imagePreview ? (
-                  <div
-                    className="relative"
-                    style={{
-                      width: canvasSize.width,
-                      height: canvasSize.height,
-                    }}
-                  >
+                  <div className="relative inline-block">
                     <img
                       src={imagePreview}
                       alt="Uploaded preview"
-                      className="absolute top-0 left-0 w-full h-full"
+                      onLoad={handleImageLoad} // <-- เรียกใช้ฟังก์ชันเมื่อรูปโหลดเสร็จ
+                      className="block max-w-full h-auto max-h-[70vh] rounded-md" // <-- ปล่อยให้รูปแสดงตามสัดส่วนจริง
                     />
                     <div className="absolute top-0 left-0">
                       <Stage
@@ -422,7 +405,6 @@ export default function InpaintingPage() {
             />
           </div>
 
-          {/* === จุดแก้ไข: เพิ่มส่วนกำหนดงบประมาณและขอ BOM === */}
           <div className="pt-6 border-t">
             <div className="text-center mb-4">
               <h2 className="text-2xl font-bold text-gray-800">
