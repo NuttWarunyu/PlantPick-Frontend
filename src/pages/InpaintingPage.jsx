@@ -1,9 +1,17 @@
 import React, { useState, useRef, useEffect } from "react";
 import axios from "axios";
+import { useNavigate } from "react-router-dom";
 import { Stage, Layer, Line } from "react-konva";
 import Konva from "konva";
-import { FiUploadCloud, FiTrash2, FiSend } from "react-icons/fi";
+import {
+  FiUploadCloud,
+  FiTrash2,
+  FiSend,
+  FiShoppingCart,
+  FiMessageSquare,
+} from "react-icons/fi";
 
+// (เราสามารถนำ EngagingLoadingScreen มาใช้ซ้ำได้)
 const EngagingLoadingScreen = ({ predictionId }) => (
   <div className="w-full bg-gray-50 p-8 rounded-2xl text-center">
     <p className="text-xl font-bold text-gray-700 animate-pulse">
@@ -21,22 +29,35 @@ const EngagingLoadingScreen = ({ predictionId }) => (
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
 
+// === จุดแก้ไข: เพิ่ม budgetOptions เข้ามา ===
+const budgetOptions = [
+  { label: "< 50,000", value: 50000, level: 1 },
+  { label: "50,000 - 100,000", value: 100000, level: 2 },
+  { label: "100,000 - 250,000", value: 250000, level: 3 },
+  { label: "> 250,000", value: 500000, level: 4 },
+];
+
 export default function InpaintingPage() {
+  const navigate = useNavigate();
   const [image, setImage] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
   const [lines, setLines] = useState([]);
-  const [brushSize, setBrushSize] = useState(20);
+  const [brushSize, setBrushSize] = useState(25);
   const [loading, setLoading] = useState(false);
   const [resultImage, setResultImage] = useState(null);
   const [error, setError] = useState(null);
   const [predictionId, setPredictionId] = useState(null);
 
-  // === จุดแก้ไขที่ 1: เพิ่ม State สำหรับเก็บขนาดของ Canvas ===
+  // === จุดแก้ไข: เพิ่ม State สำหรับ BOM ===
+  const [historyId, setHistoryId] = useState(null);
+  const [bomLoading, setBomLoading] = useState(false);
+  const [selectedBudgetLevel, setSelectedBudgetLevel] = useState(2);
+
   const [canvasSize, setCanvasSize] = useState({ width: 0, height: 0 });
 
   const isDrawing = useRef(false);
   const stageRef = useRef(null);
-  const imageRef = useRef(null); // Ref สำหรับอ้างอิงถึง <img>
+  const imageContainerRef = useRef(null); // Ref สำหรับ div ที่ครอบรูป
 
   useEffect(() => {
     if (!predictionId || !loading) return;
@@ -46,10 +67,16 @@ export default function InpaintingPage() {
         const res = await axios.get(
           `${API_BASE_URL}/garden/check-prediction/${predictionId}`
         );
-        const { status, result_url, error: predictionError } = res.data;
+        const {
+          status,
+          result_url,
+          history_id,
+          error: predictionError,
+        } = res.data;
 
         if (status === "succeeded") {
           setResultImage(result_url);
+          setHistoryId(history_id); // <-- บันทึก history_id ที่ได้กลับมา
           setLoading(false);
           setPredictionId(null);
           clearInterval(interval);
@@ -78,29 +105,27 @@ export default function InpaintingPage() {
     if (file) {
       const reader = new FileReader();
       reader.onload = (event) => {
-        setImage(file);
-        setImagePreview(event.target.result);
-        setLines([]);
+        const img = new Image();
+        img.src = event.target.result;
+        img.onload = () => {
+          // คำนวณขนาดที่เหมาะสมก่อนแสดงผล
+          const aspectRatio = img.naturalWidth / img.naturalHeight;
+          const maxWidth = 800; // กำหนดความกว้างสูงสุดของรูป
+          let width = img.naturalWidth;
+          let height = img.naturalHeight;
+
+          if (width > maxWidth) {
+            width = maxWidth;
+            height = width / aspectRatio;
+          }
+          setCanvasSize({ width, height });
+          setImage(file);
+          setImagePreview(event.target.result);
+          setLines([]);
+        };
       };
       reader.readAsDataURL(file);
     }
-  };
-
-  // === จุดแก้ไขที่ 2: สร้างฟังก์ชันสำหรับอัปเดตขนาด Canvas เมื่อรูปโหลดเสร็จ ===
-  const handleImageLoad = (e) => {
-    const { naturalWidth, naturalHeight } = e.target;
-    const aspectRatio = naturalWidth / naturalHeight;
-    const maxWidth = imageRef.current.parentElement.clientWidth; // ความกว้างของ container
-
-    let width = naturalWidth;
-    let height = naturalHeight;
-
-    if (width > maxWidth) {
-      width = maxWidth;
-      height = width / aspectRatio;
-    }
-
-    setCanvasSize({ width, height });
   };
 
   const handleMouseDown = (e) => {
@@ -194,7 +219,6 @@ export default function InpaintingPage() {
         "prompt",
         "A beautiful, lush, photorealistic garden with a modern style"
       );
-
       formData.append("selected_tags", "inpainting-test");
 
       const res = await axios.post(
@@ -213,6 +237,48 @@ export default function InpaintingPage() {
     }
   };
 
+  // === จุดแก้ไข: เพิ่มฟังก์ชัน handleGenerateBOM ===
+  const handleGenerateBOM = async () => {
+    if (!historyId) {
+      setError("เกิดข้อผิดพลาด: ไม่พบ History ID");
+      return;
+    }
+    setBomLoading(true);
+    setError(null);
+    try {
+      const budgetInfo = budgetOptions.find(
+        (opt) => opt.level === selectedBudgetLevel
+      );
+      const budget = budgetInfo ? budgetInfo.value : 100000;
+
+      const res = await axios.post(
+        `${API_BASE_URL}/garden/generate-bom`,
+        {
+          history_id: historyId,
+          budget: budget,
+          budget_level: selectedBudgetLevel,
+        },
+        { headers: { "Content-Type": "application/json" } }
+      );
+      const bomDetails = res.data.bom_details || [];
+      const suggestions = res.data.suggestions || {};
+      navigate("/bom-result", {
+        state: {
+          bom: bomDetails,
+          suggestions,
+          resultImage,
+          projectId: historyId,
+        },
+      });
+    } catch (err) {
+      setError(
+        "Error generating BOM: " + (err.response?.data?.error || err.message)
+      );
+    } finally {
+      setBomLoading(false);
+    }
+  };
+
   return (
     <div className="w-full space-y-6">
       <div className="text-center p-4 bg-blue-50 border border-blue-200 rounded-lg">
@@ -228,104 +294,115 @@ export default function InpaintingPage() {
         <EngagingLoadingScreen predictionId={predictionId} />
       ) : (
         <>
-          <div className="bg-white p-4 rounded-lg shadow-md space-y-4">
-            <div>
-              <label htmlFor="file-upload" className="font-semibold">
-                1. อัปโหลดรูปบ้านของคุณ:
-              </label>
-              <input
-                id="file-upload"
-                type="file"
-                accept="image/*"
-                onChange={handleImageChange}
-                className="mt-2 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:bg-gray-100 hover:file:bg-gray-200"
-              />
-            </div>
-
-            {imagePreview && (
-              <div>
-                <label className="font-semibold">
-                  2. ระบายพื้นที่สวน (ใช้เมาส์วาด):
-                </label>
-                <div className="flex items-center gap-4 mt-2">
-                  <span>ขนาดพู่กัน:</span>
+          {!resultImage && (
+            <>
+              <div className="bg-white p-4 rounded-lg shadow-md space-y-4">
+                <div>
+                  <label htmlFor="file-upload" className="font-semibold">
+                    1. อัปโหลดรูปบ้านของคุณ:
+                  </label>
                   <input
-                    type="range"
-                    min="5"
-                    max="50"
-                    value={brushSize}
-                    onChange={(e) => setBrushSize(Number(e.target.value))}
-                    className="w-48"
+                    id="file-upload"
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageChange}
+                    className="mt-2 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:bg-gray-100 hover:file:bg-gray-200"
                   />
-                  <button
-                    onClick={handleClearMask}
-                    className="flex items-center gap-2 text-sm text-red-600 hover:text-red-800"
+                </div>
+
+                {imagePreview && (
+                  <div>
+                    <label className="font-semibold">
+                      2. ระบายพื้นที่สวน (ใช้เมาส์วาด):
+                    </label>
+                    <div className="flex items-center gap-4 mt-2">
+                      <span>ขนาดพู่กัน:</span>
+                      <input
+                        type="range"
+                        min="5"
+                        max="50"
+                        value={brushSize}
+                        onChange={(e) => setBrushSize(Number(e.target.value))}
+                        className="w-48"
+                      />
+                      <button
+                        onClick={handleClearMask}
+                        className="flex items-center gap-2 text-sm text-red-600 hover:text-red-800"
+                      >
+                        <FiTrash2 /> ล้างทั้งหมด
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div
+                ref={imageContainerRef}
+                className="relative w-full flex justify-center items-center bg-gray-100 rounded-lg p-2 min-h-[400px]"
+              >
+                {imagePreview ? (
+                  <div
+                    className="relative"
+                    style={{
+                      width: canvasSize.width,
+                      height: canvasSize.height,
+                    }}
                   >
-                    <FiTrash2 /> ล้างทั้งหมด
+                    <img
+                      src={imagePreview}
+                      alt="Uploaded preview"
+                      className="absolute top-0 left-0 w-full h-full"
+                    />
+                    <div className="absolute top-0 left-0">
+                      <Stage
+                        width={canvasSize.width}
+                        height={canvasSize.height}
+                        onMouseDown={handleMouseDown}
+                        onMousemove={handleMouseMove}
+                        onMouseup={handleMouseUp}
+                        onTouchStart={handleMouseDown}
+                        onTouchMove={handleMouseMove}
+                        onTouchEnd={handleMouseUp}
+                        ref={stageRef}
+                      >
+                        <Layer>
+                          {lines.map((line, i) => (
+                            <Line
+                              key={i}
+                              points={line.points}
+                              stroke="#ff00ff"
+                              strokeWidth={line.brushSize}
+                              tension={0.5}
+                              lineCap="round"
+                              lineJoin="round"
+                              globalCompositeOperation={"source-over"}
+                              opacity={0.5}
+                            />
+                          ))}
+                        </Layer>
+                      </Stage>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-gray-400">
+                    <p>โปรดอัปโหลดรูปภาพเพื่อเริ่มใช้งาน</p>
+                  </div>
+                )}
+              </div>
+
+              {imagePreview && (
+                <div className="flex justify-center pt-4">
+                  <button
+                    onClick={handleSubmit}
+                    disabled={loading}
+                    className="flex items-center gap-3 bg-blue-600 text-white font-bold text-lg py-3 px-8 rounded-full shadow-lg hover:bg-blue-700 transition-all"
+                  >
+                    <FiSend />{" "}
+                    {loading ? "กำลังทดสอบ..." : "ทดสอบโมเดล Inpainting"}
                   </button>
                 </div>
-              </div>
-            )}
-          </div>
-
-          {/* === จุดแก้ไขที่ 3: เปลี่ยนโครงสร้างการแสดงผลรูปและ Canvas === */}
-          <div className="relative w-full flex justify-center items-center bg-gray-100 rounded-lg p-2">
-            {imagePreview ? (
-              <div className="relative">
-                <img
-                  ref={imageRef}
-                  src={imagePreview}
-                  alt="Uploaded preview"
-                  onLoad={handleImageLoad}
-                  className="max-w-full h-auto rounded-md"
-                />
-                <div className="absolute top-0 left-0">
-                  <Stage
-                    width={canvasSize.width}
-                    height={canvasSize.height}
-                    onMouseDown={handleMouseDown}
-                    onMousemove={handleMouseMove}
-                    onMouseup={handleMouseUp}
-                    onTouchStart={handleMouseDown}
-                    onTouchMove={handleMouseMove}
-                    onTouchEnd={handleMouseUp}
-                    ref={stageRef}
-                  >
-                    <Layer>
-                      {lines.map((line, i) => (
-                        <Line
-                          key={i}
-                          points={line.points}
-                          stroke="#ff00ff"
-                          strokeWidth={line.brushSize}
-                          tension={0.5}
-                          lineCap="round"
-                          lineJoin="round"
-                          globalCompositeOperation={"source-over"}
-                          opacity={0.5} // <-- จุดแก้ไขที่ 4: เพิ่มความโปร่งแสง
-                        />
-                      ))}
-                    </Layer>
-                  </Stage>
-                </div>
-              </div>
-            ) : (
-              <div className="w-full h-80 flex items-center justify-center text-gray-400">
-                <p>โปรดอัปโหลดรูปภาพเพื่อเริ่มใช้งาน</p>
-              </div>
-            )}
-          </div>
-
-          {imagePreview && (
-            <div className="flex justify-center pt-4">
-              <button
-                onClick={handleSubmit}
-                disabled={loading}
-                className="flex items-center gap-3 bg-blue-600 text-white font-bold text-lg py-3 px-8 rounded-full shadow-lg hover:bg-blue-700 transition-all"
-              >
-                <FiSend /> {loading ? "กำลังทดสอบ..." : "ทดสอบโมเดล Inpainting"}
-              </button>
-            </div>
+              )}
+            </>
           )}
         </>
       )}
@@ -333,13 +410,54 @@ export default function InpaintingPage() {
       {error && <p className="text-red-500 text-center">{error}</p>}
 
       {resultImage && (
-        <div className="text-center mt-6">
-          <h2 className="text-xl font-bold">ผลลัพธ์จากโมเดล Inpainting:</h2>
-          <img
-            src={resultImage}
-            alt="Inpainting result"
-            className="mt-4 max-w-full rounded-lg shadow-lg"
-          />
+        <div className="text-center mt-6 space-y-6">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-800">
+              ผลลัพธ์จากโหมดสมจริง
+            </h2>
+            <img
+              src={resultImage}
+              alt="Inpainting result"
+              className="mt-4 max-w-full rounded-lg shadow-lg mx-auto"
+            />
+          </div>
+
+          {/* === จุดแก้ไข: เพิ่มส่วนกำหนดงบประมาณและขอ BOM === */}
+          <div className="pt-6 border-t">
+            <div className="text-center mb-4">
+              <h2 className="text-2xl font-bold text-gray-800">
+                ขั้นตอนสุดท้าย: กำหนดงบประมาณ
+              </h2>
+              <p className="text-gray-500 text-sm mt-1">
+                เลือกช่วงงบประมาณของคุณเพื่อดูรายการของและราคาประเมิน
+              </p>
+            </div>
+            <div className="flex flex-wrap justify-center gap-3 mt-4">
+              {budgetOptions.map((opt) => (
+                <button
+                  key={opt.level}
+                  onClick={() => setSelectedBudgetLevel(opt.level)}
+                  className={`px-5 py-2 text-sm font-bold rounded-full transition-all ${
+                    selectedBudgetLevel === opt.level
+                      ? "bg-green-600 text-white shadow-lg"
+                      : "bg-white text-gray-800 border hover:bg-green-50"
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="pt-4 flex justify-center">
+            <button
+              onClick={handleGenerateBOM}
+              disabled={bomLoading}
+              className="bg-orange-500 text-white font-bold text-lg py-3 px-10 rounded-full shadow-lg hover:bg-orange-600 disabled:bg-gray-400"
+            >
+              {bomLoading ? "กำลังวิเคราะห์..." : "🌱 ขอรายการของและราคา"}
+            </button>
+          </div>
         </div>
       )}
     </div>
