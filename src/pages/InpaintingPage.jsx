@@ -12,7 +12,6 @@ import {
   FiThumbsUp,
   FiHome,
 } from "react-icons/fi";
-import useImage from "use-image";
 
 const EngagingLoadingScreen = ({ predictionId }) => (
   <div className="w-full bg-gray-50 p-8 rounded-2xl text-center">
@@ -57,7 +56,7 @@ export default function InpaintingPage() {
 
   const isDrawing = useRef(false);
   const stageRef = useRef(null);
-  const imageRef = useRef(null); // Ref สำหรับอ้างอิงถึง <img>
+  const imageRef = useRef(null); // Ref for the <img> tag
 
   useEffect(() => {
     if (!predictionId || !loading) return;
