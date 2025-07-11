@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
-import { Stage, Layer, Line } from "react-konva";
+// === จุดแก้ไขที่ 1: Import Image as KonvaImage เข้ามา ===
+import { Stage, Layer, Line, Image as KonvaImage } from "react-konva";
 import Konva from "konva";
 import {
   FiUploadCloud,
@@ -12,7 +13,9 @@ import {
   FiThumbsUp,
   FiHome,
 } from "react-icons/fi";
+import useImage from "use-image"; // <-- และต้องมี use-image ด้วย
 
+// (EngagingLoadingScreen, API_BASE_URL, budgetOptions เหมือนเดิม)
 const EngagingLoadingScreen = ({ predictionId }) => (
   <div className="w-full bg-gray-50 p-8 rounded-2xl text-center">
     <p className="text-xl font-bold text-gray-700 animate-pulse">
@@ -26,10 +29,8 @@ const EngagingLoadingScreen = ({ predictionId }) => (
     )}
   </div>
 );
-
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
-
 const budgetOptions = [
   { label: "< 50,000", value: 50000, level: 1 },
   { label: "50,000 - 100,000", value: 100000, level: 2 },
@@ -52,15 +53,29 @@ export default function InpaintingPage() {
   const [bomLoading, setBomLoading] = useState(false);
   const [selectedBudgetLevel, setSelectedBudgetLevel] = useState(2);
 
-  const [canvasSize, setCanvasSize] = useState({ width: 0, height: 0 });
+  const [canvasSize, setCanvasSize] = useState({ width: 800, height: 512 }); // ขนาดเริ่มต้น
 
   const isDrawing = useRef(false);
   const stageRef = useRef(null);
-  const imageRef = useRef(null); // Ref for the <img> tag
+
+  // === จุดแก้ไขที่ 2: ใช้ useImage เพื่อโหลดรูปภาพสำหรับ Konva ===
+  const [imageForCanvas] = useImage(imagePreview, "Anonymous");
+
+  // Effect นี้จะทำงานเมื่อรูปภาพถูกโหลดเข้ามาใน Konva แล้ว
+  useEffect(() => {
+    if (imageForCanvas) {
+      // คำนวณสัดส่วนของรูปภาพเพื่อให้พอดีกับ Container
+      const containerWidth = 800; // กำหนดความกว้างสูงสุดของ Editor
+      const scale = containerWidth / imageForCanvas.width;
+      setCanvasSize({
+        width: containerWidth,
+        height: imageForCanvas.height * scale,
+      });
+    }
+  }, [imageForCanvas]);
 
   useEffect(() => {
     if (!predictionId || !loading) return;
-
     const interval = setInterval(async () => {
       try {
         const res = await axios.get(
@@ -72,7 +87,6 @@ export default function InpaintingPage() {
           history_id,
           error: predictionError,
         } = res.data;
-
         if (status === "succeeded") {
           setResultImage(result_url);
           setHistoryId(history_id);
@@ -95,28 +109,16 @@ export default function InpaintingPage() {
         clearInterval(interval);
       }
     }, 5000);
-
     return () => clearInterval(interval);
   }, [predictionId, loading]);
 
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        setOriginalFile(file);
-        setImagePreview(event.target.result);
-        setLines([]);
-        setResultImage(null);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const handleImageLoad = () => {
-    if (imageRef.current) {
-      const { clientWidth, clientHeight } = imageRef.current;
-      setCanvasSize({ width: clientWidth, height: clientHeight });
+      setOriginalFile(file);
+      setImagePreview(URL.createObjectURL(file)); // สร้าง URL สำหรับแสดงผล
+      setLines([]);
+      setResultImage(null);
     }
   };
 
@@ -148,6 +150,7 @@ export default function InpaintingPage() {
     const stage = stageRef.current;
     if (!stage) return null;
 
+    // สร้าง Layer ใหม่สำหรับ Mask โดยเฉพาะ
     const maskLayer = new Konva.Layer();
     lines.forEach((line) => {
       maskLayer.add(
@@ -325,51 +328,46 @@ export default function InpaintingPage() {
                 )}
               </div>
 
+              {/* === จุดแก้ไขหลัก: เปลี่ยนเป็น Canvas ที่มีพื้นหลังเป็นรูปภาพ === */}
               <div className="w-full flex justify-center items-center bg-gray-100 rounded-lg p-2 min-h-[400px]">
                 {imagePreview ? (
-                  <div className="relative inline-block">
-                    <img
-                      ref={imageRef}
-                      src={imagePreview}
-                      alt="Uploaded preview"
-                      onLoad={handleImageLoad}
-                      className="block max-w-full h-auto max-h-[70vh] rounded-md"
-                    />
-                    <div
-                      className="absolute top-0 left-0 border-2 border-dashed border-pink-500"
-                      style={{
-                        width: canvasSize.width,
-                        height: canvasSize.height,
-                      }}
+                  <div className="border-2 border-dashed border-pink-500">
+                    <Stage
+                      width={canvasSize.width}
+                      height={canvasSize.height}
+                      onMouseDown={handleMouseDown}
+                      onMousemove={handleMouseMove}
+                      onMouseup={handleMouseUp}
+                      onTouchStart={handleMouseDown}
+                      onTouchMove={handleMouseMove}
+                      onTouchEnd={handleMouseUp}
+                      ref={stageRef}
                     >
-                      <Stage
-                        width={canvasSize.width}
-                        height={canvasSize.height}
-                        onMouseDown={handleMouseDown}
-                        onMousemove={handleMouseMove}
-                        onMouseup={handleMouseUp}
-                        onTouchStart={handleMouseDown}
-                        onTouchMove={handleMouseMove}
-                        onTouchEnd={handleMouseUp}
-                        ref={stageRef}
-                      >
-                        <Layer>
-                          {lines.map((line, i) => (
-                            <Line
-                              key={i}
-                              points={line.points}
-                              stroke="#ff00ff"
-                              strokeWidth={line.brushSize}
-                              tension={0.5}
-                              lineCap="round"
-                              lineJoin="round"
-                              globalCompositeOperation={"source-over"}
-                              opacity={0.5}
-                            />
-                          ))}
-                        </Layer>
-                      </Stage>
-                    </div>
+                      {/* Layer ที่ 1: สำหรับวาดรูปภาพพื้นหลัง */}
+                      <Layer>
+                        <KonvaImage
+                          image={imageForCanvas}
+                          width={canvasSize.width}
+                          height={canvasSize.height}
+                        />
+                      </Layer>
+                      {/* Layer ที่ 2: สำหรับวาดเส้นที่ผู้ใช้ระบาย */}
+                      <Layer>
+                        {lines.map((line, i) => (
+                          <Line
+                            key={i}
+                            points={line.points}
+                            stroke="#ff00ff"
+                            strokeWidth={line.brushSize}
+                            tension={0.5}
+                            lineCap="round"
+                            lineJoin="round"
+                            globalCompositeOperation={"source-over"}
+                            opacity={0.5}
+                          />
+                        ))}
+                      </Layer>
+                    </Stage>
                   </div>
                 ) : (
                   <div className="text-gray-400">
