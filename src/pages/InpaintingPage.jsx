@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
-import { Stage, Layer, Line, Image as KonvaImage } from "react-konva";
+import { Stage, Layer, Line } from "react-konva";
 import Konva from "konva";
 import {
   FiUploadCloud,
@@ -14,6 +14,7 @@ import {
 } from "react-icons/fi";
 import useImage from "use-image";
 
+// (EngagingLoadingScreen, API_BASE_URL, budgetOptions เหมือนเดิม)
 const EngagingLoadingScreen = ({ predictionId }) => (
   <div className="w-full bg-gray-50 p-8 rounded-2xl text-center">
     <p className="text-xl font-bold text-gray-700 animate-pulse">
@@ -51,17 +52,17 @@ export default function InpaintingPage() {
   const [bomLoading, setBomLoading] = useState(false);
   const [selectedBudgetLevel, setSelectedBudgetLevel] = useState(2);
 
-  const [canvasSize, setCanvasSize] = useState({ width: 800, height: 512 });
+  const [canvasSize, setCanvasSize] = useState({ width: 0, height: 0 });
 
   const isDrawing = useRef(false);
   const stageRef = useRef(null);
-
-  // === จุดแก้ไข: ไม่ต้องรับ setter function ที่ไม่ได้ใช้ ===
   const [imageForCanvas] = useImage(imagePreview, "Anonymous");
 
   useEffect(() => {
     if (imageForCanvas) {
-      const containerWidth = 800;
+      const container =
+        stageRef.current.container().parentElement.parentElement;
+      const containerWidth = container.clientWidth;
       const scale = containerWidth / imageForCanvas.width;
       setCanvasSize({
         width: containerWidth,
@@ -323,9 +324,10 @@ export default function InpaintingPage() {
                 )}
               </div>
 
-              <div className="w-full flex justify-center items-center bg-gray-100 rounded-lg p-2 min-h-[400px]">
+              {/* === จุดแก้ไขหลัก: สร้าง Container ที่ Scroll ได้ === */}
+              <div className="w-full flex justify-center items-center bg-gray-100 rounded-lg p-2 min-h-[400px] max-h-[75vh] overflow-auto">
                 {imagePreview ? (
-                  <div className="border-2 border-dashed border-pink-500">
+                  <div className="relative">
                     <Stage
                       width={canvasSize.width}
                       height={canvasSize.height}
