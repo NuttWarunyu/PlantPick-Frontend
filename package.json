@@ -23,7 +23,8 @@
     "react-konva": "^19.0.7",
     "react-router-dom": "^7.3.0",
     "react-toastify": "^11.0.5",
-    "serve": "^14.2.3"
+    "serve": "^14.2.3",
+    "use-image": "^1.1.4"
   },
   "devDependencies": {
     "@eslint/js": "^9.21.0",
