@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
-import { Stage, Layer, Line } from "react-konva";
+import { Stage, Layer, Line, Image as KonvaImage } from "react-konva";
 import Konva from "konva";
 import {
   FiUploadCloud,
@@ -10,6 +10,9 @@ import {
   FiThumbsUp,
   FiHome,
 } from "react-icons/fi";
+import useImage from "use-image";
+
+// --- Components & Data ---
 
 const EngagingLoadingScreen = ({ predictionId }) => (
   <div className="w-full bg-gray-50 p-8 rounded-2xl text-center">
@@ -53,6 +56,8 @@ const budgetOptions = [
   { label: "> 250,000", value: 500000, level: 4 },
 ];
 
+// --- Main Component ---
+
 export default function InpaintingPage() {
   const navigate = useNavigate();
   const [originalFile, setOriginalFile] = useState(null);
@@ -66,17 +71,32 @@ export default function InpaintingPage() {
   const [historyId, setHistoryId] = useState(null);
   const [bomLoading, setBomLoading] = useState(false);
 
+  // States for new prompt system
   const [selectedStyle, setSelectedStyle] = useState("modern");
   const [selectedFeatures, setSelectedFeatures] = useState(new Set());
   const [customKeywords, setCustomKeywords] = useState("");
   const [selectedBudgetLevel, setSelectedBudgetLevel] = useState(2);
 
-  const [canvasSize, setCanvasSize] = useState({ width: 0, height: 0 });
+  const [canvasSize, setCanvasSize] = useState({ width: 800, height: 512 });
 
   const isDrawing = useRef(false);
   const stageRef = useRef(null);
-  const imageRef = useRef(null);
+  const [imageForCanvas] = useImage(imagePreview, "Anonymous");
+  const containerRef = useRef(null);
 
+  // Effect to update canvas size based on container width
+  useEffect(() => {
+    if (imageForCanvas && containerRef.current) {
+      const containerWidth = containerRef.current.clientWidth;
+      const scale = containerWidth / imageForCanvas.width;
+      setCanvasSize({
+        width: containerWidth,
+        height: imageForCanvas.height * scale,
+      });
+    }
+  }, [imageForCanvas, imagePreview]);
+
+  // Polling effect
   useEffect(() => {
     if (!predictionId || !loading) return;
     const interval = setInterval(async () => {
@@ -126,13 +146,6 @@ export default function InpaintingPage() {
         setResultImage(null);
       };
       reader.readAsDataURL(file);
-    }
-  };
-
-  const handleImageLoad = () => {
-    if (imageRef.current) {
-      const { clientWidth, clientHeight } = imageRef.current;
-      setCanvasSize({ width: clientWidth, height: clientHeight });
     }
   };
 
@@ -347,6 +360,8 @@ export default function InpaintingPage() {
                 </label>
               </div>
 
+              {/* === ขั้นตอนที่ 2: ระบายสี === */}
+              {/* === ขั้นตอนที่ 2: ระบายสี === */}
               {imagePreview && (
                 <div className="pt-6 border-t">
                   <h2 className="text-xl font-bold text-gray-800 mb-2">
@@ -369,59 +384,55 @@ export default function InpaintingPage() {
                       <FiTrash2 /> ล้างทั้งหมด
                     </button>
                   </div>
-                  <div className="w-full flex justify-center items-center bg-gray-100 rounded-lg p-2">
-                    <div className="relative inline-block">
-                      <img
-                        ref={imageRef}
-                        src={imagePreview}
-                        alt="Uploaded preview"
-                        onLoad={handleImageLoad}
-                        className="block max-w-full h-auto max-h-[70vh] rounded-md"
-                      />
-                      <div
-                        className="absolute top-0 left-0 border-2 border-dashed border-pink-500"
-                        style={{
-                          width: canvasSize.width,
-                          height: canvasSize.height,
-                        }}
+                  <div
+                    ref={containerRef}
+                    className="w-full flex justify-center items-center bg-gray-100 rounded-lg p-2"
+                  >
+                    <div className="border-2 border-dashed border-pink-500">
+                      <Stage
+                        width={canvasSize.width}
+                        height={canvasSize.height}
+                        onMouseDown={handleMouseDown}
+                        onMousemove={handleMouseMove}
+                        onMouseup={handleMouseUp}
+                        onTouchStart={handleMouseDown}
+                        onTouchMove={handleMouseMove}
+                        onTouchEnd={handleMouseUp}
+                        ref={stageRef}
                       >
-                        <Stage
-                          width={canvasSize.width}
-                          height={canvasSize.height}
-                          onMouseDown={handleMouseDown}
-                          onMousemove={handleMouseMove}
-                          onMouseup={handleMouseUp}
-                          onTouchStart={handleMouseDown}
-                          onTouchMove={handleMouseMove}
-                          onTouchEnd={handleMouseUp}
-                          ref={stageRef}
-                        >
-                          <Layer>
-                            {lines.map((line, i) => (
-                              <Line
-                                key={i}
-                                points={line.points}
-                                stroke="#ff00ff"
-                                strokeWidth={line.brushSize}
-                                tension={0.5}
-                                lineCap="round"
-                                lineJoin="round"
-                                globalCompositeOperation={"source-over"}
-                                opacity={0.5}
-                              />
-                            ))}
-                          </Layer>
-                        </Stage>
-                      </div>
+                        <Layer>
+                          <KonvaImage
+                            image={imageForCanvas}
+                            width={canvasSize.width}
+                            height={canvasSize.height}
+                          />
+                        </Layer>
+                        <Layer>
+                          {lines.map((line, i) => (
+                            <Line
+                              key={i}
+                              points={line.points}
+                              stroke="#ff00ff"
+                              strokeWidth={line.brushSize}
+                              tension={0.5}
+                              lineCap="round"
+                              lineJoin="round"
+                              globalCompositeOperation={"source-over"}
+                              opacity={0.5}
+                            />
+                          ))}
+                        </Layer>
+                      </Stage>
                     </div>
                   </div>
                 </div>
               )}
 
+              {/* === ขั้นตอนที่ 3: กำหนดสไตล์และสร้าง! === */}
               {imagePreview && (
                 <div className="space-y-6 pt-6 border-t">
                   <h2 className="text-xl font-bold text-gray-800">
-                    ขั้นตอนที่ 3: กำหนดสไตล์และสร้างสวน!
+                    ขั้นตอนที่ 3: กำหนดสไตล์และความต้องการ
                   </h2>
                   <div>
                     <label className="font-semibold text-gray-700">
