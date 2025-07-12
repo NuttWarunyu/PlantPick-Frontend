@@ -2,7 +2,6 @@ import React, { useState, useRef, useEffect } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { Stage, Layer, Line, Image as KonvaImage } from "react-konva";
-import Konva from "konva";
 import {
   FiUploadCloud,
   FiTrash2,
@@ -58,7 +57,7 @@ const budgetOptions = [
 
 // --- Main Component ---
 
-export default function InpaintingPage() {
+export default function DesignStudioPage() {
   const navigate = useNavigate();
   const [originalFile, setOriginalFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
@@ -77,7 +76,7 @@ export default function InpaintingPage() {
   const [customKeywords, setCustomKeywords] = useState("");
   const [selectedBudgetLevel, setSelectedBudgetLevel] = useState(2);
 
-  const [canvasSize, setCanvasSize] = useState({ width: 800, height: 512 });
+  const [canvasSize, setCanvasSize] = useState({ width: 0, height: 0 });
 
   const isDrawing = useRef(false);
   const stageRef = useRef(null);
@@ -261,7 +260,7 @@ export default function InpaintingPage() {
       });
 
       const res = await axios.post(
-        `${API_BASE_URL}/garden/generate-inpainting`,
+        `${API_BASE_URL}/garden/generate-garden`,
         formData
       );
 
@@ -318,15 +317,6 @@ export default function InpaintingPage() {
 
   return (
     <div className="w-full space-y-6">
-      <div className="text-center p-4 bg-blue-50 border border-blue-200 rounded-lg">
-        <h1 className="text-2xl font-bold text-blue-800">
-          🧪 โหมดสมจริง (Inpainting)
-        </h1>
-        <p className="text-gray-600 mt-1">
-          ทดลองสร้างสวนใหม่ โดยที่บ้านของคุณจะยังคงเหมือนเดิม 100%
-        </p>
-      </div>
-
       {loading ? (
         <EngagingLoadingScreen predictionId={predictionId} />
       ) : (
@@ -360,7 +350,6 @@ export default function InpaintingPage() {
                 </label>
               </div>
 
-              {/* === ขั้นตอนที่ 2: ระบายสี === */}
               {/* === ขั้นตอนที่ 2: ระบายสี === */}
               {imagePreview && (
                 <div className="pt-6 border-t">
@@ -493,11 +482,9 @@ export default function InpaintingPage() {
                   <div className="flex justify-center pt-4">
                     <button
                       onClick={handleSubmit}
-                      disabled={loading}
                       className="flex items-center gap-3 bg-blue-600 text-white font-bold text-lg py-3 px-8 rounded-full shadow-lg hover:bg-blue-700"
                     >
-                      <FiSend />{" "}
-                      {loading ? "กำลังทดสอบ..." : "ทดสอบโมเดลสมจริง"}
+                      <FiSend /> สร้างสวนในฝัน
                     </button>
                   </div>
                 </div>

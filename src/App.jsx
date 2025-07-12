@@ -1,11 +1,11 @@
 import React from "react";
 import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
+
+// === จุดแก้ไขที่ 1: ลบ Import ที่ไม่ใช้ออก และใช้ชื่อใหม่ ===
+import DesignStudioPage from "./pages/DesignStudioPage.jsx";
 import SearchPage from "./pages/SearchPage.jsx";
-import GardenBudgetIdeas from "./pages/GardenBudgetIdeas.jsx";
-import IdentifyResult from "./pages/IdentifyResult.jsx";
 import BomResultPage from "./pages/BomResultPage.jsx";
-import ThankYouPage from "./pages/ThankYouPage.jsx";
-import InpaintingPage from "./pages/InpaintingPage.jsx"; // <-- 1. Import หน้าทดลองใหม่
+// (เราได้ลบ HomePage, GardenBudgetIdeas, และ IdentifyResult ออกไปแล้ว)
 
 function App() {
   return (
@@ -23,39 +23,31 @@ function App() {
               <span className="text-xl font-bold">PlantPick</span>
             </Link>
 
-            {/* === 2. เพิ่มลิงก์สำหรับสลับโหมด === */}
+            {/* === จุดแก้ไขที่ 2: ปรับแก้เมนูให้เรียบง่ายและถูกต้อง === */}
             <nav className="flex items-center gap-6 text-sm font-medium">
               <Link
-                to="/garden-budget-ideas"
+                to="/"
                 className="text-gray-600 transition-colors hover:text-green-600"
               >
-                🎨 โหมดแรงบันดาลใจ
+                ออกแบบสวน
               </Link>
               <Link
-                to="/inpainting-test"
-                className="text-blue-600 transition-colors hover:text-blue-800 font-semibold"
+                to="/search"
+                className="text-gray-600 transition-colors hover:text-green-600"
               >
-                🧪 ทดลองโหมดสมจริง
+                วิเคราะห์ภาพ
               </Link>
             </nav>
           </div>
         </header>
 
         <main className="w-full max-w-5xl mx-auto flex-grow p-4 sm:p-6 lg:p-8">
+          {/* === จุดแก้ไขที่ 3: นำ Route ที่จำเป็นกลับมา และตั้งค่าหน้าแรกให้ถูกต้อง === */}
           <Routes>
-            {/* === 3. เพิ่ม Route สำหรับหน้าทดลอง === */}
-            <Route path="/" element={<GardenBudgetIdeas />} />
-            <Route
-              path="/garden-budget-ideas"
-              element={<GardenBudgetIdeas />}
-            />
-            <Route path="/inpainting-test" element={<InpaintingPage />} />
-
-            {/* Route อื่นๆ ที่มีอยู่เดิม */}
+            <Route path="/" element={<DesignStudioPage />} />
             <Route path="/search" element={<SearchPage />} />
-            <Route path="/identify-result" element={<IdentifyResult />} />
             <Route path="/bom-result" element={<BomResultPage />} />
-            <Route path="/thank-you" element={<ThankYouPage />} />
+            {/* ตอนนี้หน้าออกแบบหลักของเราคือ DesignStudioPage ที่ path "/" */}
           </Routes>
         </main>
 
