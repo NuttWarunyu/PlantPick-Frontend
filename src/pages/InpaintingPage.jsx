@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
-import { Stage, Layer, Line, Image as KonvaImage } from "react-konva";
+import { Stage, Layer, Line } from "react-konva";
 import Konva from "konva";
 import {
   FiUploadCloud,
@@ -9,8 +9,8 @@ import {
   FiSend,
   FiThumbsUp,
   FiHome,
+  FiEye,
 } from "react-icons/fi";
-import useImage from "use-image";
 
 // --- Components & Data ---
 
@@ -77,24 +77,14 @@ export default function InpaintingPage() {
   const [customKeywords, setCustomKeywords] = useState("");
   const [selectedBudgetLevel, setSelectedBudgetLevel] = useState(2);
 
-  const [canvasSize, setCanvasSize] = useState({ width: 800, height: 512 });
+  // === จุดแก้ไขที่ 1: เพิ่ม State สำหรับ Debug Prompt ===
+  const [generatedPrompt, setGeneratedPrompt] = useState("");
+
+  const [canvasSize, setCanvasSize] = useState({ width: 0, height: 0 });
 
   const isDrawing = useRef(false);
   const stageRef = useRef(null);
-  const [imageForCanvas] = useImage(imagePreview, "Anonymous");
-  const containerRef = useRef(null);
-
-  // Effect to update canvas size based on container width
-  useEffect(() => {
-    if (imageForCanvas && containerRef.current) {
-      const containerWidth = containerRef.current.clientWidth;
-      const scale = containerWidth / imageForCanvas.width;
-      setCanvasSize({
-        width: containerWidth,
-        height: imageForCanvas.height * scale,
-      });
-    }
-  }, [imageForCanvas, imagePreview]);
+  const imageRef = useRef(null);
 
   // Polling effect
   useEffect(() => {
@@ -146,6 +136,13 @@ export default function InpaintingPage() {
         setResultImage(null);
       };
       reader.readAsDataURL(file);
+    }
+  };
+
+  const handleImageLoad = () => {
+    if (imageRef.current) {
+      const { clientWidth, clientHeight } = imageRef.current;
+      setCanvasSize({ width: clientWidth, height: clientHeight });
     }
   };
 
@@ -220,12 +217,16 @@ export default function InpaintingPage() {
 
   const getFullPrompt = () => {
     const allTags = [selectedStyle, ...Array.from(selectedFeatures)];
-    let prompt = `A beautiful, lush, photorealistic garden with ${allTags.join(
+    // === จุดแก้ไขที่ 2: เพิ่มคำสั่งที่ละเอียดขึ้นใน Prompt ===
+    let prompt = `A photorealistic garden in the masked area, professional photography, high detail. The garden style is a fusion of ${allTags.join(
       ", "
-    )} style.`;
+    )}.`;
     if (customKeywords) {
-      prompt += ` Also include ${customKeywords}.`;
+      prompt += ` Specifically include these elements: ${customKeywords}.`;
     }
+    // เพิ่มคำสั่งสำคัญเพื่อให้ทางเดินตรงกับประตู
+    prompt +=
+      " The main pathway should lead directly and logically to the house entrance.";
     return prompt;
   };
 
@@ -238,6 +239,9 @@ export default function InpaintingPage() {
       setError("กรุณาระบายพื้นที่ที่ต้องการให้เป็นสวน");
       return;
     }
+
+    const finalPrompt = getFullPrompt();
+    setGeneratedPrompt(finalPrompt); // <-- เก็บ Prompt ไว้ใน State เพื่อ Debug
 
     setLoading(true);
     setError(null);
@@ -255,7 +259,7 @@ export default function InpaintingPage() {
       const allTags = [selectedStyle, ...Array.from(selectedFeatures)];
       formData.append("image", originalFile);
       formData.append("mask", maskFile);
-      formData.append("prompt", getFullPrompt());
+      formData.append("prompt", finalPrompt); // <-- ใช้ Prompt ที่สร้างขึ้น
       allTags.forEach((tag) => {
         formData.append("selected_tags", tag);
       });
@@ -333,7 +337,7 @@ export default function InpaintingPage() {
         <>
           {!resultImage && (
             <div className="bg-white p-6 rounded-2xl shadow-lg space-y-8">
-              {/* === ขั้นตอนที่ 1: อัปโหลด === */}
+              {/* ... (ส่วนขั้นตอนที่ 1 และ 2 เหมือนเดิม) ... */}
               <div>
                 <h2 className="text-xl font-bold text-gray-800 mb-2">
                   ขั้นตอนที่ 1: อัปโหลดภาพบ้าน
@@ -360,7 +364,6 @@ export default function InpaintingPage() {
                 </label>
               </div>
 
-              {/* === ขั้นตอนที่ 2: ระบายสี === */}
               {imagePreview && (
                 <div className="pt-6 border-t">
                   <h2 className="text-xl font-bold text-gray-800 mb-2">
@@ -383,55 +386,59 @@ export default function InpaintingPage() {
                       <FiTrash2 /> ล้างทั้งหมด
                     </button>
                   </div>
-                  <div
-                    ref={containerRef}
-                    className="w-full flex justify-center items-center bg-gray-100 rounded-lg p-2"
-                  >
-                    <div className="border-2 border-dashed border-pink-500">
-                      <Stage
-                        width={canvasSize.width}
-                        height={canvasSize.height}
-                        onMouseDown={handleMouseDown}
-                        onMousemove={handleMouseMove}
-                        onMouseup={handleMouseUp}
-                        onTouchStart={handleMouseDown}
-                        onTouchMove={handleMouseMove}
-                        onTouchEnd={handleMouseUp}
-                        ref={stageRef}
+                  <div className="w-full flex justify-center items-center bg-gray-100 rounded-lg p-2">
+                    <div className="relative inline-block">
+                      <img
+                        ref={imageRef}
+                        src={imagePreview}
+                        alt="Uploaded preview"
+                        onLoad={handleImageLoad}
+                        className="block max-w-full h-auto max-h-[70vh] rounded-md"
+                      />
+                      <div
+                        className="absolute top-0 left-0 border-2 border-dashed border-pink-500"
+                        style={{
+                          width: canvasSize.width,
+                          height: canvasSize.height,
+                        }}
                       >
-                        <Layer>
-                          <KonvaImage
-                            image={imageForCanvas}
-                            width={canvasSize.width}
-                            height={canvasSize.height}
-                          />
-                        </Layer>
-                        <Layer>
-                          {lines.map((line, i) => (
-                            <Line
-                              key={i}
-                              points={line.points}
-                              stroke="#ff00ff"
-                              strokeWidth={line.brushSize}
-                              tension={0.5}
-                              lineCap="round"
-                              lineJoin="round"
-                              globalCompositeOperation={"source-over"}
-                              opacity={0.5}
-                            />
-                          ))}
-                        </Layer>
-                      </Stage>
+                        <Stage
+                          width={canvasSize.width}
+                          height={canvasSize.height}
+                          onMouseDown={handleMouseDown}
+                          onMousemove={handleMouseMove}
+                          onMouseup={handleMouseUp}
+                          onTouchStart={handleMouseDown}
+                          onTouchMove={handleMouseMove}
+                          onTouchEnd={handleMouseUp}
+                          ref={stageRef}
+                        >
+                          <Layer>
+                            {lines.map((line, i) => (
+                              <Line
+                                key={i}
+                                points={line.points}
+                                stroke="#ff00ff"
+                                strokeWidth={line.brushSize}
+                                tension={0.5}
+                                lineCap="round"
+                                lineJoin="round"
+                                globalCompositeOperation={"source-over"}
+                                opacity={0.5}
+                              />
+                            ))}
+                          </Layer>
+                        </Stage>
+                      </div>
                     </div>
                   </div>
                 </div>
               )}
 
-              {/* === ขั้นตอนที่ 3: กำหนดสไตล์และสร้าง! === */}
               {imagePreview && (
                 <div className="space-y-6 pt-6 border-t">
                   <h2 className="text-xl font-bold text-gray-800">
-                    ขั้นตอนที่ 3: กำหนดสไตล์และความต้องการ
+                    ขั้นตอนที่ 3: กำหนดสไตล์และสร้างสวน!
                   </h2>
                   <div>
                     <label className="font-semibold text-gray-700">
@@ -485,20 +492,30 @@ export default function InpaintingPage() {
                       id="custom-keywords"
                       value={customKeywords}
                       onChange={(e) => setCustomKeywords(e.target.value)}
-                      placeholder="เช่น 'มุมสำหรับบาร์บีคิว', 'ที่เล่นสำหรับสุนัข'"
+                      placeholder="เช่น 'ทางเดินตรงไปที่ประตู', 'ศาลานั่งเล่น'"
                       className="w-full mt-1 p-2 border rounded-lg"
                     />
                   </div>
                   <div className="flex justify-center pt-4">
                     <button
                       onClick={handleSubmit}
-                      disabled={loading}
                       className="flex items-center gap-3 bg-blue-600 text-white font-bold text-lg py-3 px-8 rounded-full shadow-lg hover:bg-blue-700"
                     >
-                      <FiSend />{" "}
-                      {loading ? "กำลังทดสอบ..." : "ทดสอบโมเดลสมจริง"}
+                      <FiSend /> ทดสอบโมเดลสมจริง
                     </button>
                   </div>
+
+                  {/* === จุดแก้ไขที่ 3: เพิ่มส่วนแสดง Prompt สำหรับ Debug === */}
+                  {generatedPrompt && (
+                    <div className="mt-6 p-4 bg-gray-50 rounded-lg border">
+                      <p className="text-sm font-semibold text-gray-600 flex items-center gap-2">
+                        <FiEye /> Prompt ที่ส่งไปให้ AI:
+                      </p>
+                      <p className="mt-2 text-xs text-gray-800 font-mono bg-white p-2 rounded">
+                        {generatedPrompt}
+                      </p>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
