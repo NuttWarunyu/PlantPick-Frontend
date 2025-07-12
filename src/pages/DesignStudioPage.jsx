@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { Stage, Layer, Line, Image as KonvaImage } from "react-konva";
+import Konva from "konva"; // <-- จุดแก้ไข: เพิ่ม Import ที่ขาดหายไป
 import {
   FiUploadCloud,
   FiTrash2,
