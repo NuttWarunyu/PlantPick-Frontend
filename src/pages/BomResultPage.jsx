@@ -14,24 +14,20 @@ const BomResultPage = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
-  // === จุดแก้ไขที่ 1: รับข้อมูลใหม่จาก State ===
   const {
-    bom: mainBom, // ตอนนี้ bom_details คือ main_bom
+    bom: mainBom,
     suggestions,
     resultImage: initialImage,
     projectId,
   } = location.state || {};
 
-  // ใช้ State เพื่อให้รายการ BOM สามารถเปลี่ยนแปลงได้
   const [bomItems, setBomItems] = useState(mainBom || []);
 
-  // คำนวณราคารวมจาก bomItems ที่อยู่ใน State
   const totalCost = useMemo(() => {
     if (!bomItems) return 0;
     return bomItems.reduce((sum, item) => sum + item.estimated_cost, 0);
   }, [bomItems]);
 
-  // Redirect กลับหน้าแรกหากไม่มีข้อมูล
   useEffect(() => {
     if (!mainBom || !initialImage) {
       navigate("/");
@@ -40,19 +36,18 @@ const BomResultPage = () => {
 
   const lineOA_URL = "https://line.me/ti/p/@025hcugd";
 
-  // ฟังก์ชันสำหรับสร้างลิงก์ค้นหาสินค้า
   const createSearchLink = (itemName) => {
     const encodedItem = encodeURIComponent(itemName);
     return `https://www.shopee.co.th/search?keyword=${encodedItem}`;
   };
 
-  // ฟังก์ชันสำหรับเพิ่มสินค้าจากคำแนะนำเข้ามาใน BOM หลัก
   const handleAddSuggestion = (suggestedItem) => {
-    // เพิ่ม quantity และ estimated_cost เริ่มต้น
+    // สร้าง object ใหม่ให้มีโครงสร้างเดียวกับ BOM หลัก
     const newItem = {
       ...suggestedItem,
+      unit_price: suggestedItem.unit_price_thb, // <-- ทำให้โครงสร้างเหมือนกัน
       quantity: 1,
-      estimated_cost: suggestedItem.unit_price,
+      estimated_cost: suggestedItem.unit_price_thb,
     };
     setBomItems((prevItems) => [...prevItems, newItem]);
     alert(`เพิ่ม '${newItem.material_name}' ลงในรายการแล้ว!`);
@@ -138,7 +133,7 @@ const BomResultPage = () => {
         </div>
       </div>
 
-      {/* === จุดแก้ไขที่ 2: เพิ่มส่วน "คำแนะนำเพิ่มเติม" === */}
+      {/* === ส่วน "คำแนะนำเพิ่มเติม" ที่แก้ไขแล้ว === */}
       {suggestions && Object.keys(suggestions).length > 0 && (
         <div className="bg-yellow-50 border-2 border-dashed border-yellow-300 p-6 rounded-2xl shadow-lg">
           <h3 className="text-xl font-bold text-yellow-800 mb-4 flex items-center gap-2">
@@ -158,10 +153,11 @@ const BomResultPage = () => {
                         <p className="font-bold text-gray-800">
                           {item.material_name}
                         </p>
+                        {/* === จุดแก้ไข: ใช้ item.unit_price_thb === */}
                         <p className="text-sm text-gray-500">
                           จาก: {item.vendor_name} -{" "}
                           <strong>
-                            {item.unit_price.toLocaleString("th-TH")} บาท/
+                            {item.unit_price_thb.toLocaleString("th-TH")} บาท/
                             {item.unit_type}
                           </strong>
                         </p>
