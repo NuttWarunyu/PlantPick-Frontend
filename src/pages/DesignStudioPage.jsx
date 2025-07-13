@@ -115,7 +115,6 @@ export default function DesignStudioPage() {
   const [historyId, setHistoryId] = useState(null);
   const [bomLoading, setBomLoading] = useState(false);
 
-  // States for new prompt system
   const [selectedStyle, setSelectedStyle] = useState("modern");
   const [selectedFeatures, setSelectedFeatures] = useState(new Set());
   const [customKeywords, setCustomKeywords] = useState("");
@@ -128,7 +127,6 @@ export default function DesignStudioPage() {
   const [imageForCanvas] = useImage(imagePreview, "Anonymous");
   const containerRef = useRef(null);
 
-  // Effect to update canvas size based on container width
   useEffect(() => {
     if (imageForCanvas && containerRef.current) {
       const containerWidth = containerRef.current.clientWidth;
@@ -140,7 +138,6 @@ export default function DesignStudioPage() {
     }
   }, [imageForCanvas, imagePreview]);
 
-  // Polling effect
   useEffect(() => {
     if (!predictionId || !loading) return;
     const interval = setInterval(async () => {
@@ -484,20 +481,21 @@ export default function DesignStudioPage() {
                 >
                   {/* === ขั้นตอนที่ 3: กำหนดสไตล์และสร้าง! === */}
                   <h2 className="text-xl font-bold text-gray-800">
-                    ขั้นตอนที่ 3: กำหนดสไตล์และสร้างสวน!
+                    ขั้นตอนที่ 3: กำหนดสไตล์และความต้องการ
                   </h2>
                   <div>
                     <label className="font-semibold text-gray-700">
                       สไตล์หลัก (เลือก 1 อย่าง)
                     </label>
                     <div className="flex flex-wrap gap-3 mt-2">
+                      {/* === จุดแก้ไขที่ 1: เพิ่ม Logic การเปลี่ยน ClassName และขนาดปุ่ม === */}
                       {styleTags.map((tag) => (
                         <button
                           key={tag.id}
                           onClick={() => setSelectedStyle(tag.id)}
-                          className={`px-5 py-2.5 text-base font-semibold rounded-full transition-all ${
+                          className={`px-5 py-2.5 text-base font-semibold rounded-full transition-all duration-200 ease-in-out transform hover:scale-105 ${
                             selectedStyle === tag.id
-                              ? "bg-green-600 text-white shadow-md"
+                              ? "bg-green-600 text-white shadow-md ring-2 ring-offset-2 ring-green-500"
                               : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                           }`}
                         >
@@ -511,13 +509,14 @@ export default function DesignStudioPage() {
                       องค์ประกอบเพิ่มเติม (เลือกได้หลายอย่าง)
                     </label>
                     <div className="flex flex-wrap gap-3 mt-2">
+                      {/* === จุดแก้ไขที่ 2: เพิ่ม Logic การเปลี่ยน ClassName และขนาดปุ่ม === */}
                       {featureTags.map((tag) => (
                         <button
                           key={tag.id}
                           onClick={() => handleFeatureTagToggle(tag.id)}
-                          className={`px-5 py-2.5 text-base font-semibold rounded-full transition-all ${
+                          className={`px-5 py-2.5 text-base font-semibold rounded-full transition-all duration-200 ease-in-out transform hover:scale-105 ${
                             selectedFeatures.has(tag.id)
-                              ? "bg-blue-600 text-white shadow-md"
+                              ? "bg-blue-600 text-white shadow-md ring-2 ring-offset-2 ring-blue-500"
                               : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                           }`}
                         >
@@ -543,10 +542,11 @@ export default function DesignStudioPage() {
                     />
                   </div>
                   <div className="flex justify-center pt-4">
+                    {/* === จุดแก้ไขที่ 3: เพิ่มขนาดปุ่ม === */}
                     <button
                       onClick={handleSubmit}
                       disabled={!imagePreview}
-                      className="flex items-center gap-3 bg-blue-600 text-white font-bold text-lg py-3 px-8 rounded-full shadow-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                      className="w-full sm:w-auto text-xl font-bold text-white bg-green-600 rounded-full shadow-lg px-12 py-4 transform transition-all hover:bg-green-700 hover:scale-105 disabled:bg-gray-400 disabled:cursor-not-allowed disabled:scale-100 flex items-center justify-center gap-3"
                     >
                       <FiSend /> สร้างสวนในฝัน
                     </button>
