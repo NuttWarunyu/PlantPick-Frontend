@@ -2,31 +2,75 @@ import React, { useState, useRef, useEffect } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { Stage, Layer, Line, Image as KonvaImage } from "react-konva";
-import Konva from "konva"; // <-- จุดแก้ไข: เพิ่ม Import ที่ขาดหายไป
+import Konva from "konva";
 import {
   FiUploadCloud,
   FiTrash2,
   FiSend,
   FiThumbsUp,
   FiHome,
+  FiTool,
+  FiSun,
+  FiDroplet,
+  FiCheckCircle,
 } from "react-icons/fi";
 import useImage from "use-image";
 
 // --- Components & Data ---
 
-const EngagingLoadingScreen = ({ predictionId }) => (
-  <div className="w-full bg-gray-50 p-8 rounded-2xl text-center">
-    <p className="text-xl font-bold text-gray-700 animate-pulse">
-      กำลังสร้างสรรค์สวนในฝันของคุณ...
-    </p>
-    <p className="text-sm text-gray-500 mt-2">
-      กระบวนการนี้อาจใช้เวลา 2-4 นาที
-    </p>
-    {predictionId && (
-      <p className="text-xs text-gray-400 mt-2">ID: {predictionId}</p>
-    )}
-  </div>
-);
+const EngagingLoadingScreen = ({ predictionId }) => {
+  const [currentStep, setCurrentStep] = useState(0);
+  const steps = [
+    {
+      icon: <FiTool className="text-purple-500" />,
+      text: "กำลังปลุก AI นักออกแบบของเราให้ตื่น...",
+    },
+    {
+      icon: <FiUploadCloud className="text-blue-500" />,
+      text: "กำลังส่งภาพของคุณขึ้นไปบนคลาวด์...",
+    },
+    {
+      icon: <FiSun className="text-yellow-500" />,
+      text: "AI กำลังวิเคราะห์แสงและเงา...",
+    },
+    {
+      icon: <FiDroplet className="text-cyan-500" />,
+      text: "กำลังร่างแบบสวนและเลือกพรรณไม้...",
+    },
+    {
+      icon: <FiCheckCircle className="text-green-500" />,
+      text: "ใกล้เสร็จแล้ว! กำลังลงสีและเก็บรายละเอียด...",
+    },
+  ];
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentStep((prevStep) => (prevStep + 1) % steps.length);
+    }, 3000);
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <div className="w-full bg-gray-50 p-8 rounded-2xl text-center transition-all duration-500">
+      <div className="flex flex-col sm:flex-row items-center justify-center text-xl md:text-2xl font-bold text-gray-700">
+        <div className="animate-spin text-4xl mb-4 sm:mb-0 sm:mr-4">
+          {steps[currentStep].icon}
+        </div>
+        <p>{steps[currentStep].text}</p>
+      </div>
+      <div className="w-full bg-gray-200 rounded-full h-2.5 mt-6 overflow-hidden">
+        <div
+          className="bg-green-500 h-2.5 rounded-full transition-all duration-1000 ease-out"
+          style={{ width: `${((currentStep + 1) / steps.length) * 100}%` }}
+        ></div>
+      </div>
+      <p className="text-sm text-gray-500 mt-4">โดยปกติใช้เวลาไม่เกิน 1 นาที</p>
+      {predictionId && (
+        <p className="text-xs text-gray-400 mt-2">ID: {predictionId}</p>
+      )}
+    </div>
+  );
+};
 
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
@@ -220,27 +264,12 @@ export default function DesignStudioPage() {
 
   const getFullPrompt = () => {
     const allTags = [selectedStyle, ...Array.from(selectedFeatures)];
-    const featuresString = allTags.join(", ");
-
-    // ส่วนที่ 1: กำหนดคุณภาพและบรรยากาศ
-    let prompt =
-      "masterpiece, best quality, 8k, photorealistic, professional photography, cinematic lighting, ";
-
-    // ส่วนที่ 2: กำหนดสไตล์และองค์ประกอบหลัก
-    prompt += `a beautiful and lush garden with ${featuresString} style. `;
-    prompt +=
-      "The garden must have a clear, logical pathway leading to the house entrance. ";
-    prompt += "It features a distinct focal point. ";
-
-    // ส่วนที่ 3: กำหนดรายละเอียดพรรณไม้
-    prompt +=
-      "Use a variety of plants and flowers suitable for Thailand's tropical climate, with layered planting and rich textures. ";
-
-    // ส่วนที่ 4: เพิ่มความต้องการพิเศษจากผู้ใช้
+    let prompt = `A beautiful, lush, photorealistic garden with ${allTags.join(
+      ", "
+    )} style.`;
     if (customKeywords) {
-      prompt += `Specifically include these elements: ${customKeywords}.`;
+      prompt += ` Also include ${customKeywords}.`;
     }
-
     return prompt;
   };
 
@@ -367,8 +396,16 @@ export default function DesignStudioPage() {
               </div>
 
               {/* === ขั้นตอนที่ 2: ระบายสี === */}
-              {imagePreview && (
-                <div className="pt-6 border-t">
+              <div
+                className={`pt-6 border-t transition-opacity duration-500 ${
+                  !imagePreview
+                    ? "opacity-40 cursor-not-allowed"
+                    : "opacity-100"
+                }`}
+              >
+                <div
+                  className={`${!imagePreview ? "pointer-events-none" : ""}`}
+                >
                   <h2 className="text-xl font-bold text-gray-800 mb-2">
                     ขั้นตอนที่ 2: ระบายพื้นที่สวน
                   </h2>
@@ -381,10 +418,12 @@ export default function DesignStudioPage() {
                       value={brushSize}
                       onChange={(e) => setBrushSize(Number(e.target.value))}
                       className="w-48"
+                      disabled={!imagePreview}
                     />
                     <button
                       onClick={handleClearMask}
                       className="flex items-center gap-2 text-sm text-red-600 hover:text-red-800"
+                      disabled={!imagePreview}
                     >
                       <FiTrash2 /> ล้างทั้งหมด
                     </button>
@@ -431,13 +470,21 @@ export default function DesignStudioPage() {
                     </div>
                   </div>
                 </div>
-              )}
+              </div>
 
-              {/* === ขั้นตอนที่ 3: กำหนดสไตล์และสร้าง! === */}
-              {imagePreview && (
-                <div className="space-y-6 pt-6 border-t">
+              <div
+                className={`space-y-6 pt-6 border-t transition-opacity duration-500 ${
+                  !imagePreview
+                    ? "opacity-40 cursor-not-allowed"
+                    : "opacity-100"
+                }`}
+              >
+                <div
+                  className={`${!imagePreview ? "pointer-events-none" : ""}`}
+                >
+                  {/* === ขั้นตอนที่ 3: กำหนดสไตล์และสร้าง! === */}
                   <h2 className="text-xl font-bold text-gray-800">
-                    ขั้นตอนที่ 3: กำหนดสไตล์และความต้องการ
+                    ขั้นตอนที่ 3: กำหนดสไตล์และสร้างสวน!
                   </h2>
                   <div>
                     <label className="font-semibold text-gray-700">
@@ -451,7 +498,7 @@ export default function DesignStudioPage() {
                           className={`px-5 py-2.5 text-base font-semibold rounded-full transition-all ${
                             selectedStyle === tag.id
                               ? "bg-green-600 text-white shadow-md"
-                              : "bg-gray-100 hover:bg-gray-200"
+                              : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                           }`}
                         >
                           {tag.emoji} {tag.name}
@@ -471,7 +518,7 @@ export default function DesignStudioPage() {
                           className={`px-5 py-2.5 text-base font-semibold rounded-full transition-all ${
                             selectedFeatures.has(tag.id)
                               ? "bg-blue-600 text-white shadow-md"
-                              : "bg-gray-100 hover:bg-gray-200"
+                              : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                           }`}
                         >
                           {tag.emoji} {tag.name}
@@ -498,13 +545,14 @@ export default function DesignStudioPage() {
                   <div className="flex justify-center pt-4">
                     <button
                       onClick={handleSubmit}
-                      className="flex items-center gap-3 bg-blue-600 text-white font-bold text-lg py-3 px-8 rounded-full shadow-lg hover:bg-blue-700"
+                      disabled={!imagePreview}
+                      className="flex items-center gap-3 bg-blue-600 text-white font-bold text-lg py-3 px-8 rounded-full shadow-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
                     >
                       <FiSend /> สร้างสวนในฝัน
                     </button>
                   </div>
                 </div>
-              )}
+              </div>
             </div>
           )}
         </>
