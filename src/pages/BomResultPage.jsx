@@ -42,10 +42,20 @@ const BomResultPage = () => {
   };
 
   const handleAddSuggestion = (suggestedItem) => {
+    // ตรวจสอบว่ามีสินค้านี้ในรายการหลักแล้วหรือยัง
+    const isAlreadyInBom = bomItems.some(
+      (item) => item.material_name === suggestedItem.material_name
+    );
+
+    if (isAlreadyInBom) {
+      alert(`'${suggestedItem.material_name}' มีอยู่ในรายการแล้ว`);
+      return;
+    }
+
     // สร้าง object ใหม่ให้มีโครงสร้างเดียวกับ BOM หลัก
     const newItem = {
       ...suggestedItem,
-      unit_price: suggestedItem.unit_price_thb, // <-- ทำให้โครงสร้างเหมือนกัน
+      unit_price: suggestedItem.unit_price_thb,
       quantity: 1,
       estimated_cost: suggestedItem.unit_price_thb,
     };
@@ -62,7 +72,7 @@ const BomResultPage = () => {
       {/* ส่วนสรุปโปรเจค */}
       <div className="bg-white p-6 rounded-2xl shadow-lg text-center">
         <h1 className="text-2xl md:text-3xl font-bold text-green-800 mb-2">
-          🧾 สรุปรายการและงบประมาณ
+          🧾 สรุปโปรเจคสวนของคุณ
         </h1>
         <div className="text-center mb-6">
           <p className="text-gray-600">รหัสโปรเจคสำหรับอ้างอิง:</p>
@@ -83,47 +93,55 @@ const BomResultPage = () => {
           รายการวัสดุที่แนะนำ
         </h2>
         <div className="space-y-3">
-          {bomItems.map((item, index) => (
-            <div
-              key={index}
-              className="border rounded-lg p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
-            >
-              <div className="flex-grow">
-                <p className="font-bold text-gray-800">{item.material_name}</p>
-                <p className="text-sm text-gray-500 flex items-center gap-1">
-                  <FiMapPin size={12} /> {item.vendor_name}
-                </p>
-              </div>
-              <div className="flex items-baseline gap-4 w-full sm:w-auto">
-                <div className="flex-grow text-left sm:text-center">
-                  <p className="text-gray-800 font-semibold">
-                    {item.quantity}
-                    <span className="text-xs text-gray-500 ml-1">
-                      {item.unit_type}
-                    </span>
-                  </p>
-                </div>
-                <div className="flex-grow text-right">
-                  <p className="font-mono font-semibold text-gray-800">
-                    {item.estimated_cost.toLocaleString("th-TH", {
-                      minimumFractionDigits: 2,
-                    })}
-                  </p>
-                  <p className="text-xs text-gray-400 font-mono">
-                    (@{item.unit_price.toLocaleString("th-TH")})
-                  </p>
-                </div>
-              </div>
-              <a
-                href={createSearchLink(item.material_name)}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="bg-gray-100 text-gray-700 text-sm font-semibold py-2 px-4 rounded-full hover:bg-gray-200 transition-colors flex items-center justify-center gap-2 w-full sm:w-auto"
+          {bomItems.length > 0 ? (
+            bomItems.map((item, index) => (
+              <div
+                key={index}
+                className="border rounded-lg p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
               >
-                <FiShoppingCart size={14} /> หาซื้อเอง
-              </a>
-            </div>
-          ))}
+                <div className="flex-grow">
+                  <p className="font-bold text-gray-800">
+                    {item.material_name}
+                  </p>
+                  <p className="text-sm text-gray-500 flex items-center gap-1">
+                    <FiMapPin size={12} /> {item.vendor_name}
+                  </p>
+                </div>
+                <div className="flex items-baseline gap-4 w-full sm:w-auto">
+                  <div className="flex-grow text-left sm:text-center">
+                    <p className="text-gray-800 font-semibold">
+                      {item.quantity}
+                      <span className="text-xs text-gray-500 ml-1">
+                        {item.unit_type}
+                      </span>
+                    </p>
+                  </div>
+                  <div className="flex-grow text-right">
+                    <p className="font-mono font-semibold text-gray-800">
+                      {item.estimated_cost.toLocaleString("th-TH", {
+                        minimumFractionDigits: 2,
+                      })}
+                    </p>
+                    <p className="text-xs text-gray-400 font-mono">
+                      (@{item.unit_price.toLocaleString("th-TH")})
+                    </p>
+                  </div>
+                </div>
+                <a
+                  href={createSearchLink(item.material_name)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="bg-gray-100 text-gray-700 text-sm font-semibold py-2 px-4 rounded-full hover:bg-gray-200 transition-colors flex items-center justify-center gap-2 w-full sm:w-auto"
+                >
+                  <FiShoppingCart size={14} /> หาซื้อเอง
+                </a>
+              </div>
+            ))
+          ) : (
+            <p className="text-center text-gray-500 py-4">
+              ไม่มีรายการวัสดุที่แนะนำในงบประมาณนี้
+            </p>
+          )}
         </div>
         <div className="flex justify-end items-center mt-6 pt-4 border-t">
           <span className="text-gray-600 font-bold mr-4">ยอดรวมประมาณการ:</span>
@@ -133,7 +151,7 @@ const BomResultPage = () => {
         </div>
       </div>
 
-      {/* === ส่วน "คำแนะนำเพิ่มเติม" ที่แก้ไขแล้ว === */}
+      {/* === ส่วน "คำแนะนำเพิ่มเติม" ที่ออกแบบใหม่ === */}
       {suggestions && Object.keys(suggestions).length > 0 && (
         <div className="bg-yellow-50 border-2 border-dashed border-yellow-300 p-6 rounded-2xl shadow-lg">
           <h3 className="text-xl font-bold text-yellow-800 mb-4 flex items-center gap-2">
@@ -147,13 +165,12 @@ const BomResultPage = () => {
                   {suggestedItems.map((item, index) => (
                     <div
                       key={index}
-                      className="bg-white p-3 rounded-lg flex items-center justify-between gap-4"
+                      className="bg-white p-3 rounded-lg flex items-center justify-between gap-4 hover:bg-green-50 transition-colors"
                     >
                       <div>
                         <p className="font-bold text-gray-800">
                           {item.material_name}
                         </p>
-                        {/* === จุดแก้ไข: ใช้ item.unit_price_thb === */}
                         <p className="text-sm text-gray-500">
                           จาก: {item.vendor_name} -{" "}
                           <strong>
@@ -164,7 +181,7 @@ const BomResultPage = () => {
                       </div>
                       <button
                         onClick={() => handleAddSuggestion(item)}
-                        className="bg-green-100 text-green-800 text-sm font-bold p-2 rounded-full hover:bg-green-200 transition-colors"
+                        className="bg-green-100 text-green-800 text-sm font-bold p-2 rounded-full hover:bg-green-200 transition-transform transform hover:scale-110"
                       >
                         <FiPlusCircle size={20} />
                       </button>

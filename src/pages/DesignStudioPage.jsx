@@ -264,11 +264,19 @@ export default function DesignStudioPage() {
 
   const getFullPrompt = () => {
     const allTags = [selectedStyle, ...Array.from(selectedFeatures)];
-    let prompt = `A beautiful, lush, photorealistic garden with ${allTags.join(
-      ", "
-    )} style.`;
+    const featuresString = allTags.join(", ");
+
+    let prompt =
+      "masterpiece, best quality, 8k, photorealistic, professional photography, cinematic lighting, ";
+    prompt += `a beautiful and lush garden with ${featuresString} style. `;
+    prompt +=
+      "The garden must have a clear, logical pathway leading to the house entrance. ";
+    prompt += "It features a distinct focal point. ";
+    prompt +=
+      "Use a variety of plants and flowers suitable for Thailand's tropical climate, with layered planting and rich textures. ";
+
     if (customKeywords) {
-      prompt += ` Also include ${customKeywords}.`;
+      prompt += `Specifically include these elements: ${customKeywords}.`;
     }
     return prompt;
   };
