@@ -16,12 +16,14 @@ const BomResultPage = () => {
 
   const {
     bom: mainBom,
-    suggestions,
+    suggestions: initialSuggestions, // <-- เปลี่ยนชื่อเพื่อไม่ให้สับสน
     resultImage: initialImage,
     projectId,
   } = location.state || {};
 
   const [bomItems, setBomItems] = useState(mainBom || []);
+  // === จุดแก้ไขที่ 1: สร้าง State ใหม่สำหรับจัดการ Suggestions ===
+  const [suggestions, setSuggestions] = useState(initialSuggestions || {});
 
   const totalCost = useMemo(() => {
     if (!bomItems) return 0;
@@ -41,8 +43,8 @@ const BomResultPage = () => {
     return `https://www.shopee.co.th/search?keyword=${encodedItem}`;
   };
 
-  const handleAddSuggestion = (suggestedItem) => {
-    // ตรวจสอบว่ามีสินค้านี้ในรายการหลักแล้วหรือยัง
+  // === จุดแก้ไขที่ 2: อัปเกรดฟังก์ชัน handleAddSuggestion ===
+  const handleAddSuggestion = (category, suggestedItem) => {
     const isAlreadyInBom = bomItems.some(
       (item) => item.material_name === suggestedItem.material_name
     );
@@ -52,15 +54,29 @@ const BomResultPage = () => {
       return;
     }
 
-    // สร้าง object ใหม่ให้มีโครงสร้างเดียวกับ BOM หลัก
     const newItem = {
       ...suggestedItem,
       unit_price: suggestedItem.unit_price_thb,
       quantity: 1,
       estimated_cost: suggestedItem.unit_price_thb,
     };
+
+    // 1. เพิ่มลงใน BOM หลัก
     setBomItems((prevItems) => [...prevItems, newItem]);
-    alert(`เพิ่ม '${newItem.material_name}' ลงในรายการแล้ว!`);
+
+    // 2. ลบออกจาก Suggestions State
+    setSuggestions((prevSuggestions) => {
+      const newSuggestions = { ...prevSuggestions };
+      // กรอง item ที่ถูกเพิ่มออกไปจาก category นั้นๆ
+      newSuggestions[category] = newSuggestions[category].filter(
+        (item) => item.material_name !== suggestedItem.material_name
+      );
+      // ถ้าใน category นั้นไม่เหลือ item แล้ว ให้ลบ category นั้นทิ้งไปเลย
+      if (newSuggestions[category].length === 0) {
+        delete newSuggestions[category];
+      }
+      return newSuggestions;
+    });
   };
 
   if (!bomItems || !initialImage) {
@@ -151,7 +167,7 @@ const BomResultPage = () => {
         </div>
       </div>
 
-      {/* === ส่วน "คำแนะนำเพิ่มเติม" ที่ออกแบบใหม่ === */}
+      {/* === จุดแก้ไขที่ 3: แสดงผลจาก State ของ Suggestions === */}
       {suggestions && Object.keys(suggestions).length > 0 && (
         <div className="bg-yellow-50 border-2 border-dashed border-yellow-300 p-6 rounded-2xl shadow-lg">
           <h3 className="text-xl font-bold text-yellow-800 mb-4 flex items-center gap-2">
@@ -180,7 +196,7 @@ const BomResultPage = () => {
                         </p>
                       </div>
                       <button
-                        onClick={() => handleAddSuggestion(item)}
+                        onClick={() => handleAddSuggestion(category, item)}
                         className="bg-green-100 text-green-800 text-sm font-bold p-2 rounded-full hover:bg-green-200 transition-transform transform hover:scale-110"
                       >
                         <FiPlusCircle size={20} />
