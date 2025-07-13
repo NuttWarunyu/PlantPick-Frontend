@@ -115,6 +115,7 @@ export default function DesignStudioPage() {
   const [historyId, setHistoryId] = useState(null);
   const [bomLoading, setBomLoading] = useState(false);
 
+  // States for new prompt system
   const [selectedStyle, setSelectedStyle] = useState("modern");
   const [selectedFeatures, setSelectedFeatures] = useState(new Set());
   const [customKeywords, setCustomKeywords] = useState("");
@@ -127,6 +128,7 @@ export default function DesignStudioPage() {
   const [imageForCanvas] = useImage(imagePreview, "Anonymous");
   const containerRef = useRef(null);
 
+  // Effect to update canvas size based on container width
   useEffect(() => {
     if (imageForCanvas && containerRef.current) {
       const containerWidth = containerRef.current.clientWidth;
@@ -138,6 +140,7 @@ export default function DesignStudioPage() {
     }
   }, [imageForCanvas, imagePreview]);
 
+  // Polling effect
   useEffect(() => {
     if (!predictionId || !loading) return;
     const interval = setInterval(async () => {
@@ -488,7 +491,6 @@ export default function DesignStudioPage() {
                       สไตล์หลัก (เลือก 1 อย่าง)
                     </label>
                     <div className="flex flex-wrap gap-3 mt-2">
-                      {/* === จุดแก้ไขที่ 1: เพิ่ม Logic การเปลี่ยน ClassName และขนาดปุ่ม === */}
                       {styleTags.map((tag) => (
                         <button
                           key={tag.id}
@@ -509,7 +511,6 @@ export default function DesignStudioPage() {
                       องค์ประกอบเพิ่มเติม (เลือกได้หลายอย่าง)
                     </label>
                     <div className="flex flex-wrap gap-3 mt-2">
-                      {/* === จุดแก้ไขที่ 2: เพิ่ม Logic การเปลี่ยน ClassName และขนาดปุ่ม === */}
                       {featureTags.map((tag) => (
                         <button
                           key={tag.id}
@@ -542,7 +543,6 @@ export default function DesignStudioPage() {
                     />
                   </div>
                   <div className="flex justify-center pt-4">
-                    {/* === จุดแก้ไขที่ 3: เพิ่มขนาดปุ่ม === */}
                     <button
                       onClick={handleSubmit}
                       disabled={!imagePreview}
