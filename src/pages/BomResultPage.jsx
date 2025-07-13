@@ -16,13 +16,12 @@ const BomResultPage = () => {
 
   const {
     bom: mainBom,
-    suggestions: initialSuggestions, // <-- เปลี่ยนชื่อเพื่อไม่ให้สับสน
+    suggestions: initialSuggestions,
     resultImage: initialImage,
     projectId,
   } = location.state || {};
 
   const [bomItems, setBomItems] = useState(mainBom || []);
-  // === จุดแก้ไขที่ 1: สร้าง State ใหม่สำหรับจัดการ Suggestions ===
   const [suggestions, setSuggestions] = useState(initialSuggestions || {});
 
   const totalCost = useMemo(() => {
@@ -43,38 +42,50 @@ const BomResultPage = () => {
     return `https://www.shopee.co.th/search?keyword=${encodedItem}`;
   };
 
-  // === จุดแก้ไขที่ 2: อัปเกรดฟังก์ชัน handleAddSuggestion ===
-  const handleAddSuggestion = (category, suggestedItem) => {
+  // === จุดแก้ไขหลัก: ยกเครื่องฟังก์ชัน handleAddSuggestion ใหม่ทั้งหมด ===
+  const handleAddSuggestion = (categoryOfSuggestion, itemToAdd) => {
     const isAlreadyInBom = bomItems.some(
-      (item) => item.material_name === suggestedItem.material_name
+      (item) => item.material_name === itemToAdd.material_name
     );
 
     if (isAlreadyInBom) {
-      alert(`'${suggestedItem.material_name}' มีอยู่ในรายการแล้ว`);
+      alert(`'${itemToAdd.material_name}' มีอยู่ในรายการแล้ว`);
       return;
     }
 
-    const newItem = {
-      ...suggestedItem,
-      unit_price: suggestedItem.unit_price_thb,
+    // 1. สร้าง Item ใหม่สำหรับ BOM หลัก
+    const newItemForBom = {
+      ...itemToAdd,
+      unit_price: itemToAdd.unit_price_thb,
       quantity: 1,
-      estimated_cost: suggestedItem.unit_price_thb,
+      estimated_cost: itemToAdd.unit_price_thb,
     };
+    setBomItems((prevItems) => [...prevItems, newItemForBom]);
 
-    // 1. เพิ่มลงใน BOM หลัก
-    setBomItems((prevItems) => [...prevItems, newItem]);
-
-    // 2. ลบออกจาก Suggestions State
+    // 2. สร้าง Object ของ Suggestions ขึ้นมาใหม่ทั้งหมด (วิธีที่เสถียรที่สุด)
     setSuggestions((prevSuggestions) => {
-      const newSuggestions = { ...prevSuggestions };
-      // กรอง item ที่ถูกเพิ่มออกไปจาก category นั้นๆ
-      newSuggestions[category] = newSuggestions[category].filter(
-        (item) => item.material_name !== suggestedItem.material_name
+      // สร้าง Object ใหม่โดยการวนลูปของเก่า
+      const newSuggestions = Object.entries(prevSuggestions).reduce(
+        (acc, [category, items]) => {
+          // ถ้าเป็น Category ที่เรากำลังแก้ไข
+          if (category === categoryOfSuggestion) {
+            // ให้กรองเอาเฉพาะ item ที่ "ไม่ใช่" ตัวที่เราเพิ่งเพิ่มออกไป
+            const filteredItems = items.filter(
+              (item) => item.material_name !== itemToAdd.material_name
+            );
+            // ถ้าใน Category นี้ยังมี item เหลืออยู่ ให้เพิ่มกลับเข้าไปใน Object ใหม่
+            if (filteredItems.length > 0) {
+              acc[category] = filteredItems;
+            }
+          } else {
+            // สำหรับ Category อื่นๆ ที่ไม่เกี่ยวข้อง ให้คัดลอกไปไว้ใน Object ใหม่ตามเดิม
+            acc[category] = items;
+          }
+          return acc;
+        },
+        {}
       );
-      // ถ้าใน category นั้นไม่เหลือ item แล้ว ให้ลบ category นั้นทิ้งไปเลย
-      if (newSuggestions[category].length === 0) {
-        delete newSuggestions[category];
-      }
+
       return newSuggestions;
     });
   };
@@ -167,7 +178,7 @@ const BomResultPage = () => {
         </div>
       </div>
 
-      {/* === จุดแก้ไขที่ 3: แสดงผลจาก State ของ Suggestions === */}
+      {/* ส่วน "คำแนะนำเพิ่มเติม" */}
       {suggestions && Object.keys(suggestions).length > 0 && (
         <div className="bg-yellow-50 border-2 border-dashed border-yellow-300 p-6 rounded-2xl shadow-lg">
           <h3 className="text-xl font-bold text-yellow-800 mb-4 flex items-center gap-2">
