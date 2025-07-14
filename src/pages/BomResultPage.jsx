@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import axios from "axios"; // <-- Import axios
 import {
   FiMessageSquare,
   FiShoppingCart,
@@ -9,6 +10,9 @@ import {
   FiThumbsUp,
   FiZap,
 } from "react-icons/fi";
+
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
 
 const BomResultPage = () => {
   const location = useLocation();
@@ -23,6 +27,8 @@ const BomResultPage = () => {
 
   const [bomItems, setBomItems] = useState(mainBom || []);
   const [suggestions, setSuggestions] = useState(initialSuggestions || {});
+  // === จุดแก้ไขที่ 1: เพิ่ม State สำหรับจัดการ Loading ของปุ่ม ===
+  const [fetchingLink, setFetchingLink] = useState(null); // เก็บชื่อ item ที่กำลังโหลด
 
   const totalCost = useMemo(() => {
     if (!bomItems) return 0;
@@ -37,12 +43,26 @@ const BomResultPage = () => {
 
   const lineOA_URL = "https://line.me/ti/p/@025hcugd";
 
-  const createSearchLink = (itemName) => {
-    const encodedItem = encodeURIComponent(itemName);
-    return `https://www.shopee.co.th/search?keyword=${encodedItem}`;
+  // === จุดแก้ไขที่ 2: สร้างฟังก์ชันใหม่สำหรับขอ Affiliate Link ===
+  const handleFindDeal = async (itemName) => {
+    setFetchingLink(itemName); // เริ่ม Loading
+    try {
+      const res = await axios.get(`${API_BASE_URL}/garden/get-affiliate-link`, {
+        params: { item_name: itemName },
+      });
+      if (res.data && res.data.offerLink) {
+        window.open(res.data.offerLink, "_blank");
+      } else {
+        throw new Error("Invalid response from server");
+      }
+    } catch (error) {
+      console.error("Failed to fetch affiliate link:", error);
+      alert("ขออภัยค่ะ ไม่สามารถค้นหาดีลได้ในขณะนี้");
+    } finally {
+      setFetchingLink(null); // หยุด Loading
+    }
   };
 
-  // === จุดแก้ไขหลัก: ยกเครื่องฟังก์ชัน handleAddSuggestion ใหม่ทั้งหมด ===
   const handleAddSuggestion = (categoryOfSuggestion, itemToAdd) => {
     const isAlreadyInBom = bomItems.some(
       (item) => item.material_name === itemToAdd.material_name
@@ -53,39 +73,23 @@ const BomResultPage = () => {
       return;
     }
 
-    // 1. สร้าง Item ใหม่สำหรับ BOM หลัก
-    const newItemForBom = {
+    const newItem = {
       ...itemToAdd,
       unit_price: itemToAdd.unit_price_thb,
       quantity: 1,
       estimated_cost: itemToAdd.unit_price_thb,
     };
-    setBomItems((prevItems) => [...prevItems, newItemForBom]);
 
-    // 2. สร้าง Object ของ Suggestions ขึ้นมาใหม่ทั้งหมด (วิธีที่เสถียรที่สุด)
+    setBomItems((prevItems) => [...prevItems, newItem]);
+
     setSuggestions((prevSuggestions) => {
-      // สร้าง Object ใหม่โดยการวนลูปของเก่า
-      const newSuggestions = Object.entries(prevSuggestions).reduce(
-        (acc, [category, items]) => {
-          // ถ้าเป็น Category ที่เรากำลังแก้ไข
-          if (category === categoryOfSuggestion) {
-            // ให้กรองเอาเฉพาะ item ที่ "ไม่ใช่" ตัวที่เราเพิ่งเพิ่มออกไป
-            const filteredItems = items.filter(
-              (item) => item.material_name !== itemToAdd.material_name
-            );
-            // ถ้าใน Category นี้ยังมี item เหลืออยู่ ให้เพิ่มกลับเข้าไปใน Object ใหม่
-            if (filteredItems.length > 0) {
-              acc[category] = filteredItems;
-            }
-          } else {
-            // สำหรับ Category อื่นๆ ที่ไม่เกี่ยวข้อง ให้คัดลอกไปไว้ใน Object ใหม่ตามเดิม
-            acc[category] = items;
-          }
-          return acc;
-        },
-        {}
-      );
-
+      const newSuggestions = { ...prevSuggestions };
+      newSuggestions[categoryOfSuggestion] = newSuggestions[
+        categoryOfSuggestion
+      ].filter((item) => item.material_name !== itemToAdd.material_name);
+      if (newSuggestions[categoryOfSuggestion].length === 0) {
+        delete newSuggestions[categoryOfSuggestion];
+      }
       return newSuggestions;
     });
   };
@@ -154,14 +158,20 @@ const BomResultPage = () => {
                     </p>
                   </div>
                 </div>
-                <a
-                  href={createSearchLink(item.material_name)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="bg-gray-100 text-gray-700 text-sm font-semibold py-2 px-4 rounded-full hover:bg-gray-200 transition-colors flex items-center justify-center gap-2 w-full sm:w-auto"
+                {/* === จุดแก้ไขที่ 3: เปลี่ยนเป็นปุ่มที่เรียกฟังก์ชันใหม่ === */}
+                <button
+                  onClick={() => handleFindDeal(item.material_name)}
+                  disabled={fetchingLink === item.material_name}
+                  className="bg-orange-500 text-white text-sm font-semibold py-2 px-4 rounded-full hover:bg-orange-600 transition-colors flex items-center justify-center gap-2 w-full sm:w-auto disabled:bg-gray-400"
                 >
-                  <FiShoppingCart size={14} /> หาซื้อเอง
-                </a>
+                  {fetchingLink === item.material_name ? (
+                    "กำลังค้นหา..."
+                  ) : (
+                    <>
+                      <FiShoppingCart size={14} /> หาซื้อเอง
+                    </>
+                  )}
+                </button>
               </div>
             ))
           ) : (
