@@ -29,6 +29,8 @@ const BomResultPage = () => {
   const [suggestions, setSuggestions] = useState(initialSuggestions || {});
   // === จุดแก้ไขที่ 1: เพิ่ม State สำหรับจัดการ Loading ของปุ่ม ===
   const [fetchingLink, setFetchingLink] = useState(null); // เก็บชื่อ item ที่กำลังโหลด
+  // === จุดแก้ไขที่ 2: เพิ่ม State สำหรับเก็บ affiliate link ที่ได้จาก API ===
+  const [affiliateLinks, setAffiliateLinks] = useState({}); // { [itemName]: offerLink }
 
   const totalCost = useMemo(() => {
     if (!bomItems) return 0;
@@ -43,7 +45,7 @@ const BomResultPage = () => {
 
   const lineOA_URL = "https://line.me/ti/p/@025hcugd";
 
-  // === จุดแก้ไขที่ 2: สร้างฟังก์ชันใหม่สำหรับขอ Affiliate Link ===
+  // === จุดแก้ไขที่ 3: ปรับฟังก์ชัน handleFindDeal ให้แค่ fetch ลิงก์และเก็บไว้ ไม่เปิดลิงก์ทันที ===
   const handleFindDeal = async (itemName) => {
     setFetchingLink(itemName); // เริ่ม Loading
     try {
@@ -51,7 +53,7 @@ const BomResultPage = () => {
         params: { item_name: itemName },
       });
       if (res.data && res.data.offerLink) {
-        window.open(res.data.offerLink, "_blank");
+        setAffiliateLinks((prev) => ({ ...prev, [itemName]: res.data.offerLink }));
       } else {
         throw new Error("Invalid response from server");
       }
@@ -158,20 +160,50 @@ const BomResultPage = () => {
                     </p>
                   </div>
                 </div>
-                {/* === จุดแก้ไขที่ 3: เปลี่ยนเป็นปุ่มที่เรียกฟังก์ชันใหม่ === */}
-                <button
-                  onClick={() => handleFindDeal(item.material_name)}
-                  disabled={fetchingLink === item.material_name}
-                  className="bg-orange-500 text-white text-sm font-semibold py-2 px-4 rounded-full hover:bg-orange-600 transition-colors flex items-center justify-center gap-2 w-full sm:w-auto disabled:bg-gray-400"
-                >
-                  {fetchingLink === item.material_name ? (
-                    "กำลังค้นหา..."
-                  ) : (
-                    <>
-                      <FiShoppingCart size={14} /> หาซื้อเอง
-                    </>
+                {/* === ปุ่มเดียว เปลี่ยนสถานะ/สี/animation ตาม state === */}
+                <div className="flex flex-col items-center w-full sm:w-auto">
+                  <button
+                    onClick={() => {
+                      if (affiliateLinks[item.material_name]) {
+                        window.open(affiliateLinks[item.material_name], "_blank");
+                      } else {
+                        handleFindDeal(item.material_name);
+                      }
+                    }}
+                    disabled={fetchingLink === item.material_name}
+                    className={
+                      (affiliateLinks[item.material_name]
+                        ? "bg-orange-600 hover:bg-orange-700"
+                        : fetchingLink === item.material_name
+                        ? "bg-gray-400 cursor-not-allowed"
+                        : "bg-orange-500 hover:bg-orange-600") +
+                      " text-white text-sm font-semibold py-2 px-4 rounded-full transition-all duration-200 flex items-center justify-center gap-2 w-full sm:w-auto shadow-md transform hover:scale-105"
+                    }
+                    style={{ minWidth: 120 }}
+                  >
+                    {fetchingLink === item.material_name ? (
+                      <>
+                        <svg className="animate-spin h-4 w-4 mr-2 text-white" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+                        </svg>
+                        กำลังค้นหา...
+                      </>
+                    ) : affiliateLinks[item.material_name] ? (
+                      <>
+                        <FiShoppingCart size={14} /> ไปยัง Shopee
+                      </>
+                    ) : (
+                      <>
+                        <FiShoppingCart size={14} /> หาซื้อเอง
+                      </>
+                    )}
+                  </button>
+                  {/* ข้อความแจ้งเตือนใต้ปุ่มเมื่อได้ลิงก์ */}
+                  {affiliateLinks[item.material_name] && (
+                    <p className="text-xs text-green-600 mt-1 animate-fade-in">คลิกปุ่มเพื่อไปยัง Shopee</p>
                   )}
-                </button>
+                </div>
               </div>
             ))
           ) : (
