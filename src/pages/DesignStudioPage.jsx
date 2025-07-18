@@ -624,6 +624,19 @@ export default function DesignStudioPage() {
           </div>
         </div>
       )}
+      {resultImage && (
+        <div className="flex flex-col sm:flex-row justify-center gap-4 mt-6">
+          <button
+            onClick={() => {
+              setResultImage(null);
+              setError(null);
+            }}
+            className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white font-bold text-lg py-3 px-10 rounded-full shadow-lg transition-all focus:outline-none focus:ring-4 focus:ring-blue-200"
+          >
+            🔄 ปรับแท็ก/สไตล์ใหม่
+          </button>
+        </div>
+      )}
     </div>
   );
 }
