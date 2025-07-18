@@ -200,7 +200,7 @@ export default function DesignStudioPage() {
         const formData = new FormData();
         formData.append("image", file);
         axios
-          .post(`${API_BASE_URL}/garden/analyze_garden`, formData)
+          .post(`${API_BASE_URL}/garden/analyze-garden`, formData)
           .then((res) => {
             setGardenInsights(res.data.suggestions || []);
           })
