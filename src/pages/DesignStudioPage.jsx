@@ -93,11 +93,11 @@ const featureTags = [
   { id: "pet-friendly", name: "เลี้ยงสัตว์ได้", emoji: "🐶" },
 ];
 
+// ปรับ budgetOptions เหลือ 3 ตัวเลือก
 const budgetOptions = [
-  { label: "< 50,000", value: 50000, level: 1 },
-  { label: "50,000 - 100,000", value: 100000, level: 2 },
-  { label: "100,000 - 250,000", value: 250000, level: 3 },
-  { label: "> 250,000", value: 500000, level: 4 },
+  { label: "50,000", value: 50000, level: 1, color: "from-green-400 to-green-600" },
+  { label: "50,000 - 100,000", value: 100000, level: 2, color: "from-orange-400 to-orange-600" },
+  { label: "> 100,000", value: 200000, level: 3, color: "from-blue-400 to-blue-600" },
 ];
 
 // --- Main Component ---
@@ -589,16 +589,16 @@ export default function DesignStudioPage() {
                 เลือกช่วงงบประมาณของคุณเพื่อดูรายการของและราคาประเมิน
               </p>
             </div>
-            <div className="flex flex-wrap justify-center gap-3 mt-4">
+            {/* ปุ่มงบประมาณแนวตั้ง ดีไซน์ใหม่ */}
+            <div className="flex flex-col gap-4 mt-6">
               {budgetOptions.map((opt) => (
                 <button
                   key={opt.level}
                   onClick={() => setSelectedBudgetLevel(opt.level)}
-                  className={`px-5 py-2 text-sm font-bold rounded-full transition-all ${
-                    selectedBudgetLevel === opt.level
-                      ? "bg-green-600 text-white shadow-lg"
-                      : "bg-white text-gray-800 border hover:bg-green-50"
-                  }`}
+                  className={
+                    `w-full bg-gradient-to-r ${opt.color} text-white text-xl font-bold py-4 px-6 rounded-xl shadow-lg transition-all duration-200 ` +
+                    (selectedBudgetLevel === opt.level ? "ring-4 ring-green-200 scale-105" : "opacity-90 hover:opacity-100")
+                  }
                 >
                   {opt.label}
                 </button>
@@ -617,7 +617,7 @@ export default function DesignStudioPage() {
                 </>
               ) : (
                 <>
-                  �� ขอรายการของและราคา
+                  🌱 ขอรายการของและราคา
                 </>
               )}
             </button>
