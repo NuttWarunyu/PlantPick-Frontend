@@ -158,7 +158,7 @@ export default function DesignStudioPage() {
           result_url,
           history_id,
           error: predictionError,
-        } = res.data;
+        } = res.data;/Users/warunyu/PlantPick/PlantPick-Backend/app/routers/analyze_garden.py
         if (status === "succeeded") {
           setResultImage(result_url);
           setHistoryId(history_id);
@@ -200,7 +200,7 @@ export default function DesignStudioPage() {
         const formData = new FormData();
         formData.append("image", file);
         axios
-          .post(`${API_BASE_URL}/garden/analyze-garden`, formData)
+          .post(`${API_BASE_URL}/garden/analyze_garden`, formData)
           .then((res) => {
             setGardenInsights(res.data.suggestions || []);
           })
@@ -693,18 +693,6 @@ export default function DesignStudioPage() {
                   🌱 ขอรายการของและราคา
                 </>
               )}
-            </button>
-          </div>
-          {/* ปุ่มปรับแท็ก/สไตล์ใหม่ (ยังคงอยู่) */}
-          <div className="flex flex-col sm:flex-row justify-center gap-4 mt-2">
-            <button
-              onClick={() => {
-                setResultImage(null);
-                setError(null);
-              }}
-              className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white font-bold text-lg py-3 px-10 rounded-full shadow-lg transition-all focus:outline-none focus:ring-4 focus:ring-blue-200"
-            >
-              🎨 ปรับแท็ก/สไตล์ใหม่
             </button>
           </div>
         </div>
