@@ -121,6 +121,11 @@ export default function DesignStudioPage() {
   const [customKeywords, setCustomKeywords] = useState("");
   const [selectedBudgetLevel, setSelectedBudgetLevel] = useState(2);
 
+  // เพิ่ม state สำหรับ insight
+  const [gardenInsights, setGardenInsights] = useState([]);
+  const [analyzingInsights, setAnalyzingInsights] = useState(false);
+  const [selectedInsights, setSelectedInsights] = useState([]);
+
   const [canvasSize, setCanvasSize] = useState({ width: 0, height: 0 });
 
   const isDrawing = useRef(false);
@@ -188,6 +193,21 @@ export default function DesignStudioPage() {
         setImagePreview(event.target.result);
         setLines([]);
         setResultImage(null);
+        // === เรียก API วิเคราะห์สวนจริง ===
+        setAnalyzingInsights(true);
+        setGardenInsights([]);
+        setSelectedInsights([]);
+        const formData = new FormData();
+        formData.append("image", file);
+        axios
+          .post(`${API_BASE_URL}/garden/analyze-garden`, formData)
+          .then((res) => {
+            setGardenInsights(res.data.suggestions || []);
+          })
+          .catch(() => {
+            setGardenInsights([]);
+          })
+          .finally(() => setAnalyzingInsights(false));
       };
       reader.readAsDataURL(file);
     }
@@ -277,6 +297,9 @@ export default function DesignStudioPage() {
 
     if (customKeywords) {
       prompt += `Specifically include these elements: ${customKeywords}.`;
+    }
+    if (selectedInsights.length > 0) {
+      prompt += ` Please address these suggestions: ${selectedInsights.join(", ")}.`;
     }
     return prompt;
   };
@@ -402,6 +425,41 @@ export default function DesignStudioPage() {
                   />
                 </label>
               </div>
+
+              {/* === แสดง insight/suggestions จาก AI หลังอัปโหลดรูป === */}
+              {imagePreview && (
+                <div className="my-4">
+                  {analyzingInsights ? (
+                    <div className="text-center text-blue-500">AI กำลังวิเคราะห์สวนของคุณ...</div>
+                  ) : gardenInsights.length > 0 ? (
+                    <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-xl">
+                      <h3 className="font-bold text-yellow-800 mb-2">ข้อเสนอแนะจาก AI</h3>
+                      <ul className="list-disc ml-6 text-gray-700">
+                        {gardenInsights.map((s, i) => (
+                          <li key={i} className="mb-1">
+                            <label className="inline-flex items-center gap-2 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={selectedInsights.includes(s)}
+                                onChange={() => {
+                                  setSelectedInsights((prev) =>
+                                    prev.includes(s)
+                                      ? prev.filter((x) => x !== s)
+                                      : [...prev, s]
+                                  );
+                                }}
+                                className="accent-green-600"
+                              />
+                              <span>{s}</span>
+                            </label>
+                          </li>
+                        ))}
+                      </ul>
+                      <p className="text-xs text-gray-500 mt-2">เลือกข้อเสนอแนะที่ต้องการให้ AI นำไปใช้ในการออกแบบสวนใหม่</p>
+                    </div>
+                  ) : null}
+                </div>
+              )}
 
               {/* === ขั้นตอนที่ 2: ระบายสี === */}
               <div
@@ -579,6 +637,18 @@ export default function DesignStudioPage() {
               alt="Inpainting result"
               className="mt-4 max-w-full rounded-lg shadow-lg mx-auto"
             />
+            {/* ปุ่มรีเฟรช/สร้างใหม่ ใต้รูป */}
+            <div className="flex justify-center mt-4">
+              <button
+                onClick={() => {
+                  setResultImage(null);
+                  setError(null);
+                }}
+                className="w-full sm:w-auto bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold text-lg py-3 px-10 rounded-full shadow transition-all focus:outline-none focus:ring-2 focus:ring-gray-300 flex items-center justify-center gap-2"
+              >
+                🔄 สร้างใหม่ (สุ่มใหม่)
+              </button>
+            </div>
           </div>
           <div className="pt-6 border-t">
             <div className="text-center mb-4">
@@ -589,15 +659,17 @@ export default function DesignStudioPage() {
                 เลือกช่วงงบประมาณของคุณเพื่อดูรายการของและราคาประเมิน
               </p>
             </div>
-            {/* ปุ่มงบประมาณแนวตั้ง ดีไซน์ใหม่ */}
-            <div className="flex flex-col gap-4 mt-6">
+            {/* ปุ่มงบประมาณแนวนอน */}
+            <div className="flex flex-wrap justify-center gap-3 mt-4">
               {budgetOptions.map((opt) => (
                 <button
                   key={opt.level}
                   onClick={() => setSelectedBudgetLevel(opt.level)}
                   className={
-                    `w-full bg-gradient-to-r ${opt.color} text-white text-xl font-bold py-4 px-6 rounded-xl shadow-lg transition-all duration-200 ` +
-                    (selectedBudgetLevel === opt.level ? "ring-4 ring-green-200 scale-105" : "opacity-90 hover:opacity-100")
+                    `px-5 py-3 text-xl font-bold rounded-full transition-all duration-200 ` +
+                    (selectedBudgetLevel === opt.level
+                      ? "bg-green-600 text-white shadow-lg scale-105 ring-4 ring-green-200"
+                      : "bg-white text-gray-800 border hover:bg-green-50")
                   }
                 >
                   {opt.label}
@@ -605,15 +677,16 @@ export default function DesignStudioPage() {
               ))}
             </div>
           </div>
-          <div className="pt-4 flex justify-center">
+          {/* ปุ่มขอรายการของและราคา ล่างสุด เด่นสุด */}
+          <div className="pt-8 flex justify-center">
             <button
               onClick={handleGenerateBOM}
               disabled={bomLoading}
-              className="w-full sm:w-auto bg-gradient-to-r from-orange-400 to-orange-600 text-white font-extrabold text-xl py-4 px-14 rounded-full shadow-2xl hover:from-orange-500 hover:to-orange-700 hover:scale-105 transition-all focus:outline-none focus:ring-4 focus:ring-orange-200 flex items-center justify-center gap-4 my-8 disabled:bg-gray-400"
+              className="w-full sm:w-auto bg-gradient-to-r from-orange-500 to-pink-500 text-white font-extrabold text-2xl py-5 px-16 rounded-full shadow-2xl hover:from-orange-600 hover:to-pink-600 hover:scale-105 transition-all focus:outline-none focus:ring-4 focus:ring-orange-200 flex items-center justify-center gap-4 my-8 disabled:bg-gray-400"
             >
               {bomLoading ? (
                 <>
-                  <FiSend size={24} className="animate-spin" /> กำลังวิเคราะห์...
+                  <FiSend size={28} className="animate-spin" /> กำลังวิเคราะห์...
                 </>
               ) : (
                 <>
@@ -622,19 +695,18 @@ export default function DesignStudioPage() {
               )}
             </button>
           </div>
-        </div>
-      )}
-      {resultImage && (
-        <div className="flex flex-col sm:flex-row justify-center gap-4 mt-6">
-          <button
-            onClick={() => {
-              setResultImage(null);
-              setError(null);
-            }}
-            className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white font-bold text-lg py-3 px-10 rounded-full shadow-lg transition-all focus:outline-none focus:ring-4 focus:ring-blue-200"
-          >
-            🔄 ปรับแท็ก/สไตล์ใหม่
-          </button>
+          {/* ปุ่มปรับแท็ก/สไตล์ใหม่ (ยังคงอยู่) */}
+          <div className="flex flex-col sm:flex-row justify-center gap-4 mt-2">
+            <button
+              onClick={() => {
+                setResultImage(null);
+                setError(null);
+              }}
+              className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white font-bold text-lg py-3 px-10 rounded-full shadow-lg transition-all focus:outline-none focus:ring-4 focus:ring-blue-200"
+            >
+              🎨 ปรับแท็ก/สไตล์ใหม่
+            </button>
+          </div>
         </div>
       )}
     </div>
