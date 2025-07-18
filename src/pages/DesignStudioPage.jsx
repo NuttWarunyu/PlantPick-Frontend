@@ -554,9 +554,9 @@ export default function DesignStudioPage() {
                     <button
                       onClick={handleSubmit}
                       disabled={!imagePreview}
-                      className="w-full sm:w-auto text-xl font-bold text-white bg-green-600 rounded-full shadow-lg px-12 py-4 transform transition-all hover:bg-green-700 hover:scale-105 disabled:bg-gray-400 disabled:cursor-not-allowed disabled:scale-100 flex items-center justify-center gap-3"
+                      className="w-full sm:w-auto text-2xl font-extrabold text-white bg-gradient-to-r from-green-500 to-lime-400 rounded-full shadow-2xl px-16 py-5 transform transition-all hover:from-green-600 hover:to-lime-500 hover:scale-105 focus:outline-none focus:ring-4 focus:ring-green-300 disabled:bg-gray-400 disabled:cursor-not-allowed disabled:scale-100 flex items-center justify-center gap-4 my-8"
                     >
-                      <FiSend /> สร้างสวนในฝัน
+                      <FiSend size={28} /> สร้างสวนในฝัน
                     </button>
                   </div>
                 </div>
@@ -609,9 +609,17 @@ export default function DesignStudioPage() {
             <button
               onClick={handleGenerateBOM}
               disabled={bomLoading}
-              className="bg-orange-500 text-white font-bold text-lg py-3 px-10 rounded-full shadow-lg hover:bg-orange-600 disabled:bg-gray-400"
+              className="w-full sm:w-auto bg-gradient-to-r from-orange-400 to-orange-600 text-white font-extrabold text-xl py-4 px-14 rounded-full shadow-2xl hover:from-orange-500 hover:to-orange-700 hover:scale-105 transition-all focus:outline-none focus:ring-4 focus:ring-orange-200 flex items-center justify-center gap-4 my-8 disabled:bg-gray-400"
             >
-              {bomLoading ? "กำลังวิเคราะห์..." : "🌱 ขอรายการของและราคา"}
+              {bomLoading ? (
+                <>
+                  <FiSend size={24} className="animate-spin" /> กำลังวิเคราะห์...
+                </>
+              ) : (
+                <>
+                  �� ขอรายการของและราคา
+                </>
+              )}
             </button>
           </div>
         </div>
