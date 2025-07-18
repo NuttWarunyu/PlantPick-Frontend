@@ -158,7 +158,7 @@ export default function DesignStudioPage() {
           result_url,
           history_id,
           error: predictionError,
-        } = res.data;/Users/warunyu/PlantPick/PlantPick-Backend/app/routers/analyze_garden.py
+        } = res.data;
         if (status === "succeeded") {
           setResultImage(result_url);
           setHistoryId(history_id);
