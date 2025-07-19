@@ -162,7 +162,7 @@ const BomResultPage = () => {
                 </div>
                 {/* === ปุ่มเดียว เปลี่ยนสถานะ/สี/animation ตาม state === */}
                 <div className="flex flex-col items-center w-full sm:w-auto">
-                  <button
+                <button
                     onClick={() => {
                       if (affiliateLinks[item.material_name]) {
                         window.open(affiliateLinks[item.material_name], "_blank");
@@ -170,7 +170,7 @@ const BomResultPage = () => {
                         handleFindDeal(item.material_name);
                       }
                     }}
-                    disabled={fetchingLink === item.material_name}
+                  disabled={fetchingLink === item.material_name}
                     className={
                       (affiliateLinks[item.material_name]
                         ? "bg-orange-600 hover:bg-orange-700"
@@ -180,8 +180,8 @@ const BomResultPage = () => {
                       " text-white text-sm font-semibold py-2 px-4 rounded-full transition-all duration-200 flex items-center justify-center gap-2 w-full sm:w-auto shadow-md transform hover:scale-105"
                     }
                     style={{ minWidth: 120 }}
-                  >
-                    {fetchingLink === item.material_name ? (
+                >
+                  {fetchingLink === item.material_name ? (
                       <>
                         <svg className="animate-spin h-4 w-4 mr-2 text-white" viewBox="0 0 24 24">
                           <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
@@ -193,12 +193,12 @@ const BomResultPage = () => {
                       <>
                         <FiShoppingCart size={14} /> ไปยัง Shopee
                       </>
-                    ) : (
-                      <>
-                        <FiShoppingCart size={14} /> หาซื้อเอง
-                      </>
-                    )}
-                  </button>
+                  ) : (
+                    <>
+                      <FiShoppingCart size={14} /> หาซื้อเอง
+                    </>
+                  )}
+                </button>
                   {/* ข้อความแจ้งเตือนใต้ปุ่มเมื่อได้ลิงก์ */}
                   {affiliateLinks[item.material_name] && (
                     <p className="text-xs text-green-600 mt-1 animate-fade-in">คลิกปุ่มเพื่อไปยัง Shopee</p>

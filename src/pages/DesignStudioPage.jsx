@@ -458,6 +458,40 @@ export default function DesignStudioPage() {
         )}
       </div>
 
+      {/* Section: About */}
+      <section id="about" className="mt-10 mb-8">
+        <h2 className="text-2xl font-bold text-green-700 mb-2">เกี่ยวกับ PlantPick</h2>
+        <p className="text-gray-700">PlantPick คือแพลตฟอร์ม AI สำหรับออกแบบสวนและวิเคราะห์ภาพสวนจริง ช่วยให้คุณได้สวนในฝันอย่างง่ายดาย</p>
+      </section>
+
+      {/* Section: Features */}
+      <section id="features" className="mb-8">
+        <h2 className="text-2xl font-bold text-green-700 mb-2">ฟีเจอร์เด่น</h2>
+        <ul className="list-disc ml-6 text-gray-700">
+          <li>AI ออกแบบสวนตามภาพบ้านจริง</li>
+          <li>วิเคราะห์แสง ทิศทางลม และข้อจำกัดจากภาพถ่าย</li>
+          <li>เลือกสไตล์และฟีเจอร์สวนได้เอง</li>
+          <li>ขอรายการของและราคาประเมิน (BOM)</li>
+        </ul>
+      </section>
+
+      {/* Section: How To */}
+      <section id="howto" className="mb-8">
+        <h2 className="text-2xl font-bold text-green-700 mb-2">วิธีใช้งาน</h2>
+        <ol className="list-decimal ml-6 text-gray-700">
+          <li>อัปโหลดภาพบ้านหรือพื้นที่ที่ต้องการออกแบบ</li>
+          <li>ระบายพื้นที่ที่ต้องการให้เป็นสวน</li>
+          <li>เลือกสไตล์และฟีเจอร์ที่ต้องการ</li>
+          <li>กด "สร้างสวนในฝัน" และรอผลลัพธ์</li>
+        </ol>
+      </section>
+
+      {/* Section: Contact */}
+      <section id="contact" className="mb-8">
+        <h2 className="text-2xl font-bold text-green-700 mb-2">ติดต่อทีมงาน</h2>
+        <p className="text-gray-700">Line: @plantpick | Email: hello@plantpick.app</p>
+      </section>
+
       {loading ? (
         <EngagingLoadingScreen predictionId={predictionId} />
       ) : (
