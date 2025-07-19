@@ -475,16 +475,7 @@ export default function DesignStudioPage() {
         </ul>
       </section>
 
-      {/* Section: How To */}
-      <section id="howto" className="mb-8">
-        <h2 className="text-2xl font-bold text-green-700 mb-2">วิธีใช้งาน</h2>
-        <ol className="list-decimal ml-6 text-gray-700">
-          <li>อัปโหลดภาพบ้านหรือพื้นที่ที่ต้องการออกแบบ</li>
-          <li>ระบายพื้นที่ที่ต้องการให้เป็นสวน</li>
-          <li>เลือกสไตล์และฟีเจอร์ที่ต้องการ</li>
-          <li>กด "สร้างสวนในฝัน" และรอผลลัพธ์</li>
-        </ol>
-      </section>
+
 
 
       {loading ? (
