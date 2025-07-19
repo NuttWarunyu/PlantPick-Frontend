@@ -125,8 +125,32 @@ export default function DesignStudioPage() {
   const [gardenInsights, setGardenInsights] = useState([]);
   const [analyzingInsights, setAnalyzingInsights] = useState(false);
   const [selectedInsights, setSelectedInsights] = useState([]);
+  
+  // เพิ่ม state สำหรับแสดงจำนวนครั้งที่เหลือ
+  const [dailyUsage, setDailyUsage] = useState({ used: 0, limit: 10 });
+  const [loadingUsage, setLoadingUsage] = useState(false);
 
   const [canvasSize, setCanvasSize] = useState({ width: 0, height: 0 });
+
+  // ฟังก์ชันดึงข้อมูลจำนวนครั้งที่เหลือ
+  const fetchDailyUsage = async () => {
+    setLoadingUsage(true);
+    try {
+      const response = await axios.get(`${API_BASE_URL}/garden/daily-usage`);
+      setDailyUsage(response.data);
+    } catch (error) {
+      console.error('Failed to fetch daily usage:', error);
+      // ถ้า API ไม่มี ให้ใช้ค่า default
+      setDailyUsage({ used: 0, limit: 10 });
+    } finally {
+      setLoadingUsage(false);
+    }
+  };
+
+  // ดึงข้อมูลจำนวนครั้งที่เหลือเมื่อโหลดหน้า
+  useEffect(() => {
+    fetchDailyUsage();
+  }, []);
 
   const isDrawing = useRef(false);
   const stageRef = useRef(null);
@@ -165,6 +189,8 @@ export default function DesignStudioPage() {
           setLoading(false);
           setPredictionId(null);
           clearInterval(interval);
+          // อัปเดตจำนวนครั้งที่เหลือหลังจากสร้างสำเร็จ
+          fetchDailyUsage();
         } else if (status === "failed") {
           setError(`การสร้างภาพล้มเหลว: ${predictionError}`);
           setLoading(false);
@@ -393,6 +419,45 @@ export default function DesignStudioPage() {
 
   return (
     <div className="w-full space-y-6">
+      {/* แสดงจำนวนครั้งที่เหลือ */}
+      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
+              <span className="text-white text-sm font-bold">🎯</span>
+            </div>
+            <div>
+              <h3 className="font-semibold text-blue-800">จำนวนครั้งที่เหลือวันนี้</h3>
+              <p className="text-sm text-blue-600">
+                {loadingUsage ? (
+                  "กำลังโหลด..."
+                ) : (
+                  `${dailyUsage.used}/${dailyUsage.limit} ครั้ง`
+                )}
+              </p>
+            </div>
+          </div>
+          <div className="text-right">
+            <div className="text-2xl font-bold text-blue-600">
+              {dailyUsage.limit - dailyUsage.used}
+            </div>
+            <div className="text-xs text-blue-500">ครั้งที่เหลือ</div>
+          </div>
+        </div>
+        {/* Progress bar */}
+        <div className="mt-3 w-full bg-blue-200 rounded-full h-2">
+          <div 
+            className="bg-blue-500 h-2 rounded-full transition-all duration-300"
+            style={{ width: `${(dailyUsage.used / dailyUsage.limit) * 100}%` }}
+          ></div>
+        </div>
+        {dailyUsage.used >= dailyUsage.limit && (
+          <div className="mt-2 text-center text-red-600 text-sm font-medium">
+            ⚠️ คุณใช้จำนวนครั้งครบแล้ววันนี้ กรุณาลองใหม่พรุ่งนี้
+          </div>
+        )}
+      </div>
+
       {loading ? (
         <EngagingLoadingScreen predictionId={predictionId} />
       ) : (
@@ -433,7 +498,7 @@ export default function DesignStudioPage() {
                     <div className="text-center text-blue-500">AI กำลังวิเคราะห์สวนของคุณ...</div>
                   ) : gardenInsights.length > 0 ? (
                     <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-xl">
-                      <h3 className="font-bold text-yellow-800 mb-2">ข้อเสนอแนะจาก AI</h3>
+                      <h3 className="font-bold text-yellow-800 mb-2">คำแนะนำเบื้องต้นจาก AI</h3>
                       <ul className="list-disc ml-6 text-gray-700">
                         {gardenInsights.map((s, i) => (
                           <li key={i} className="mb-1">
@@ -611,10 +676,11 @@ export default function DesignStudioPage() {
                   <div className="flex justify-center pt-4">
                     <button
                       onClick={handleSubmit}
-                      disabled={!imagePreview}
+                      disabled={!imagePreview || dailyUsage.used >= dailyUsage.limit}
                       className="w-full sm:w-auto text-2xl font-extrabold text-white bg-gradient-to-r from-green-500 to-lime-400 rounded-full shadow-2xl px-16 py-5 transform transition-all hover:from-green-600 hover:to-lime-500 hover:scale-105 focus:outline-none focus:ring-4 focus:ring-green-300 disabled:bg-gray-400 disabled:cursor-not-allowed disabled:scale-100 flex items-center justify-center gap-4 my-8"
                     >
-                      <FiSend size={28} /> สร้างสวนในฝัน
+                      <FiSend size={28} /> 
+                      {dailyUsage.used >= dailyUsage.limit ? 'ใช้ครบจำนวนครั้งแล้ว' : 'สร้างสวนในฝัน'}
                     </button>
                   </div>
                 </div>
