@@ -6,20 +6,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>PlantPick</title>
 
-    <!-- Google Analytics -->
-    <script
-      async
-      src="https://www.googletagmanager.com/gtag/js?id=G-5S9Y6FLSXN"
-    ></script>
+    <!-- Google Analytics + Google Ads Tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-5S9Y6FLSXN"></script>
+    <script async src="https://www.googletagmanager.com/gtag/js?id=AW-939486505"></script>
     <script>
       window.dataLayer = window.dataLayer || [];
-      function gtag() {
-        dataLayer.push(arguments);
-      }
-      gtag("js", new Date());
-      gtag("config", "G-5S9Y6FLSXN");
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-5S9Y6FLSXN'); // GA4
+      gtag('config', 'AW-939486505'); // Google Ads
     </script>
-    <!-- End Google Analytics -->
+    <!-- End Google Analytics + Google Ads Tag -->
   </head>
   <body>
     <div id="root"></div>
