@@ -486,11 +486,6 @@ export default function DesignStudioPage() {
         </ol>
       </section>
 
-      {/* Section: Contact */}
-      <section id="contact" className="mb-8">
-        <h2 className="text-2xl font-bold text-green-700 mb-2">ติดต่อทีมงาน</h2>
-        <p className="text-gray-700">Line: @plantpick | Email: hello@plantpick.app</p>
-      </section>
 
       {loading ? (
         <EngagingLoadingScreen predictionId={predictionId} />
