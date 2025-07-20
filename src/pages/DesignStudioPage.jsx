@@ -459,21 +459,25 @@ export default function DesignStudioPage() {
       </div>
 
       {/* Section: About */}
-      <section id="about" className="mt-10 mb-8">
-        <h2 className="text-2xl font-bold text-green-700 mb-2">เกี่ยวกับ PlantPick</h2>
-        <p className="text-gray-700">PlantPick คือแพลตฟอร์ม AI สำหรับออกแบบสวนและวิเคราะห์ภาพสวนจริง ช่วยให้คุณได้สวนในฝันอย่างง่ายดาย</p>
-      </section>
+      {!resultImage && (
+        <section id="about" className="mt-10 mb-8">
+          <h2 className="text-2xl font-bold text-green-700 mb-2">เกี่ยวกับ PlantPick</h2>
+          <p className="text-gray-700">PlantPick คือแพลตฟอร์ม AI สำหรับออกแบบสวนและวิเคราะห์ภาพสวนจริง ช่วยให้คุณได้สวนในฝันอย่างง่ายดาย</p>
+        </section>
+      )}
 
       {/* Section: Features */}
-      <section id="features" className="mb-8">
-        <h2 className="text-2xl font-bold text-green-700 mb-2">ฟีเจอร์เด่น</h2>
-        <ul className="list-disc ml-6 text-gray-700">
-          <li>AI ออกแบบสวนตามภาพบ้านจริง</li>
-          <li>วิเคราะห์แสง ทิศทางลม และข้อจำกัดจากภาพถ่าย</li>
-          <li>เลือกสไตล์และฟีเจอร์สวนได้เอง</li>
-          <li>ขอรายการของและราคาประเมิน (BOM)</li>
-        </ul>
-      </section>
+      {!resultImage && (
+        <section id="features" className="mb-8">
+          <h2 className="text-2xl font-bold text-green-700 mb-2">ฟีเจอร์เด่น</h2>
+          <ul className="list-disc ml-6 text-gray-700">
+            <li>AI ออกแบบสวนตามภาพบ้านจริง</li>
+            <li>วิเคราะห์แสง ทิศทางลม และข้อจำกัดจากภาพถ่าย</li>
+            <li>เลือกสไตล์และฟีเจอร์สวนได้เอง</li>
+            <li>ขอรายการของและราคาประเมิน (BOM)</li>
+          </ul>
+        </section>
+      )}
 
 
 
