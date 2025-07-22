@@ -564,8 +564,25 @@ export default function DesignStudioPage() {
                   <h2 className="text-xl font-bold text-gray-800 mb-2">
                     ขั้นตอนที่ 2: ระบายพื้นที่สวน
                   </h2>
+                  
+                  {/* คำแนะนำการใช้งาน */}
+                  <div className="bg-blue-50 border-l-4 border-blue-400 p-4 rounded-lg mb-4">
+                    <div className="flex items-start gap-3">
+                      <div className="text-blue-500 text-xl">💡</div>
+                      <div>
+                        <h3 className="font-semibold text-blue-800 mb-1">วิธีใช้งาน:</h3>
+                        <ul className="text-sm text-blue-700 space-y-1">
+                          <li>• <strong>ระบายสีชมพู</strong> ในบริเวณที่ต้องการให้เป็นสวน</li>
+                          <li>• ระบายให้ครอบคลุมพื้นที่ที่ต้องการปลูกต้นไม้</li>
+                          <li>• หลีกเลี่ยงการระบายบนตัวบ้านหรือทางเดิน</li>
+                          <li>• ใช้ปุ่ม "ล้างทั้งหมด" หากต้องการเริ่มใหม่</li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+
                   <div className="flex items-center gap-4 mb-4">
-                    <span>ขนาดพู่กัน:</span>
+                    <span className="font-medium text-gray-700">ขนาดพู่กัน:</span>
                     <input
                       type="range"
                       min="5"
@@ -575,19 +592,38 @@ export default function DesignStudioPage() {
                       className="w-48"
                       disabled={!imagePreview}
                     />
+                    <span className="text-sm text-gray-500">{brushSize}px</span>
                     <button
                       onClick={handleClearMask}
-                      className="flex items-center gap-2 text-sm text-red-600 hover:text-red-800"
+                      className="flex items-center gap-2 text-sm text-red-600 hover:text-red-800 bg-red-50 px-3 py-1 rounded-lg transition-colors"
                       disabled={!imagePreview}
                     >
                       <FiTrash2 /> ล้างทั้งหมด
                     </button>
                   </div>
+
+                  {/* Canvas Container with better visual guidance */}
                   <div
                     ref={containerRef}
-                    className="w-full flex justify-center items-center bg-gray-100 rounded-lg p-2"
+                    className="w-full flex justify-center items-center bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-4 border-2 border-dashed border-blue-300"
                   >
-                    <div className="border-2 border-dashed border-pink-500">
+                    <div className="relative">
+                      {/* Overlay with instructions when no drawing */}
+                      {lines.length === 0 && (
+                        <div className="absolute inset-0 bg-black bg-opacity-30 rounded-lg flex items-center justify-center z-10">
+                          <div className="bg-white bg-opacity-90 rounded-lg p-6 text-center max-w-sm">
+                            <div className="text-3xl mb-3">🎨</div>
+                            <h3 className="font-bold text-gray-800 mb-2">เริ่มระบายสีได้เลย!</h3>
+                            <p className="text-sm text-gray-600">
+                              คลิกและลากเมาส์เพื่อระบายสีชมพูในบริเวณที่ต้องการให้เป็นสวน
+                            </p>
+                            <div className="mt-3 text-xs text-gray-500">
+                              💡 เคล็ดลับ: ระบายให้ครอบคลุมพื้นที่ที่ต้องการปลูกต้นไม้
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                      
                       <Stage
                         width={canvasSize.width}
                         height={canvasSize.height}
@@ -598,12 +634,15 @@ export default function DesignStudioPage() {
                         onTouchMove={handleMouseMove}
                         onTouchEnd={handleMouseUp}
                         ref={stageRef}
+                        className="rounded-lg shadow-lg"
+                        style={{ cursor: 'crosshair' }}
                       >
                         <Layer>
                           <KonvaImage
                             image={imageForCanvas}
                             width={canvasSize.width}
                             height={canvasSize.height}
+                            opacity={0.8}
                           />
                         </Layer>
                         <Layer>
@@ -617,13 +656,25 @@ export default function DesignStudioPage() {
                               lineCap="round"
                               lineJoin="round"
                               globalCompositeOperation={"source-over"}
-                              opacity={0.5}
+                              opacity={0.7}
                             />
                           ))}
                         </Layer>
                       </Stage>
                     </div>
                   </div>
+
+                  {/* Progress indicator */}
+                  {lines.length > 0 && (
+                    <div className="mt-3 text-center">
+                      <div className="inline-flex items-center gap-2 bg-green-50 text-green-700 px-4 py-2 rounded-full">
+                        <FiCheckCircle className="text-green-500" />
+                        <span className="text-sm font-medium">
+                          ระบายแล้ว {lines.length} จุด - ระบายเพิ่มเติมหรือไปขั้นตอนถัดไปได้เลย!
+                        </span>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 
