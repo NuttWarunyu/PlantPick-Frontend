@@ -641,10 +641,10 @@ export default function DesignStudioPage() {
                   >
                     <div className="relative">
                       {/* Simple overlay when no drawing */}
-                      {lines.length === 0 && (
+                      {lines.length === 0 && imagePreview && (
                         <div className="absolute inset-0 bg-black bg-opacity-30 rounded-lg flex items-center justify-center z-10">
-                          <div className="bg-white bg-opacity-90 rounded-lg p-6 text-center">
-                            <p className="text-xl font-bold text-gray-800">ระบายสีพื้นที่เป็นสวน</p>
+                          <div className="bg-white bg-opacity-90 rounded-lg p-8 text-center">
+                            <p className="text-3xl font-bold text-gray-800">โปรดระบายสีพื้นที่สวน</p>
                           </div>
                         </div>
                       )}
