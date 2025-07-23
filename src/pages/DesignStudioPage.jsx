@@ -20,54 +20,101 @@ import useImage from "use-image";
 
 const EngagingLoadingScreen = ({ predictionId }) => {
   const [currentStep, setCurrentStep] = useState(0);
+  const [dots, setDots] = useState("");
+  
   const steps = [
     {
-      icon: <FiTool className="text-purple-500" />,
-      text: "กำลังปลุก AI นักออกแบบของเราให้ตื่น...",
+      icon: "🤖",
+      text: "AI กำลังวิเคราะห์ภาพบ้านของคุณ",
+      color: "from-purple-500 to-pink-500"
     },
     {
-      icon: <FiUploadCloud className="text-blue-500" />,
-      text: "กำลังส่งภาพของคุณขึ้นไปบนคลาวด์...",
+      icon: "🌤️",
+      text: "ตรวจสอบแสง ทิศทางลม และสภาพแวดล้อม",
+      color: "from-blue-500 to-cyan-500"
     },
     {
-      icon: <FiSun className="text-yellow-500" />,
-      text: "AI กำลังวิเคราะห์แสงและเงา...",
+      icon: "🌱",
+      text: "ออกแบบสวนและเลือกพรรณไม้ที่เหมาะสม",
+      color: "from-green-500 to-emerald-500"
     },
     {
-      icon: <FiDroplet className="text-cyan-500" />,
-      text: "กำลังร่างแบบสวนและเลือกพรรณไม้...",
+      icon: "🎨",
+      text: "สร้างภาพสวนสวยด้วย AI",
+      color: "from-orange-500 to-red-500"
     },
     {
-      icon: <FiCheckCircle className="text-green-500" />,
-      text: "ใกล้เสร็จแล้ว! กำลังลงสีและเก็บรายละเอียด...",
-    },
+      icon: "✨",
+      text: "เกลี่ยรายละเอียดและปรับแต่งสีสัน",
+      color: "from-indigo-500 to-purple-500"
+    }
   ];
 
   useEffect(() => {
-    const interval = setInterval(() => {
+    const stepInterval = setInterval(() => {
       setCurrentStep((prevStep) => (prevStep + 1) % steps.length);
-    }, 3000);
-    return () => clearInterval(interval);
+    }, 2000);
+    
+    const dotsInterval = setInterval(() => {
+      setDots(prev => prev.length >= 3 ? "" : prev + ".");
+    }, 500);
+
+    return () => {
+      clearInterval(stepInterval);
+      clearInterval(dotsInterval);
+    };
   }, []);
 
   return (
-    <div className="w-full bg-gray-50 p-8 rounded-2xl text-center transition-all duration-500">
-      <div className="flex flex-col sm:flex-row items-center justify-center text-xl md:text-2xl font-bold text-gray-700">
-        <div className="animate-spin text-4xl mb-4 sm:mb-0 sm:mr-4">
-          {steps[currentStep].icon}
+    <div className="w-full bg-gradient-to-br from-gray-50 to-gray-100 p-8 rounded-3xl text-center transition-all duration-500 shadow-lg border border-gray-200">
+      {/* Animated Background */}
+      <div className="absolute inset-0 bg-gradient-to-r from-green-100/50 to-blue-100/50 rounded-3xl animate-pulse"></div>
+      
+      <div className="relative z-10">
+        {/* Main Icon with Animation */}
+        <div className="mb-6">
+          <div className={`inline-flex items-center justify-center w-20 h-20 bg-gradient-to-r ${steps[currentStep].color} rounded-full text-4xl animate-bounce shadow-lg`}>
+            {steps[currentStep].icon}
+          </div>
         </div>
-        <p>{steps[currentStep].text}</p>
+
+        {/* Step Text */}
+        <div className="mb-6">
+          <h3 className="text-2xl md:text-3xl font-bold text-gray-800 mb-2">
+            {steps[currentStep].text}
+          </h3>
+          <p className="text-lg text-gray-600">
+            ขั้นตอนที่ {currentStep + 1} จาก {steps.length}
+          </p>
+        </div>
+
+        {/* Animated Progress Bar */}
+        <div className="w-full bg-gray-200 rounded-full h-3 mb-6 overflow-hidden shadow-inner">
+          <div
+            className={`h-3 bg-gradient-to-r ${steps[currentStep].color} rounded-full transition-all duration-1000 ease-out shadow-lg`}
+            style={{ width: `${((currentStep + 1) / steps.length) * 100}%` }}
+          ></div>
+        </div>
+
+        {/* Loading Dots */}
+        <div className="text-2xl text-gray-400 mb-4">
+          กำลังประมวลผล{dots}
+        </div>
+
+        {/* Time Estimate */}
+        <div className="bg-white/80 backdrop-blur-sm rounded-full px-6 py-3 inline-block">
+          <p className="text-sm text-gray-600 font-medium">
+            ⏱️ โดยปกติใช้เวลา 30-60 วินาที
+          </p>
+        </div>
+
+        {/* Prediction ID */}
+        {predictionId && (
+          <div className="mt-4 text-xs text-gray-400 bg-gray-100 rounded-full px-3 py-1 inline-block">
+            ID: {predictionId}
+          </div>
+        )}
       </div>
-      <div className="w-full bg-gray-200 rounded-full h-2.5 mt-6 overflow-hidden">
-        <div
-          className="bg-green-500 h-2.5 rounded-full transition-all duration-1000 ease-out"
-          style={{ width: `${((currentStep + 1) / steps.length) * 100}%` }}
-        ></div>
-      </div>
-      <p className="text-sm text-gray-500 mt-4">โดยปกติใช้เวลาไม่เกิน 1 นาที</p>
-      {predictionId && (
-        <p className="text-xs text-gray-400 mt-2">ID: {predictionId}</p>
-      )}
     </div>
   );
 };
@@ -458,25 +505,21 @@ export default function DesignStudioPage() {
         )}
       </div>
 
-      {/* Section: About */}
+      {/* SEO Content - Simple like Perplexity.ai */}
       {!resultImage && (
-        <section id="about" className="mt-10 mb-8">
-          <h2 className="text-2xl font-bold text-green-700 mb-2">เกี่ยวกับ PlantPick</h2>
-          <p className="text-gray-700">PlantPick คือแพลตฟอร์ม AI สำหรับออกแบบสวนและวิเคราะห์ภาพสวนจริง ช่วยให้คุณได้สวนในฝันอย่างง่ายดาย</p>
-        </section>
-      )}
-
-      {/* Section: Features */}
-      {!resultImage && (
-        <section id="features" className="mb-8">
-          <h2 className="text-2xl font-bold text-green-700 mb-2">ฟีเจอร์เด่น</h2>
-          <ul className="list-disc ml-6 text-gray-700">
-            <li>AI ออกแบบสวนตามภาพบ้านจริง</li>
-            <li>วิเคราะห์แสง ทิศทางลม และข้อจำกัดจากภาพถ่าย</li>
-            <li>เลือกสไตล์และฟีเจอร์สวนได้เอง</li>
-            <li>ขอรายการของและราคาประเมิน (BOM)</li>
-          </ul>
-        </section>
+        <div className="mb-8 text-center">
+          <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+            <span className="text-green-600">AI จัดสวน</span> ในฝัน
+          </h1>
+          <p className="text-lg text-gray-600 max-w-2xl mx-auto mb-6">
+            ใช้ปัญญาประดิษฐ์ออกแบบสวนสวยจากภาพบ้านจริง วิเคราะห์แสง ทิศทางลม และสภาพแวดล้อม
+          </p>
+          <div className="flex flex-wrap justify-center gap-4 text-sm text-gray-500">
+            <span>✅ ฟรี ไม่มีค่าใช้จ่าย</span>
+            <span>⚡ เสร็จใน 1 นาที</span>
+            <span>🎨 5 สไตล์สวนให้เลือก</span>
+          </div>
+        </div>
       )}
 
 
@@ -519,32 +562,35 @@ export default function DesignStudioPage() {
               {imagePreview && (
                 <div className="my-4">
                   {analyzingInsights ? (
-                    <div className="text-center text-blue-500">AI กำลังวิเคราะห์สวนของคุณ...</div>
+                    <div className="text-center text-blue-500 text-sm">AI กำลังวิเคราะห์...</div>
                   ) : gardenInsights.length > 0 ? (
-                    <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-xl">
-                      <h3 className="font-bold text-yellow-800 mb-2">คำแนะนำเบื้องต้นจาก AI</h3>
-                      <ul className="list-disc ml-6 text-gray-700">
-                        {gardenInsights.map((s, i) => (
-                          <li key={i} className="mb-1">
-                            <label className="inline-flex items-center gap-2 cursor-pointer">
-                              <input
-                                type="checkbox"
-                                checked={selectedInsights.includes(s)}
-                                onChange={() => {
-                                  setSelectedInsights((prev) =>
-                                    prev.includes(s)
-                                      ? prev.filter((x) => x !== s)
-                                      : [...prev, s]
-                                  );
-                                }}
-                                className="accent-green-600"
-                              />
-                              <span>{s}</span>
-                            </label>
-                          </li>
+                    <div className="bg-blue-50 border border-blue-200 p-3 rounded-lg">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-blue-600">💡</span>
+                        <span className="text-sm font-medium text-blue-800">คำแนะนำจาก AI</span>
+                      </div>
+                      <div className="space-y-1">
+                        {gardenInsights.slice(0, 2).map((s, i) => (
+                          <label key={i} className="flex items-center gap-2 cursor-pointer text-xs">
+                            <input
+                              type="checkbox"
+                              checked={selectedInsights.includes(s)}
+                              onChange={() => {
+                                setSelectedInsights((prev) =>
+                                  prev.includes(s)
+                                    ? prev.filter((x) => x !== s)
+                                    : [...prev, s]
+                                );
+                              }}
+                              className="accent-blue-600"
+                            />
+                            <span className="text-gray-700">{s}</span>
+                          </label>
                         ))}
-                      </ul>
-                      <p className="text-xs text-gray-500 mt-2">เลือกข้อเสนอแนะที่ต้องการให้ AI นำไปใช้ในการออกแบบสวนใหม่</p>
+                        {gardenInsights.length > 2 && (
+                          <p className="text-xs text-gray-500 mt-1">+ {gardenInsights.length - 2} ข้อเสนอแนะเพิ่มเติม</p>
+                        )}
+                      </div>
                     </div>
                   ) : null}
                 </div>
@@ -565,21 +611,7 @@ export default function DesignStudioPage() {
                     ขั้นตอนที่ 2: ระบายพื้นที่สวน
                   </h2>
                   
-                  {/* คำแนะนำการใช้งาน */}
-                  <div className="bg-blue-50 border-l-4 border-blue-400 p-4 rounded-lg mb-4">
-                    <div className="flex items-start gap-3">
-                      <div className="text-blue-500 text-xl">💡</div>
-                      <div>
-                        <h3 className="font-semibold text-blue-800 mb-1">วิธีใช้งาน:</h3>
-                        <ul className="text-sm text-blue-700 space-y-1">
-                          <li>• <strong>ระบายสีชมพู</strong> ในบริเวณที่ต้องการให้เป็นสวน</li>
-                          <li>• ระบายให้ครอบคลุมพื้นที่ที่ต้องการปลูกต้นไม้</li>
-                          <li>• หลีกเลี่ยงการระบายบนตัวบ้านหรือทางเดิน</li>
-                          <li>• ใช้ปุ่ม "ล้างทั้งหมด" หากต้องการเริ่มใหม่</li>
-                        </ul>
-                      </div>
-                    </div>
-                  </div>
+
 
                   <div className="flex items-center gap-4 mb-4">
                     <span className="font-medium text-gray-700">ขนาดพู่กัน:</span>
@@ -602,24 +634,17 @@ export default function DesignStudioPage() {
                     </button>
                   </div>
 
-                  {/* Canvas Container with better visual guidance */}
+                  {/* Canvas Container */}
                   <div
                     ref={containerRef}
-                    className="w-full flex justify-center items-center bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-4 border-2 border-dashed border-blue-300"
+                    className="w-full flex justify-center items-center bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-4 border-2 border-dashed border-gray-300"
                   >
                     <div className="relative">
-                      {/* Overlay with instructions when no drawing */}
+                      {/* Simple overlay when no drawing */}
                       {lines.length === 0 && (
                         <div className="absolute inset-0 bg-black bg-opacity-30 rounded-lg flex items-center justify-center z-10">
-                          <div className="bg-white bg-opacity-90 rounded-lg p-6 text-center max-w-sm">
-                            <div className="text-3xl mb-3">🎨</div>
-                            <h3 className="font-bold text-gray-800 mb-2">เริ่มระบายสีได้เลย!</h3>
-                            <p className="text-sm text-gray-600">
-                              คลิกและลากเมาส์เพื่อระบายสีชมพูในบริเวณที่ต้องการให้เป็นสวน
-                            </p>
-                            <div className="mt-3 text-xs text-gray-500">
-                              💡 เคล็ดลับ: ระบายให้ครอบคลุมพื้นที่ที่ต้องการปลูกต้นไม้
-                            </div>
+                          <div className="bg-white bg-opacity-90 rounded-lg p-6 text-center">
+                            <p className="text-xl font-bold text-gray-800">ระบายสีพื้นที่เป็นสวน</p>
                           </div>
                         </div>
                       )}
@@ -664,17 +689,7 @@ export default function DesignStudioPage() {
                     </div>
                   </div>
 
-                  {/* Progress indicator */}
-                  {lines.length > 0 && (
-                    <div className="mt-3 text-center">
-                      <div className="inline-flex items-center gap-2 bg-green-50 text-green-700 px-4 py-2 rounded-full">
-                        <FiCheckCircle className="text-green-500" />
-                        <span className="text-sm font-medium">
-                          ระบายแล้ว {lines.length} จุด - ระบายเพิ่มเติมหรือไปขั้นตอนถัดไปได้เลย!
-                        </span>
-                      </div>
-                    </div>
-                  )}
+
                 </div>
               </div>
 

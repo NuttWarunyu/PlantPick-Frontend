@@ -1,7 +1,6 @@
 import React from "react";
 import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
 
-import LandingPage from "./pages/LandingPage.jsx";
 import DesignStudioPage from "./pages/DesignStudioPage.jsx";
 import SearchPage from "./pages/SearchPage.jsx";
 import BomResultPage from "./pages/BomResultPage.jsx";
@@ -42,8 +41,7 @@ function App() {
 
         <main className="w-full max-w-5xl mx-auto flex-grow p-4 sm:p-6 lg:p-8">
           <Routes>
-            <Route path="/" element={<LandingPage />} />
-            <Route path="/design-studio" element={<DesignStudioPage />} />
+            <Route path="/" element={<DesignStudioPage />} />
             <Route path="/search" element={<SearchPage />} />
             <Route path="/bom-result" element={<BomResultPage />} />
           </Routes>
