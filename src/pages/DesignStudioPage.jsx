@@ -362,11 +362,17 @@ export default function DesignStudioPage() {
     let prompt =
       "masterpiece, best quality, 8k, photorealistic, professional photography, cinematic lighting, ";
     prompt += `a beautiful and lush garden with ${featuresString} style. `;
-    prompt +=
-      "The garden must have a clear, logical pathway leading to the house entrance. ";
-    prompt += "It features a distinct focal point. ";
+    
+    // เพิ่มคำแนะนำสำหรับพื้นที่โล่งๆ
+    prompt += "IMPORTANT: Fill all empty spaces with lush vegetation, flowers, and garden elements. ";
+    prompt += "Do not leave any bare ground, sand, or empty grass areas. ";
+    prompt += "Transform empty spaces into beautiful garden features with plants, flowers, shrubs, and decorative elements. ";
+    
+    prompt += "The garden must have a clear, logical pathway leading to the house entrance. ";
+    prompt += "It features a distinct focal point with eye-catching plants or garden features. ";
     prompt +=
       "Use a variety of plants and flowers suitable for Thailand's tropical climate, with layered planting and rich textures. ";
+    prompt += "Include ground cover plants, flowering shrubs, ornamental grasses, and colorful flowers to fill all spaces. ";
 
     if (customKeywords) {
       prompt += `Specifically include these elements: ${customKeywords}.`;
@@ -374,6 +380,10 @@ export default function DesignStudioPage() {
     if (selectedInsights.length > 0) {
       prompt += ` Please address these suggestions: ${selectedInsights.join(", ")}.`;
     }
+    
+    // เพิ่ม negative prompt เพื่อป้องกันพื้นที่โล่ง
+    prompt += " Avoid: empty spaces, bare ground, plain grass, sand patches, unplanted areas. ";
+    
     return prompt;
   };
 
@@ -645,6 +655,7 @@ export default function DesignStudioPage() {
                         <div className="absolute inset-0 bg-black bg-opacity-30 rounded-lg flex items-center justify-center z-10">
                           <div className="bg-white bg-opacity-90 rounded-lg p-8 text-center">
                             <p className="text-3xl font-bold text-gray-800">โปรดระบายสีพื้นที่สวน</p>
+                            <p className="text-sm text-gray-600 mt-2">เน้นระบายพื้นที่โล่งๆ พื้นทราย พื้นหญ้าเปล่า</p>
                           </div>
                         </div>
                       )}
