@@ -20,54 +20,101 @@ import useImage from "use-image";
 
 const EngagingLoadingScreen = ({ predictionId }) => {
   const [currentStep, setCurrentStep] = useState(0);
+  const [dots, setDots] = useState("");
+  
   const steps = [
     {
-      icon: <FiTool className="text-purple-500" />,
-      text: "กำลังปลุก AI นักออกแบบของเราให้ตื่น...",
+      icon: "🤖",
+      text: "AI กำลังวิเคราะห์ภาพบ้านของคุณ",
+      color: "from-purple-500 to-pink-500"
     },
     {
-      icon: <FiUploadCloud className="text-blue-500" />,
-      text: "กำลังส่งภาพของคุณขึ้นไปบนคลาวด์...",
+      icon: "🌤️",
+      text: "ตรวจสอบแสง ทิศทางลม และสภาพแวดล้อม",
+      color: "from-blue-500 to-cyan-500"
     },
     {
-      icon: <FiSun className="text-yellow-500" />,
-      text: "AI กำลังวิเคราะห์แสงและเงา...",
+      icon: "🌱",
+      text: "ออกแบบสวนและเลือกพรรณไม้ที่เหมาะสม",
+      color: "from-green-500 to-emerald-500"
     },
     {
-      icon: <FiDroplet className="text-cyan-500" />,
-      text: "กำลังร่างแบบสวนและเลือกพรรณไม้...",
+      icon: "🎨",
+      text: "สร้างภาพสวนสวยด้วย AI",
+      color: "from-orange-500 to-red-500"
     },
     {
-      icon: <FiCheckCircle className="text-green-500" />,
-      text: "ใกล้เสร็จแล้ว! กำลังลงสีและเก็บรายละเอียด...",
-    },
+      icon: "✨",
+      text: "เกลี่ยรายละเอียดและปรับแต่งสีสัน",
+      color: "from-indigo-500 to-purple-500"
+    }
   ];
 
   useEffect(() => {
-    const interval = setInterval(() => {
+    const stepInterval = setInterval(() => {
       setCurrentStep((prevStep) => (prevStep + 1) % steps.length);
-    }, 3000);
-    return () => clearInterval(interval);
+    }, 2000);
+    
+    const dotsInterval = setInterval(() => {
+      setDots(prev => prev.length >= 3 ? "" : prev + ".");
+    }, 500);
+
+    return () => {
+      clearInterval(stepInterval);
+      clearInterval(dotsInterval);
+    };
   }, []);
 
   return (
-    <div className="w-full bg-gray-50 p-8 rounded-2xl text-center transition-all duration-500">
-      <div className="flex flex-col sm:flex-row items-center justify-center text-xl md:text-2xl font-bold text-gray-700">
-        <div className="animate-spin text-4xl mb-4 sm:mb-0 sm:mr-4">
-          {steps[currentStep].icon}
+    <div className="w-full bg-gradient-to-br from-gray-50 to-gray-100 p-8 rounded-3xl text-center transition-all duration-500 shadow-lg border border-gray-200">
+      {/* Animated Background */}
+      <div className="absolute inset-0 bg-gradient-to-r from-green-100/50 to-blue-100/50 rounded-3xl animate-pulse"></div>
+      
+      <div className="relative z-10">
+        {/* Main Icon with Animation */}
+        <div className="mb-6">
+          <div className={`inline-flex items-center justify-center w-20 h-20 bg-gradient-to-r ${steps[currentStep].color} rounded-full text-4xl animate-bounce shadow-lg`}>
+            {steps[currentStep].icon}
+          </div>
         </div>
-        <p>{steps[currentStep].text}</p>
+
+        {/* Step Text */}
+        <div className="mb-6">
+          <h3 className="text-2xl md:text-3xl font-bold text-gray-800 mb-2">
+            {steps[currentStep].text}
+          </h3>
+          <p className="text-lg text-gray-600">
+            ขั้นตอนที่ {currentStep + 1} จาก {steps.length}
+          </p>
+        </div>
+
+        {/* Animated Progress Bar */}
+        <div className="w-full bg-gray-200 rounded-full h-3 mb-6 overflow-hidden shadow-inner">
+          <div
+            className={`h-3 bg-gradient-to-r ${steps[currentStep].color} rounded-full transition-all duration-1000 ease-out shadow-lg`}
+            style={{ width: `${((currentStep + 1) / steps.length) * 100}%` }}
+          ></div>
+        </div>
+
+        {/* Loading Dots */}
+        <div className="text-2xl text-gray-400 mb-4">
+          กำลังประมวลผล{dots}
+        </div>
+
+        {/* Time Estimate */}
+        <div className="bg-white/80 backdrop-blur-sm rounded-full px-6 py-3 inline-block">
+          <p className="text-sm text-gray-600 font-medium">
+            ⏱️ โดยปกติใช้เวลา 30-60 วินาที
+          </p>
+        </div>
+
+        {/* Prediction ID */}
+        {predictionId && (
+          <div className="mt-4 text-xs text-gray-400 bg-gray-100 rounded-full px-3 py-1 inline-block">
+            ID: {predictionId}
+          </div>
+        )}
       </div>
-      <div className="w-full bg-gray-200 rounded-full h-2.5 mt-6 overflow-hidden">
-        <div
-          className="bg-green-500 h-2.5 rounded-full transition-all duration-1000 ease-out"
-          style={{ width: `${((currentStep + 1) / steps.length) * 100}%` }}
-        ></div>
-      </div>
-      <p className="text-sm text-gray-500 mt-4">โดยปกติใช้เวลาไม่เกิน 1 นาที</p>
-      {predictionId && (
-        <p className="text-xs text-gray-400 mt-2">ID: {predictionId}</p>
-      )}
     </div>
   );
 };
@@ -93,11 +140,11 @@ const featureTags = [
   { id: "pet-friendly", name: "เลี้ยงสัตว์ได้", emoji: "🐶" },
 ];
 
+// ปรับ budgetOptions เหลือ 3 ตัวเลือก
 const budgetOptions = [
-  { label: "< 50,000", value: 50000, level: 1 },
-  { label: "50,000 - 100,000", value: 100000, level: 2 },
-  { label: "100,000 - 250,000", value: 250000, level: 3 },
-  { label: "> 250,000", value: 500000, level: 4 },
+  { label: "50,000", value: 50000, level: 1, color: "from-green-400 to-green-600" },
+  { label: "50,000 - 100,000", value: 100000, level: 2, color: "from-orange-400 to-orange-600" },
+  { label: "> 100,000", value: 200000, level: 3, color: "from-blue-400 to-blue-600" },
 ];
 
 // --- Main Component ---
@@ -121,7 +168,36 @@ export default function DesignStudioPage() {
   const [customKeywords, setCustomKeywords] = useState("");
   const [selectedBudgetLevel, setSelectedBudgetLevel] = useState(2);
 
+  // เพิ่ม state สำหรับ insight
+  const [gardenInsights, setGardenInsights] = useState([]);
+  const [analyzingInsights, setAnalyzingInsights] = useState(false);
+  const [selectedInsights, setSelectedInsights] = useState([]);
+  
+  // เพิ่ม state สำหรับแสดงจำนวนครั้งที่เหลือ
+  const [dailyUsage, setDailyUsage] = useState({ used: 0, limit: 10 });
+  const [loadingUsage, setLoadingUsage] = useState(false);
+
   const [canvasSize, setCanvasSize] = useState({ width: 0, height: 0 });
+
+  // ฟังก์ชันดึงข้อมูลจำนวนครั้งที่เหลือ
+  const fetchDailyUsage = async () => {
+    setLoadingUsage(true);
+    try {
+      const response = await axios.get(`${API_BASE_URL}/garden/daily-usage`);
+      setDailyUsage(response.data);
+    } catch (error) {
+      console.error('Failed to fetch daily usage:', error);
+      // ถ้า API ไม่มี ให้ใช้ค่า default
+      setDailyUsage({ used: 0, limit: 10 });
+    } finally {
+      setLoadingUsage(false);
+    }
+  };
+
+  // ดึงข้อมูลจำนวนครั้งที่เหลือเมื่อโหลดหน้า
+  useEffect(() => {
+    fetchDailyUsage();
+  }, []);
 
   const isDrawing = useRef(false);
   const stageRef = useRef(null);
@@ -160,6 +236,8 @@ export default function DesignStudioPage() {
           setLoading(false);
           setPredictionId(null);
           clearInterval(interval);
+          // อัปเดตจำนวนครั้งที่เหลือหลังจากสร้างสำเร็จ
+          fetchDailyUsage();
         } else if (status === "failed") {
           setError(`การสร้างภาพล้มเหลว: ${predictionError}`);
           setLoading(false);
@@ -188,6 +266,21 @@ export default function DesignStudioPage() {
         setImagePreview(event.target.result);
         setLines([]);
         setResultImage(null);
+        // === เรียก API วิเคราะห์สวนจริง ===
+        setAnalyzingInsights(true);
+        setGardenInsights([]);
+        setSelectedInsights([]);
+        const formData = new FormData();
+        formData.append("image", file);
+        axios
+          .post(`${API_BASE_URL}/garden/analyze-garden`, formData)
+          .then((res) => {
+            setGardenInsights(res.data.suggestions || []);
+          })
+          .catch(() => {
+            setGardenInsights([]);
+          })
+          .finally(() => setAnalyzingInsights(false));
       };
       reader.readAsDataURL(file);
     }
@@ -269,15 +362,28 @@ export default function DesignStudioPage() {
     let prompt =
       "masterpiece, best quality, 8k, photorealistic, professional photography, cinematic lighting, ";
     prompt += `a beautiful and lush garden with ${featuresString} style. `;
-    prompt +=
-      "The garden must have a clear, logical pathway leading to the house entrance. ";
-    prompt += "It features a distinct focal point. ";
+    
+    // เพิ่มคำแนะนำสำหรับพื้นที่โล่งๆ
+    prompt += "IMPORTANT: Fill all empty spaces with lush vegetation, flowers, and garden elements. ";
+    prompt += "Do not leave any bare ground, sand, or empty grass areas. ";
+    prompt += "Transform empty spaces into beautiful garden features with plants, flowers, shrubs, and decorative elements. ";
+    
+    prompt += "The garden must have a clear, logical pathway leading to the house entrance. ";
+    prompt += "It features a distinct focal point with eye-catching plants or garden features. ";
     prompt +=
       "Use a variety of plants and flowers suitable for Thailand's tropical climate, with layered planting and rich textures. ";
+    prompt += "Include ground cover plants, flowering shrubs, ornamental grasses, and colorful flowers to fill all spaces. ";
 
     if (customKeywords) {
       prompt += `Specifically include these elements: ${customKeywords}.`;
     }
+    if (selectedInsights.length > 0) {
+      prompt += ` Please address these suggestions: ${selectedInsights.join(", ")}.`;
+    }
+    
+    // เพิ่ม negative prompt เพื่อป้องกันพื้นที่โล่ง
+    prompt += " Avoid: empty spaces, bare ground, plain grass, sand patches, unplanted areas. ";
+    
     return prompt;
   };
 
@@ -370,6 +476,65 @@ export default function DesignStudioPage() {
 
   return (
     <div className="w-full space-y-6">
+      {/* แสดงจำนวนครั้งที่เหลือ */}
+      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
+              <span className="text-white text-sm font-bold">🎯</span>
+            </div>
+            <div>
+              <h3 className="font-semibold text-blue-800">จำนวนครั้งที่เหลือวันนี้</h3>
+              <p className="text-sm text-blue-600">
+                {loadingUsage ? (
+                  "กำลังโหลด..."
+                ) : (
+                  `${dailyUsage.used}/${dailyUsage.limit} ครั้ง`
+                )}
+              </p>
+            </div>
+          </div>
+          <div className="text-right">
+            <div className="text-2xl font-bold text-blue-600">
+              {dailyUsage.limit - dailyUsage.used}
+            </div>
+            <div className="text-xs text-blue-500">ครั้งที่เหลือ</div>
+          </div>
+        </div>
+        {/* Progress bar */}
+        <div className="mt-3 w-full bg-blue-200 rounded-full h-2">
+          <div 
+            className="bg-blue-500 h-2 rounded-full transition-all duration-300"
+            style={{ width: `${(dailyUsage.used / dailyUsage.limit) * 100}%` }}
+          ></div>
+        </div>
+        {dailyUsage.used >= dailyUsage.limit && (
+          <div className="mt-2 text-center text-red-600 text-sm font-medium">
+            ⚠️ คุณใช้จำนวนครั้งครบแล้ววันนี้ กรุณาลองใหม่พรุ่งนี้
+          </div>
+        )}
+      </div>
+
+      {/* SEO Content - Simple like Perplexity.ai */}
+      {!resultImage && (
+        <div className="mb-8 text-center">
+          <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+            <span className="text-green-600">AI จัดสวน</span> ในฝัน
+          </h1>
+          <p className="text-lg text-gray-600 max-w-2xl mx-auto mb-6">
+            ใช้ปัญญาประดิษฐ์ออกแบบสวนสวยจากภาพบ้านจริง วิเคราะห์แสง ทิศทางลม และสภาพแวดล้อม
+          </p>
+          <div className="flex flex-wrap justify-center gap-4 text-sm text-gray-500">
+            <span>✅ ฟรี ไม่มีค่าใช้จ่าย</span>
+            <span>⚡ เสร็จใน 1 นาที</span>
+            <span>🎨 5 สไตล์สวนให้เลือก</span>
+          </div>
+        </div>
+      )}
+
+
+
+
       {loading ? (
         <EngagingLoadingScreen predictionId={predictionId} />
       ) : (
@@ -403,6 +568,8 @@ export default function DesignStudioPage() {
                 </label>
               </div>
 
+
+
               {/* === ขั้นตอนที่ 2: ระบายสี === */}
               <div
                 className={`pt-6 border-t transition-opacity duration-500 ${
@@ -417,8 +584,11 @@ export default function DesignStudioPage() {
                   <h2 className="text-xl font-bold text-gray-800 mb-2">
                     ขั้นตอนที่ 2: ระบายพื้นที่สวน
                   </h2>
+                  
+
+
                   <div className="flex items-center gap-4 mb-4">
-                    <span>ขนาดพู่กัน:</span>
+                    <span className="font-medium text-gray-700">ขนาดพู่กัน:</span>
                     <input
                       type="range"
                       min="5"
@@ -428,19 +598,31 @@ export default function DesignStudioPage() {
                       className="w-48"
                       disabled={!imagePreview}
                     />
+                    <span className="text-sm text-gray-500">{brushSize}px</span>
                     <button
                       onClick={handleClearMask}
-                      className="flex items-center gap-2 text-sm text-red-600 hover:text-red-800"
+                      className="flex items-center gap-2 text-sm text-red-600 hover:text-red-800 bg-red-50 px-3 py-1 rounded-lg transition-colors"
                       disabled={!imagePreview}
                     >
                       <FiTrash2 /> ล้างทั้งหมด
                     </button>
                   </div>
+
+                  {/* Canvas Container */}
                   <div
                     ref={containerRef}
-                    className="w-full flex justify-center items-center bg-gray-100 rounded-lg p-2"
+                    className="w-full flex justify-center items-center bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-4 border-2 border-dashed border-gray-300"
                   >
-                    <div className="border-2 border-dashed border-pink-500">
+                    <div className="relative">
+                      {/* Simple overlay when no drawing */}
+                      {lines.length === 0 && imagePreview && (
+                        <div className="absolute inset-0 bg-black bg-opacity-30 rounded-lg flex items-center justify-center z-10">
+                          <div className="bg-white bg-opacity-90 rounded-lg p-8 text-center">
+                            <p className="text-3xl font-bold text-gray-800">โปรดระบายสีพื้นที่สวน</p>
+                          </div>
+                        </div>
+                      )}
+                      
                       <Stage
                         width={canvasSize.width}
                         height={canvasSize.height}
@@ -451,12 +633,15 @@ export default function DesignStudioPage() {
                         onTouchMove={handleMouseMove}
                         onTouchEnd={handleMouseUp}
                         ref={stageRef}
+                        className="rounded-lg shadow-lg"
+                        style={{ cursor: 'crosshair' }}
                       >
                         <Layer>
                           <KonvaImage
                             image={imageForCanvas}
                             width={canvasSize.width}
                             height={canvasSize.height}
+                            opacity={0.8}
                           />
                         </Layer>
                         <Layer>
@@ -470,13 +655,15 @@ export default function DesignStudioPage() {
                               lineCap="round"
                               lineJoin="round"
                               globalCompositeOperation={"source-over"}
-                              opacity={0.5}
+                              opacity={0.7}
                             />
                           ))}
                         </Layer>
                       </Stage>
                     </div>
                   </div>
+
+
                 </div>
               </div>
 
@@ -553,14 +740,53 @@ export default function DesignStudioPage() {
                   <div className="flex justify-center pt-4">
                     <button
                       onClick={handleSubmit}
-                      disabled={!imagePreview}
+                      disabled={!imagePreview || dailyUsage.used >= dailyUsage.limit}
                       className="w-full sm:w-auto text-2xl font-extrabold text-white bg-gradient-to-r from-green-500 to-lime-400 rounded-full shadow-2xl px-16 py-5 transform transition-all hover:from-green-600 hover:to-lime-500 hover:scale-105 focus:outline-none focus:ring-4 focus:ring-green-300 disabled:bg-gray-400 disabled:cursor-not-allowed disabled:scale-100 flex items-center justify-center gap-4 my-8"
                     >
-                      <FiSend size={28} /> สร้างสวนในฝัน
+                      <FiSend size={28} /> 
+                      {dailyUsage.used >= dailyUsage.limit ? 'ใช้ครบจำนวนครั้งแล้ว' : 'สร้างสวนในฝัน'}
                     </button>
                   </div>
                 </div>
               </div>
+
+              {/* === แสดง insight/suggestions จาก AI ใต้รูป === */}
+              {imagePreview && (
+                <div className="mt-4">
+                  {analyzingInsights ? (
+                    <div className="text-center text-blue-500 text-sm">AI กำลังวิเคราะห์...</div>
+                  ) : gardenInsights.length > 0 ? (
+                    <div className="bg-blue-50 border border-blue-200 p-3 rounded-lg">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-blue-600">💡</span>
+                        <span className="text-sm font-medium text-blue-800">คำแนะนำจาก AI</span>
+                      </div>
+                      <div className="space-y-1">
+                        {gardenInsights.slice(0, 2).map((s, i) => (
+                          <label key={i} className="flex items-center gap-2 cursor-pointer text-xs">
+                            <input
+                              type="checkbox"
+                              checked={selectedInsights.includes(s)}
+                              onChange={() => {
+                                setSelectedInsights((prev) =>
+                                  prev.includes(s)
+                                    ? prev.filter((x) => x !== s)
+                                    : [...prev, s]
+                                );
+                              }}
+                              className="accent-blue-600"
+                            />
+                            <span className="text-gray-700">{s}</span>
+                          </label>
+                        ))}
+                        {gardenInsights.length > 2 && (
+                          <p className="text-xs text-gray-500 mt-1">+ {gardenInsights.length - 2} ข้อเสนอแนะเพิ่มเติม</p>
+                        )}
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
+              )}
             </div>
           )}
         </>
@@ -579,6 +805,18 @@ export default function DesignStudioPage() {
               alt="Inpainting result"
               className="mt-4 max-w-full rounded-lg shadow-lg mx-auto"
             />
+            {/* ปุ่มรีเฟรช/สร้างใหม่ ใต้รูป */}
+            <div className="flex justify-center mt-4">
+              <button
+                onClick={() => {
+                  setResultImage(null);
+                  setError(null);
+                }}
+                className="w-full sm:w-auto bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold text-lg py-3 px-10 rounded-full shadow transition-all focus:outline-none focus:ring-2 focus:ring-gray-300 flex items-center justify-center gap-2"
+              >
+                🔄 สร้างใหม่ (สุ่มใหม่)
+              </button>
+            </div>
           </div>
           <div className="pt-6 border-t">
             <div className="text-center mb-4">
@@ -589,52 +827,42 @@ export default function DesignStudioPage() {
                 เลือกช่วงงบประมาณของคุณเพื่อดูรายการของและราคาประเมิน
               </p>
             </div>
+            {/* ปุ่มงบประมาณแนวนอน */}
             <div className="flex flex-wrap justify-center gap-3 mt-4">
               {budgetOptions.map((opt) => (
                 <button
                   key={opt.level}
                   onClick={() => setSelectedBudgetLevel(opt.level)}
-                  className={`px-5 py-2 text-sm font-bold rounded-full transition-all ${
-                    selectedBudgetLevel === opt.level
-                      ? "bg-green-600 text-white shadow-lg"
-                      : "bg-white text-gray-800 border hover:bg-green-50"
-                  }`}
+                  className={
+                    `px-5 py-3 text-xl font-bold rounded-full transition-all duration-200 ` +
+                    (selectedBudgetLevel === opt.level
+                      ? "bg-green-600 text-white shadow-lg scale-105 ring-4 ring-green-200"
+                      : "bg-white text-gray-800 border hover:bg-green-50")
+                  }
                 >
                   {opt.label}
                 </button>
               ))}
             </div>
           </div>
-          <div className="pt-4 flex justify-center">
+          {/* ปุ่มขอรายการของและราคา ล่างสุด เด่นสุด */}
+          <div className="pt-8 flex justify-center">
             <button
               onClick={handleGenerateBOM}
               disabled={bomLoading}
-              className="w-full sm:w-auto bg-gradient-to-r from-orange-400 to-orange-600 text-white font-extrabold text-xl py-4 px-14 rounded-full shadow-2xl hover:from-orange-500 hover:to-orange-700 hover:scale-105 transition-all focus:outline-none focus:ring-4 focus:ring-orange-200 flex items-center justify-center gap-4 my-8 disabled:bg-gray-400"
+              className="w-full sm:w-auto bg-gradient-to-r from-orange-500 to-pink-500 text-white font-extrabold text-2xl py-5 px-16 rounded-full shadow-2xl hover:from-orange-600 hover:to-pink-600 hover:scale-105 transition-all focus:outline-none focus:ring-4 focus:ring-orange-200 flex items-center justify-center gap-4 my-8 disabled:bg-gray-400"
             >
               {bomLoading ? (
                 <>
-                  <FiSend size={24} className="animate-spin" /> กำลังวิเคราะห์...
+                  <FiSend size={28} className="animate-spin" /> กำลังวิเคราะห์...
                 </>
               ) : (
                 <>
-                  �� ขอรายการของและราคา
+                  🌱 ขอรายการของและราคา
                 </>
               )}
             </button>
           </div>
-        </div>
-      )}
-      {resultImage && (
-        <div className="flex flex-col sm:flex-row justify-center gap-4 mt-6">
-          <button
-            onClick={() => {
-              setResultImage(null);
-              setError(null);
-            }}
-            className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white font-bold text-lg py-3 px-10 rounded-full shadow-lg transition-all focus:outline-none focus:ring-4 focus:ring-blue-200"
-          >
-            🔄 ปรับแท็ก/สไตล์ใหม่
-          </button>
         </div>
       )}
     </div>
