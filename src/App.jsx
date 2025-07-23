@@ -1,11 +1,10 @@
 import React from "react";
 import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
 
-// === จุดแก้ไขที่ 1: ลบ Import ที่ไม่ใช้ออก และใช้ชื่อใหม่ ===
+import LandingPage from "./pages/LandingPage.jsx";
 import DesignStudioPage from "./pages/DesignStudioPage.jsx";
 import SearchPage from "./pages/SearchPage.jsx";
 import BomResultPage from "./pages/BomResultPage.jsx";
-// (เราได้ลบ HomePage, GardenBudgetIdeas, และ IdentifyResult ออกไปแล้ว)
 
 function App() {
   return (
@@ -42,12 +41,11 @@ function App() {
         </header>
 
         <main className="w-full max-w-5xl mx-auto flex-grow p-4 sm:p-6 lg:p-8">
-          {/* === จุดแก้ไขที่ 3: นำ Route ที่จำเป็นกลับมา และตั้งค่าหน้าแรกให้ถูกต้อง === */}
           <Routes>
-            <Route path="/" element={<DesignStudioPage />} />
+            <Route path="/" element={<LandingPage />} />
+            <Route path="/design-studio" element={<DesignStudioPage />} />
             <Route path="/search" element={<SearchPage />} />
             <Route path="/bom-result" element={<BomResultPage />} />
-            {/* ตอนนี้หน้าออกแบบหลักของเราคือ DesignStudioPage ที่ path "/" */}
           </Routes>
         </main>
 
