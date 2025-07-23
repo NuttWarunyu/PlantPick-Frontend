@@ -568,43 +568,7 @@ export default function DesignStudioPage() {
                 </label>
               </div>
 
-              {/* === แสดง insight/suggestions จาก AI หลังอัปโหลดรูป === */}
-              {imagePreview && (
-                <div className="my-4">
-                  {analyzingInsights ? (
-                    <div className="text-center text-blue-500 text-sm">AI กำลังวิเคราะห์...</div>
-                  ) : gardenInsights.length > 0 ? (
-                    <div className="bg-blue-50 border border-blue-200 p-3 rounded-lg">
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className="text-blue-600">💡</span>
-                        <span className="text-sm font-medium text-blue-800">คำแนะนำจาก AI</span>
-                      </div>
-                      <div className="space-y-1">
-                        {gardenInsights.slice(0, 2).map((s, i) => (
-                          <label key={i} className="flex items-center gap-2 cursor-pointer text-xs">
-                            <input
-                              type="checkbox"
-                              checked={selectedInsights.includes(s)}
-                              onChange={() => {
-                                setSelectedInsights((prev) =>
-                                  prev.includes(s)
-                                    ? prev.filter((x) => x !== s)
-                                    : [...prev, s]
-                                );
-                              }}
-                              className="accent-blue-600"
-                            />
-                            <span className="text-gray-700">{s}</span>
-                          </label>
-                        ))}
-                        {gardenInsights.length > 2 && (
-                          <p className="text-xs text-gray-500 mt-1">+ {gardenInsights.length - 2} ข้อเสนอแนะเพิ่มเติม</p>
-                        )}
-                      </div>
-                    </div>
-                  ) : null}
-                </div>
-              )}
+
 
               {/* === ขั้นตอนที่ 2: ระบายสี === */}
               <div
@@ -655,7 +619,6 @@ export default function DesignStudioPage() {
                         <div className="absolute inset-0 bg-black bg-opacity-30 rounded-lg flex items-center justify-center z-10">
                           <div className="bg-white bg-opacity-90 rounded-lg p-8 text-center">
                             <p className="text-3xl font-bold text-gray-800">โปรดระบายสีพื้นที่สวน</p>
-                            <p className="text-sm text-gray-600 mt-2">เน้นระบายพื้นที่โล่งๆ พื้นทราย พื้นหญ้าเปล่า</p>
                           </div>
                         </div>
                       )}
@@ -786,6 +749,44 @@ export default function DesignStudioPage() {
                   </div>
                 </div>
               </div>
+
+              {/* === แสดง insight/suggestions จาก AI ใต้รูป === */}
+              {imagePreview && (
+                <div className="mt-4">
+                  {analyzingInsights ? (
+                    <div className="text-center text-blue-500 text-sm">AI กำลังวิเคราะห์...</div>
+                  ) : gardenInsights.length > 0 ? (
+                    <div className="bg-blue-50 border border-blue-200 p-3 rounded-lg">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-blue-600">💡</span>
+                        <span className="text-sm font-medium text-blue-800">คำแนะนำจาก AI</span>
+                      </div>
+                      <div className="space-y-1">
+                        {gardenInsights.slice(0, 2).map((s, i) => (
+                          <label key={i} className="flex items-center gap-2 cursor-pointer text-xs">
+                            <input
+                              type="checkbox"
+                              checked={selectedInsights.includes(s)}
+                              onChange={() => {
+                                setSelectedInsights((prev) =>
+                                  prev.includes(s)
+                                    ? prev.filter((x) => x !== s)
+                                    : [...prev, s]
+                                );
+                              }}
+                              className="accent-blue-600"
+                            />
+                            <span className="text-gray-700">{s}</span>
+                          </label>
+                        ))}
+                        {gardenInsights.length > 2 && (
+                          <p className="text-xs text-gray-500 mt-1">+ {gardenInsights.length - 2} ข้อเสนอแนะเพิ่มเติม</p>
+                        )}
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
+              )}
             </div>
           )}
         </>
