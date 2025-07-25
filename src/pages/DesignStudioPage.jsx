@@ -21,47 +21,58 @@ import useImage from "use-image";
 const EngagingLoadingScreen = ({ predictionId }) => {
   const [currentStep, setCurrentStep] = useState(0);
   const [dots, setDots] = useState("");
+  const [timeElapsed, setTimeElapsed] = useState(0);
   
   const steps = [
     {
       icon: "🤖",
       text: "AI กำลังวิเคราะห์ภาพบ้านของคุณ",
-      color: "from-purple-500 to-pink-500"
+      color: "from-purple-500 to-pink-500",
+      duration: 8
     },
     {
       icon: "🌤️",
       text: "ตรวจสอบแสง ทิศทางลม และสภาพแวดล้อม",
-      color: "from-blue-500 to-cyan-500"
+      color: "from-blue-500 to-cyan-500",
+      duration: 10
     },
     {
       icon: "🌱",
       text: "ออกแบบสวนและเลือกพรรณไม้ที่เหมาะสม",
-      color: "from-green-500 to-emerald-500"
+      color: "from-green-500 to-emerald-500",
+      duration: 12
     },
     {
       icon: "🎨",
       text: "สร้างภาพสวนสวยด้วย AI",
-      color: "from-orange-500 to-red-500"
+      color: "from-orange-500 to-red-500",
+      duration: 15
     },
     {
       icon: "✨",
       text: "เกลี่ยรายละเอียดและปรับแต่งสีสัน",
-      color: "from-indigo-500 to-purple-500"
+      color: "from-indigo-500 to-purple-500",
+      duration: 10
     }
   ];
 
   useEffect(() => {
     const stepInterval = setInterval(() => {
       setCurrentStep((prevStep) => (prevStep + 1) % steps.length);
-    }, 2000);
+    }, 3000); // เพิ่มเวลาให้แต่ละขั้นตอน
     
     const dotsInterval = setInterval(() => {
       setDots(prev => prev.length >= 3 ? "" : prev + ".");
     }, 500);
 
+    const timeInterval = setInterval(() => {
+      setTimeElapsed(prev => prev + 1);
+    }, 1000);
+
     return () => {
       clearInterval(stepInterval);
       clearInterval(dotsInterval);
+      clearInterval(timeInterval);
     };
   }, []);
 
@@ -104,8 +115,13 @@ const EngagingLoadingScreen = ({ predictionId }) => {
         {/* Time Estimate */}
         <div className="bg-white/80 backdrop-blur-sm rounded-full px-6 py-3 inline-block">
           <p className="text-sm text-gray-600 font-medium">
-            ⏱️ โดยปกติใช้เวลา 30-60 วินาที
+            ⏱️ เวลาที่ใช้: {timeElapsed} วินาที
           </p>
+        </div>
+
+        {/* Estimated Time Remaining */}
+        <div className="mt-2 text-xs text-gray-500">
+          ประมาณอีก {Math.max(0, 55 - timeElapsed)} วินาที
         </div>
 
         {/* Prediction ID */}
@@ -429,7 +445,24 @@ export default function DesignStudioPage() {
         throw new Error("Did not receive a valid prediction ID.");
       }
     } catch (err) {
-      setError("เกิดข้อผิดพลาด: " + (err.response?.data?.error || err.message));
+      let errorMessage = "เกิดข้อผิดพลาดในการสร้างสวน";
+      
+      if (err.response?.data?.error) {
+        errorMessage = err.response.data.error;
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+      
+      // แปลง error message ให้เป็นภาษาไทย
+      if (errorMessage.includes("Image processing error")) {
+        errorMessage = "เกิดข้อผิดพลาดในการประมวลผลรูปภาพ กรุณาลองใหม่";
+      } else if (errorMessage.includes("Daily limit exceeded")) {
+        errorMessage = "เกินโควต้าการใช้งานประจำวัน กรุณาลองใหม่พรุ่งนี้";
+      } else if (errorMessage.includes("network")) {
+        errorMessage = "เกิดข้อผิดพลาดในการเชื่อมต่อ กรุณาตรวจสอบอินเทอร์เน็ต";
+      }
+      
+      setError(errorMessage);
       setLoading(false);
     }
   };
@@ -466,9 +499,22 @@ export default function DesignStudioPage() {
         },
       });
     } catch (err) {
-      setError(
-        "Error generating BOM: " + (err.response?.data?.error || err.message)
-      );
+      let errorMessage = "เกิดข้อผิดพลาดในการสร้างรายการวัสดุ";
+      
+      if (err.response?.data?.error) {
+        errorMessage = err.response.data.error;
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+      
+      // แปลง error message ให้เป็นภาษาไทย
+      if (errorMessage.includes("History not found")) {
+        errorMessage = "ไม่พบข้อมูลการสร้างสวน กรุณาสร้างสวนใหม่";
+      } else if (errorMessage.includes("network")) {
+        errorMessage = "เกิดข้อผิดพลาดในการเชื่อมต่อ กรุณาตรวจสอบอินเทอร์เน็ต";
+      }
+      
+      setError(errorMessage);
     } finally {
       setBomLoading(false);
     }
@@ -685,12 +731,12 @@ export default function DesignStudioPage() {
                     <label className="font-semibold text-gray-700">
                       สไตล์หลัก (เลือก 1 อย่าง)
                     </label>
-                    <div className="flex flex-wrap gap-3 mt-2">
+                    <div className="flex flex-wrap gap-2 sm:gap-3 mt-2">
                       {styleTags.map((tag) => (
                         <button
                           key={tag.id}
                           onClick={() => setSelectedStyle(tag.id)}
-                          className={`px-5 py-2.5 text-base font-semibold rounded-full transition-all duration-200 ease-in-out transform hover:scale-105 ${
+                          className={`px-3 sm:px-5 py-2 sm:py-2.5 text-sm sm:text-base font-semibold rounded-full transition-all duration-200 ease-in-out transform hover:scale-105 ${
                             selectedStyle === tag.id
                               ? "bg-green-600 text-white shadow-md ring-2 ring-offset-2 ring-green-500"
                               : "bg-gray-100 text-gray-700 hover:bg-gray-200"
@@ -705,12 +751,12 @@ export default function DesignStudioPage() {
                     <label className="font-semibold text-gray-700">
                       องค์ประกอบเพิ่มเติม (เลือกได้หลายอย่าง)
                     </label>
-                    <div className="flex flex-wrap gap-3 mt-2">
+                    <div className="flex flex-wrap gap-2 sm:gap-3 mt-2">
                       {featureTags.map((tag) => (
                         <button
                           key={tag.id}
                           onClick={() => handleFeatureTagToggle(tag.id)}
-                          className={`px-5 py-2.5 text-base font-semibold rounded-full transition-all duration-200 ease-in-out transform hover:scale-105 ${
+                          className={`px-3 sm:px-5 py-2 sm:py-2.5 text-sm sm:text-base font-semibold rounded-full transition-all duration-200 ease-in-out transform hover:scale-105 ${
                             selectedFeatures.has(tag.id)
                               ? "bg-blue-600 text-white shadow-md ring-2 ring-offset-2 ring-blue-500"
                               : "bg-gray-100 text-gray-700 hover:bg-gray-200"
@@ -741,9 +787,9 @@ export default function DesignStudioPage() {
                     <button
                       onClick={handleSubmit}
                       disabled={!imagePreview || dailyUsage.used >= dailyUsage.limit}
-                      className="w-full sm:w-auto text-2xl font-extrabold text-white bg-gradient-to-r from-green-500 to-lime-400 rounded-full shadow-2xl px-16 py-5 transform transition-all hover:from-green-600 hover:to-lime-500 hover:scale-105 focus:outline-none focus:ring-4 focus:ring-green-300 disabled:bg-gray-400 disabled:cursor-not-allowed disabled:scale-100 flex items-center justify-center gap-4 my-8"
+                      className="w-full text-xl sm:text-2xl font-extrabold text-white bg-gradient-to-r from-green-500 to-lime-400 rounded-full shadow-2xl px-8 sm:px-16 py-4 sm:py-5 transform transition-all hover:from-green-600 hover:to-lime-500 hover:scale-105 focus:outline-none focus:ring-4 focus:ring-green-300 disabled:bg-gray-400 disabled:cursor-not-allowed disabled:scale-100 flex items-center justify-center gap-3 sm:gap-4 my-6 sm:my-8"
                     >
-                      <FiSend size={28} /> 
+                      <FiSend size={24} className="sm:w-7 sm:h-7" /> 
                       {dailyUsage.used >= dailyUsage.limit ? 'ใช้ครบจำนวนครั้งแล้ว' : 'สร้างสวนในฝัน'}
                     </button>
                   </div>
