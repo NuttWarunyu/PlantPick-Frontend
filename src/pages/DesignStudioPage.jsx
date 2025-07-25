@@ -148,12 +148,9 @@ const styleTags = [
 
 const featureTags = [
   { id: "waterfall", name: "มีน้ำตก", emoji: "💧" },
-  { id: "pond", name: "มีบ่อปลา", emoji: "🐠" },
   { id: "easycare", name: "ดูแลง่าย", emoji: "👍" },
   { id: "seating", name: "มีมุมนั่งเล่น", emoji: "🪑" },
-  { id: "pavilion", name: "มีศาลา", emoji: "🛖" },
   { id: "kid-friendly", name: "เหมาะกับเด็ก", emoji: "👧" },
-  { id: "pet-friendly", name: "เลี้ยงสัตว์ได้", emoji: "🐶" },
 ];
 
 // ปรับ budgetOptions เหลือ 3 ตัวเลือก
