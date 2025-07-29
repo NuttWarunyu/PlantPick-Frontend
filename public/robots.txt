@@ -12,6 +12,53 @@ Disallow: /admin/
 Disallow: /private/
 Disallow: /api/
 
+# Block WordPress scanning attempts
+Disallow: /wp-admin/
+Disallow: /wp-content/
+Disallow: /wp-includes/
+Disallow: /wordpress/
+Disallow: /wp-login.php
+Disallow: /wp-config.php
+Disallow: /wp-load.php
+Disallow: /wp-blog-header.php
+Disallow: /wp-trackback.php
+Disallow: /wp-comments-post.php
+Disallow: /wp-cron.php
+Disallow: /wp-links-opml.php
+Disallow: /wp-mail.php
+Disallow: /wp-settings.php
+Disallow: /wp-signup.php
+Disallow: /wp-activate.php
+Disallow: /wp-login.php
+Disallow: /wp-register.php
+Disallow: /wp-pass.php
+Disallow: /wp-comments.php
+Disallow: /wp-feed.php
+Disallow: /wp-rdf.php
+Disallow: /wp-rss.php
+Disallow: /wp-rss2.php
+Disallow: /wp-atom.php
+Disallow: /wp-app.php
+Disallow: /wp-layout.php
+Disallow: /wp-blog-header.php
+Disallow: /wp-cron.php
+Disallow: /wp-links-opml.php
+Disallow: /wp-mail.php
+Disallow: /wp-settings.php
+Disallow: /wp-signup.php
+Disallow: /wp-activate.php
+Disallow: /wp-login.php
+Disallow: /wp-register.php
+Disallow: /wp-pass.php
+Disallow: /wp-comments.php
+Disallow: /wp-feed.php
+Disallow: /wp-rdf.php
+Disallow: /wp-rss.php
+Disallow: /wp-rss2.php
+Disallow: /wp-atom.php
+Disallow: /wp-app.php
+Disallow: /wp-layout.php
+
 # Allow important pages
 Allow: /
 Allow: /about
