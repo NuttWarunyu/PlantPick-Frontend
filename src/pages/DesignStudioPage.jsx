@@ -181,10 +181,7 @@ export default function DesignStudioPage() {
   const [customKeywords, setCustomKeywords] = useState("");
   const [selectedBudgetLevel, setSelectedBudgetLevel] = useState(2);
 
-  // เพิ่ม state สำหรับ insight
-  const [gardenInsights, setGardenInsights] = useState([]);
-  const [analyzingInsights, setAnalyzingInsights] = useState(false);
-  const [selectedInsights, setSelectedInsights] = useState([]);
+
   
   // เพิ่ม state สำหรับแสดงจำนวนครั้งที่เหลือ
   const [dailyUsage, setDailyUsage] = useState({ used: 0, limit: 10 });
@@ -279,21 +276,7 @@ export default function DesignStudioPage() {
         setImagePreview(event.target.result);
         setLines([]);
         setResultImage(null);
-        // === เรียก API วิเคราะห์สวนจริง ===
-        setAnalyzingInsights(true);
-        setGardenInsights([]);
-        setSelectedInsights([]);
-        const formData = new FormData();
-        formData.append("image", file);
-        axios
-          .post(`${API_BASE_URL}/garden/analyze-garden`, formData)
-          .then((res) => {
-            setGardenInsights(res.data.suggestions || []);
-          })
-          .catch(() => {
-            setGardenInsights([]);
-          })
-          .finally(() => setAnalyzingInsights(false));
+
       };
       reader.readAsDataURL(file);
     }
@@ -390,9 +373,7 @@ export default function DesignStudioPage() {
     if (customKeywords) {
       prompt += `Specifically include these elements: ${customKeywords}.`;
     }
-    if (selectedInsights.length > 0) {
-      prompt += ` Please address these suggestions: ${selectedInsights.join(", ")}.`;
-    }
+
     
     // เพิ่ม negative prompt เพื่อป้องกันพื้นที่โล่ง
     prompt += " Avoid: empty spaces, bare ground, plain grass, sand patches, unplanted areas. ";
@@ -518,7 +499,18 @@ export default function DesignStudioPage() {
   };
 
   return (
-    <div className="w-full space-y-6">
+    <div className="w-full space-y-6 pt-16">
+      {/* Back to Home Button */}
+      <div className="flex justify-between items-center mb-6">
+        <button
+          onClick={() => navigate("/")}
+          className="flex items-center gap-2 text-gray-600 hover:text-green-600 transition-colors"
+        >
+          <FiHome className="text-xl" />
+          <span className="font-medium">กลับหน้าหลัก</span>
+        </button>
+      </div>
+
       {/* แสดงจำนวนครั้งที่เหลือ */}
       <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-4">
         <div className="flex items-center justify-between">
@@ -793,43 +785,7 @@ export default function DesignStudioPage() {
                 </div>
               </div>
 
-              {/* === แสดง insight/suggestions จาก AI ใต้รูป === */}
-              {imagePreview && (
-                <div className="mt-4">
-                  {analyzingInsights ? (
-                    <div className="text-center text-blue-500 text-sm">AI กำลังวิเคราะห์...</div>
-                  ) : gardenInsights.length > 0 ? (
-                    <div className="bg-blue-50 border border-blue-200 p-3 rounded-lg">
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className="text-blue-600">💡</span>
-                        <span className="text-sm font-medium text-blue-800">คำแนะนำจาก AI</span>
-                      </div>
-                      <div className="space-y-1">
-                        {gardenInsights.slice(0, 2).map((s, i) => (
-                          <label key={i} className="flex items-center gap-2 cursor-pointer text-xs">
-                            <input
-                              type="checkbox"
-                              checked={selectedInsights.includes(s)}
-                              onChange={() => {
-                                setSelectedInsights((prev) =>
-                                  prev.includes(s)
-                                    ? prev.filter((x) => x !== s)
-                                    : [...prev, s]
-                                );
-                              }}
-                              className="accent-blue-600"
-                            />
-                            <span className="text-gray-700">{s}</span>
-                          </label>
-                        ))}
-                        {gardenInsights.length > 2 && (
-                          <p className="text-xs text-gray-500 mt-1">+ {gardenInsights.length - 2} ข้อเสนอแนะเพิ่มเติม</p>
-                        )}
-                      </div>
-                    </div>
-                  ) : null}
-                </div>
-              )}
+
             </div>
           )}
         </>
