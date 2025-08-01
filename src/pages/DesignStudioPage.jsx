@@ -390,6 +390,18 @@ export default function DesignStudioPage() {
       setError("กรุณาระบายพื้นที่ที่ต้องการให้เป็นสวน");
       return;
     }
+    
+    // ตรวจสอบว่าผู้ใช้ระบายสีเพียงพอหรือไม่
+    const totalPixels = canvasSize.width * canvasSize.height;
+    const paintedPixels = lines.reduce((total, line) => {
+      return total + (line.points.length / 2) * line.brushSize;
+    }, 0);
+    const coveragePercentage = (paintedPixels / totalPixels) * 100;
+    
+    if (coveragePercentage < 5) {
+      setError("กรุณาระบายสีให้ครอบคลุมพื้นที่มากขึ้น (อย่างน้อย 5% ของภาพ) เพื่อให้ AI รู้ว่าต้องสร้างสวนตรงไหน");
+      return;
+    }
 
     setLoading(true);
     setError(null);
@@ -620,6 +632,21 @@ export default function DesignStudioPage() {
                     ขั้นตอนที่ 2: ระบายพื้นที่สวน
                   </h2>
                   
+                  {/* คำแนะนำเพิ่มเติม */}
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                    <div className="flex items-start gap-3">
+                      <div className="text-blue-600 text-xl">💡</div>
+                      <div>
+                        <h3 className="font-semibold text-blue-800 mb-2">คำแนะนำสำคัญ:</h3>
+                        <ul className="text-sm text-blue-700 space-y-1">
+                          <li>• <strong>ระบายสีให้ครอบคลุมพื้นที่ทั้งหมด</strong> ที่ต้องการให้เป็นสวน</li>
+                          <li>• <strong>อย่าปล่อยพื้นที่ว่าง</strong> เพราะ AI จะไม่รู้ว่าต้องสร้างสวนตรงไหน</li>
+                          <li>• <strong>ระบายให้ชิดขอบ</strong> ถ้าต้องการสวนเต็มพื้นที่</li>
+                          <li>• <strong>สีชมพู</strong> = พื้นที่ที่จะสร้างสวน</li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
 
 
                   <div className="flex items-center gap-4 mb-4">
@@ -642,6 +669,30 @@ export default function DesignStudioPage() {
                       <FiTrash2 /> ล้างทั้งหมด
                     </button>
                   </div>
+                  
+                  {/* แสดงผลการระบายสี */}
+                  {imagePreview && (
+                    <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-4">
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-green-700 font-medium">
+                          🎨 พื้นที่ที่ระบายแล้ว: {lines.length > 0 ? Math.round((lines.reduce((total, line) => total + (line.points.length / 2) * line.brushSize, 0) / (canvasSize.width * canvasSize.height)) * 100) : 0}%
+                        </span>
+                        <span className="text-green-600">
+                          {lines.length > 0 ? `${lines.length} เส้น` : 'ยังไม่ระบาย'}
+                        </span>
+                      </div>
+                      {lines.length > 0 && (
+                        <div className="mt-2 w-full bg-green-200 rounded-full h-2">
+                          <div 
+                            className="bg-green-500 h-2 rounded-full transition-all duration-300"
+                            style={{ 
+                              width: `${Math.min(100, (lines.reduce((total, line) => total + (line.points.length / 2) * line.brushSize, 0) / (canvasSize.width * canvasSize.height)) * 100)}%` 
+                            }}
+                          ></div>
+                        </div>
+                      )}
+                    </div>
+                  )}
 
                   {/* Canvas Container */}
                   <div
@@ -652,8 +703,20 @@ export default function DesignStudioPage() {
                       {/* Simple overlay when no drawing */}
                       {lines.length === 0 && imagePreview && (
                         <div className="absolute inset-0 bg-black bg-opacity-30 rounded-lg flex items-center justify-center z-10">
-                          <div className="bg-white bg-opacity-90 rounded-lg p-8 text-center">
-                            <p className="text-3xl font-bold text-gray-800">โปรดระบายสีพื้นที่สวน</p>
+                          <div className="bg-white bg-opacity-90 rounded-lg p-8 text-center max-w-md">
+                            <div className="text-4xl mb-4">🎨</div>
+                            <p className="text-2xl font-bold text-gray-800 mb-3">ระบายสีพื้นที่สวน</p>
+                            <p className="text-gray-600 text-sm leading-relaxed">
+                              <strong>วิธีใช้:</strong><br/>
+                              • ใช้เมาส์ระบายสีในพื้นที่ที่ต้องการให้เป็นสวน<br/>
+                              • ระบายให้ครอบคลุมพื้นที่ทั้งหมดที่ต้องการ<br/>
+                              • สีชมพูจะแสดงพื้นที่ที่จะสร้างสวน
+                            </p>
+                            <div className="mt-4 p-3 bg-green-50 rounded-lg">
+                              <p className="text-green-700 text-sm">
+                                💡 <strong>เคล็ดลับ:</strong> ระบายให้ครอบคลุมพื้นที่ทั้งหมดที่ต้องการให้เป็นสวน
+                              </p>
+                            </div>
                           </div>
                         </div>
                       )}
@@ -775,13 +838,20 @@ export default function DesignStudioPage() {
                   <div className="flex justify-center pt-4">
                     <button
                       onClick={handleSubmit}
-                      disabled={!imagePreview || dailyUsage.used >= dailyUsage.limit}
+                      disabled={!imagePreview || dailyUsage.used >= dailyUsage.limit || lines.length === 0}
                       className="w-full text-xl sm:text-2xl font-extrabold text-white bg-gradient-to-r from-green-500 to-lime-400 rounded-full shadow-2xl px-8 sm:px-16 py-4 sm:py-5 transform transition-all hover:from-green-600 hover:to-lime-500 hover:scale-105 focus:outline-none focus:ring-4 focus:ring-green-300 disabled:bg-gray-400 disabled:cursor-not-allowed disabled:scale-100 flex items-center justify-center gap-3 sm:gap-4 my-6 sm:my-8"
                     >
                       <FiSend size={24} className="sm:w-7 sm:h-7" /> 
-                      {dailyUsage.used >= dailyUsage.limit ? 'ใช้ครบจำนวนครั้งแล้ว' : 'สร้างสวนในฝัน'}
+                      {dailyUsage.used >= dailyUsage.limit ? 'ใช้ครบจำนวนครั้งแล้ว' : lines.length === 0 ? 'กรุณาระบายสีก่อน' : 'สร้างสวนในฝัน'}
                     </button>
                   </div>
+                  
+                  {/* คำแนะนำเพิ่มเติม */}
+                  {lines.length === 0 && imagePreview && (
+                    <div className="text-center text-orange-600 text-sm font-medium">
+                      ⚠️ กรุณาระบายสีพื้นที่ที่ต้องการให้เป็นสวนก่อน
+                    </div>
+                  )}
                 </div>
               </div>
 
