@@ -79,7 +79,7 @@ export default function LandingPage() {
               </div>
               <div>
                 <h1 className="text-2xl font-bold text-gray-800">PlantPick</h1>
-                <p className="text-sm text-gray-600">ศูนย์กลางของสวน</p>
+                <p className="text-sm text-gray-600">ศูนย์กลาง AI ด้านสวน #1 ของไทย</p>
               </div>
             </div>
             
@@ -105,12 +105,12 @@ export default function LandingPage() {
             <span className="text-green-600">PlantPick</span>
             <br />
             <span className="text-2xl md:text-3xl font-normal text-gray-600">
-              ศูนย์กลางของคนรักสวน 🌱
+              ศูนย์กลาง AI ด้านสวน #1 ของไทย 🌱
             </span>
           </h1>
           <p className="text-xl text-gray-600 max-w-3xl mx-auto mb-8">
-            ออกแบบสวนในฝันด้วย AI ดูแลต้นไม้ด้วยปัญญาประดิษฐ์ 
-            และติดตามราคาต้นไม้จากร้านค้าต่างๆ
+            ออกแบบสวนด้วย AI วิเคราะห์โรคต้นไม้ ติดตามราคาต้นไม้ 
+            ใช้ปัญญาประดิษฐ์แก้ปัญหาสวนครบวงจร
           </p>
           
 
@@ -185,10 +185,10 @@ export default function LandingPage() {
           <div className="absolute top-1/2 left-8 w-4 h-4 bg-white/40 rounded-full animate-bounce"></div>
           
           <h2 className="text-4xl font-bold text-white mb-6">
-            🚀 เริ่มต้นใช้งาน PlantPick วันนี้! 🚀
+            🚀 ศูนย์กลาง AI ด้านสวน #1 ของไทย 🚀
           </h2>
           <p className="text-xl text-white/90 mb-8 max-w-2xl mx-auto">
-            สร้างสวนในฝันด้วยเทคโนโลยี AI ล่าสุด
+            ใช้ปัญญาประดิษฐ์แก้ปัญหาสวนครบวงจร - ออกแบบสวน หมอต้นไม้ ติดตามราคา
           </p>
           <div className="flex flex-wrap justify-center gap-4">
             <button className="bg-white text-green-600 px-8 py-4 rounded-2xl font-bold text-lg hover:bg-gray-100 transition-all duration-300 flex items-center gap-3">

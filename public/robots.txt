@@ -59,9 +59,18 @@ Disallow: /wp-atom.php
 Disallow: /wp-app.php
 Disallow: /wp-layout.php
 
-# Allow important pages
+# Allow important pages - PlantPick ศูนย์กลาง AI ด้านสวน #1 ของไทย
 Allow: /
 Allow: /about
 Allow: /design-studio
+Allow: /plant-doctor
+Allow: /price-tracker
 Allow: /search
-Allow: /identify 
+Allow: /identify
+
+# PlantPick Features:
+# - AI ออกแบบสวน (Design Studio)
+# - AI หมอต้นไม้ (Plant Doctor) 
+# - ติดตามราคาต้นไม้ (Price Tracker)
+# - ค้นหาต้นไม้ (Search)
+# - ระบุต้นไม้ (Identify) 
