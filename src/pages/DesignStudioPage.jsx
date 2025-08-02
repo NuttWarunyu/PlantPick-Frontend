@@ -398,8 +398,8 @@ export default function DesignStudioPage() {
     }, 0);
     const coveragePercentage = (paintedPixels / totalPixels) * 100;
     
-    if (coveragePercentage < 5) {
-      setError("กรุณาระบายสีให้ครอบคลุมพื้นที่มากขึ้น (อย่างน้อย 5% ของภาพ) เพื่อให้ AI รู้ว่าต้องสร้างสวนตรงไหน");
+    if (coveragePercentage < 2) {
+      setError("กรุณาระบายสีให้ครอบคลุมพื้นที่มากขึ้น (อย่างน้อย 2% ของภาพ) เพื่อให้ AI รู้ว่าต้องสร้างสวนตรงไหน");
       return;
     }
 
@@ -639,7 +639,7 @@ export default function DesignStudioPage() {
                       <div>
                         <h3 className="font-semibold text-blue-800 mb-2">คำแนะนำสำคัญ:</h3>
                         <ul className="text-sm text-blue-700 space-y-1">
-                          <li>• <strong>ระบายสีให้ครอบคลุมพื้นที่ทั้งหมด</strong> ที่ต้องการให้เป็นสวน</li>
+                          <li>• <strong>ระบายสีให้ครอบคลุมพื้นที่ที่ต้องการ</strong> ให้เป็นสวน (อย่างน้อย 2%)</li>
                           <li>• <strong>อย่าปล่อยพื้นที่ว่าง</strong> เพราะ AI จะไม่รู้ว่าต้องสร้างสวนตรงไหน</li>
                           <li>• <strong>ระบายให้ชิดขอบ</strong> ถ้าต้องการสวนเต็มพื้นที่</li>
                           <li>• <strong>สีชมพู</strong> = พื้นที่ที่จะสร้างสวน</li>
@@ -714,7 +714,7 @@ export default function DesignStudioPage() {
                             </p>
                             <div className="mt-4 p-3 bg-green-50 rounded-lg">
                               <p className="text-green-700 text-sm">
-                                💡 <strong>เคล็ดลับ:</strong> ระบายให้ครอบคลุมพื้นที่ทั้งหมดที่ต้องการให้เป็นสวน
+                                💡 <strong>เคล็ดลับ:</strong> ระบายให้ครอบคลุมพื้นที่ที่ต้องการให้เป็นสวน (อย่างน้อย 2%)
                               </p>
                             </div>
                           </div>
