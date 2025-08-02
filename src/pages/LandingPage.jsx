@@ -35,9 +35,10 @@ export default function LandingPage() {
       title: "AI ออกแบบสวน",
       description: "ใช้ AI ออกแบบสวนในฝันจากภาพบ้านจริง",
       icon: FiZap,
-      color: "from-green-500 to-emerald-500",
-      bgColor: "bg-green-50",
-      borderColor: "border-green-200",
+      color: "from-purple-500 to-pink-500",
+      bgColor: "bg-purple-50",
+      borderColor: "border-purple-300",
+      textColor: "text-purple-800",
       stats: "1,234 สวนที่ออกแบบแล้ว",
       features: ["วิเคราะห์แสงและทิศทาง", "เลือกสไตล์สวน 5 แบบ", "สร้างภาพสวนสวยด้วย AI"],
       path: "/design-studio"
@@ -47,9 +48,10 @@ export default function LandingPage() {
       title: "AI หมอต้นไม้",
       description: "วิเคราะห์โรคต้นไม้และให้คำแนะนำการรักษา",
       icon: FiShield,
-      color: "from-blue-500 to-cyan-500",
-      bgColor: "bg-blue-50",
-      borderColor: "border-blue-200",
+      color: "from-green-500 to-emerald-500",
+      bgColor: "bg-green-50",
+      borderColor: "border-green-300",
+      textColor: "text-green-800",
       stats: "2,567 ต้นไม้ที่รักษาแล้ว",
       features: ["วิเคราะห์โรค 500+ ชนิด", "แผนการรักษาแม่นยำ", "ปรึกษาผู้เชี่ยวชาญ"],
       path: "/plant-doctor"
@@ -59,9 +61,10 @@ export default function LandingPage() {
       title: "ติดตามราคาต้นไม้",
       description: "เปรียบเทียบราคาต้นไม้จากร้านค้าต่างๆ",
       icon: FiTrendingUp,
-      color: "from-yellow-500 to-orange-500",
-      bgColor: "bg-yellow-50",
-      borderColor: "border-yellow-200",
+      color: "from-orange-500 to-red-500",
+      bgColor: "bg-orange-50",
+      borderColor: "border-orange-300",
+      textColor: "text-orange-800",
       stats: "5,678 ต้นไม้ที่ติดตาม",
       features: ["ติดตามราคาแบบ Real-time", "แจ้งเตือนราคาลด", "เปรียบเทียบร้านค้า"],
       path: "/price-tracker"
@@ -147,7 +150,7 @@ export default function LandingPage() {
                   </div>
                 </div>
                 
-                <h3 className="text-3xl font-bold text-gray-800 mb-4 group-hover:text-green-600 transition-colors text-center">
+                <h3 className={`text-3xl font-bold ${feature.textColor} mb-4 group-hover:${feature.textColor} transition-colors text-center`}>
                   {feature.title}
                 </h3>
                 <p className="text-gray-600 mb-6 text-xl leading-relaxed">{feature.description}</p>
@@ -160,8 +163,8 @@ export default function LandingPage() {
                   <ul className="space-y-4">
                     {feature.features.map((item, index) => (
                       <li key={index} className="flex items-center gap-4 text-base text-gray-700 group-hover:text-gray-800 transition-colors">
-                        <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
-                          <FiCheckCircle className="text-green-500 text-base" />
+                        <div className={`w-8 h-8 ${feature.bgColor.replace('50', '100')} rounded-full flex items-center justify-center`}>
+                          <FiCheckCircle className={`${feature.color.split('-')[1]}-500 text-base`} />
                         </div>
                         <span className="font-medium">{item}</span>
                       </li>
