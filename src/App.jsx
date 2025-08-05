@@ -7,6 +7,7 @@ import SearchPage from "./pages/SearchPage.jsx";
 import BomResultPage from "./pages/BomResultPage.jsx";
 import PlantDoctorPage from "./pages/PlantDoctorPage.jsx";
 import PriceTrackerPage from "./pages/PriceTrackerPage.jsx";
+import AdminDashboard from "./pages/AdminDashboard.jsx";
 
 function App() {
   return (
@@ -66,6 +67,7 @@ function App() {
             <Route path="/search" element={<SearchPage />} />
             <Route path="/price-tracker" element={<PriceTrackerPage />} />
             <Route path="/bom-result" element={<BomResultPage />} />
+            <Route path="/admin" element={<AdminDashboard />} />
           </Routes>
         </main>
 

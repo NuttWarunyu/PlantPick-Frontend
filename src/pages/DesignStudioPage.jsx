@@ -180,7 +180,20 @@ export default function DesignStudioPage() {
   const [selectedFeatures, setSelectedFeatures] = useState(new Set());
   const [customKeywords, setCustomKeywords] = useState("");
   const [selectedBudgetLevel, setSelectedBudgetLevel] = useState(2);
-
+  const [showAdminForm, setShowAdminForm] = useState(false);
+  const [adminFormData, setAdminFormData] = useState({
+    customerName: '',
+    customerContact: '',
+    budgetRange: '',
+    preferredStyle: '',
+    specialRequirements: ''
+  });
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [reviewData, setReviewData] = useState({
+    rating: 0,
+    feedback: '',
+    improvement: ''
+  });
 
   
   // เพิ่ม state สำหรับแสดงจำนวนครั้งที่เหลือ
@@ -866,6 +879,264 @@ export default function DesignStudioPage() {
 
       {error && <p className="text-red-500 text-center">{error}</p>}
 
+      {/* Admin Form Modal */}
+      {showAdminForm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl p-6 max-w-md w-full max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-xl font-bold text-gray-800">ส่งข้อมูลให้ทีมงาน</h3>
+              <button
+                onClick={() => setShowAdminForm(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                ✕
+              </button>
+            </div>
+            
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              try {
+                const response = await fetch('/api/admin/manual-requests', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    history_id: historyId,
+                    customer_name: adminFormData.customerName,
+                    customer_contact: adminFormData.customerContact,
+                    budget_range: adminFormData.budgetRange,
+                    preferred_style: adminFormData.preferredStyle,
+                    special_requirements: adminFormData.specialRequirements
+                  })
+                });
+                
+                if (response.ok) {
+                  alert('ส่งข้อมูลเรียบร้อยแล้ว! ทีมงานจะติดต่อกลับภายใน 1-2 ชั่วโมง\n\n📞 Line: @025hcugd\n📘 Facebook: https://www.facebook.com/profile.php?id=61578796941191');
+                  setShowAdminForm(false);
+                  setAdminFormData({
+                    customerName: '',
+                    customerContact: '',
+                    budgetRange: '',
+                    preferredStyle: '',
+                    specialRequirements: ''
+                  });
+                } else {
+                  alert('เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง');
+                }
+              } catch (error) {
+                console.error('Error submitting form:', error);
+                alert('เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง');
+              }
+            }}>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    ชื่อ-นามสกุล *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={adminFormData.customerName}
+                    onChange={(e) => setAdminFormData({...adminFormData, customerName: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    placeholder="ชื่อ-นามสกุล"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    ช่องทางติดต่อ *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={adminFormData.customerContact}
+                    onChange={(e) => setAdminFormData({...adminFormData, customerContact: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    placeholder="Line ID: @025hcugd, เบอร์โทร, หรือ Email"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    งบประมาณ *
+                  </label>
+                  <select
+                    required
+                    value={adminFormData.budgetRange}
+                    onChange={(e) => setAdminFormData({...adminFormData, budgetRange: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  >
+                    <option value="">เลือกงบประมาณ</option>
+                    <option value="5,000-10,000 บาท">5,000-10,000 บาท</option>
+                    <option value="10,000-20,000 บาท">10,000-20,000 บาท</option>
+                    <option value="20,000-50,000 บาท">20,000-50,000 บาท</option>
+                    <option value="50,000+ บาท">50,000+ บาท</option>
+                  </select>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    สไตล์ที่ชอบ
+                  </label>
+                  <input
+                    type="text"
+                    value={adminFormData.preferredStyle}
+                    onChange={(e) => setAdminFormData({...adminFormData, preferredStyle: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    placeholder="เช่น สวนญี่ปุ่น, สวนมินิมอล, สวนธรรมชาติ"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    ข้อกำหนดพิเศษ
+                  </label>
+                  <textarea
+                    value={adminFormData.specialRequirements}
+                    onChange={(e) => setAdminFormData({...adminFormData, specialRequirements: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    placeholder="เช่น ต้องการต้นไม้ที่ดูแลง่าย, มีเด็กเล็กในบ้าน, แพ้เกสรดอกไม้"
+                    rows="3"
+                  />
+                </div>
+              </div>
+              
+              <div className="flex gap-3 mt-6">
+                <button
+                  type="button"
+                  onClick={() => setShowAdminForm(false)}
+                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+                >
+                  ยกเลิก
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg hover:from-purple-600 hover:to-pink-600"
+                >
+                  ส่งข้อมูล
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Review Modal */}
+      {showReviewModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl p-6 max-w-md w-full max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-xl font-bold text-gray-800">ให้คะแนนและรีวิว</h3>
+              <button
+                onClick={() => setShowReviewModal(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                ✕
+              </button>
+            </div>
+            
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              try {
+                // TODO: ส่งข้อมูลรีวิวไปยัง Backend
+                console.log('Review data:', {
+                  history_id: historyId,
+                  rating: reviewData.rating,
+                  feedback: reviewData.feedback,
+                  improvement: reviewData.improvement
+                });
+                
+                alert('ขอบคุณสำหรับรีวิว! เราจะนำไปปรับปรุงบริการให้ดีขึ้น');
+                setShowReviewModal(false);
+                setReviewData({
+                  rating: 0,
+                  feedback: '',
+                  improvement: ''
+                });
+              } catch (error) {
+                console.error('Error submitting review:', error);
+                alert('เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง');
+              }
+            }}>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    ให้คะแนนผลลัพธ์ *
+                  </label>
+                  <div className="flex justify-center space-x-2">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <button
+                        key={star}
+                        type="button"
+                        onClick={() => setReviewData({...reviewData, rating: star})}
+                        className={`text-3xl transition-all ${
+                          reviewData.rating >= star 
+                            ? 'text-yellow-400 hover:text-yellow-500' 
+                            : 'text-gray-300 hover:text-yellow-400'
+                        }`}
+                      >
+                        ⭐
+                      </button>
+                    ))}
+                  </div>
+                  <p className="text-center text-sm text-gray-500 mt-1">
+                    {reviewData.rating === 0 && 'เลือกคะแนน'}
+                    {reviewData.rating === 1 && 'แย่มาก'}
+                    {reviewData.rating === 2 && 'ไม่ดี'}
+                    {reviewData.rating === 3 && 'ปานกลาง'}
+                    {reviewData.rating === 4 && 'ดี'}
+                    {reviewData.rating === 5 && 'ดีมาก'}
+                  </p>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    ความคิดเห็น
+                  </label>
+                  <textarea
+                    value={reviewData.feedback}
+                    onChange={(e) => setReviewData({...reviewData, feedback: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
+                    placeholder="บอกเราว่าคุณคิดอย่างไรกับผลลัพธ์..."
+                    rows="3"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    ข้อเสนอแนะเพื่อปรับปรุง
+                  </label>
+                  <textarea
+                    value={reviewData.improvement}
+                    onChange={(e) => setReviewData({...reviewData, improvement: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
+                    placeholder="บอกเราว่าคุณต้องการให้ปรับปรุงอะไร..."
+                    rows="3"
+                  />
+                </div>
+              </div>
+              
+              <div className="flex gap-3 mt-6">
+                <button
+                  type="button"
+                  onClick={() => setShowReviewModal(false)}
+                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+                >
+                  ยกเลิก
+                </button>
+                <button
+                  type="submit"
+                  disabled={reviewData.rating === 0}
+                  className="flex-1 px-4 py-2 bg-gradient-to-r from-yellow-500 to-orange-500 text-white rounded-lg hover:from-yellow-600 hover:to-orange-600 disabled:bg-gray-400"
+                >
+                  ส่งรีวิว
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {resultImage && (
         <div className="text-center mt-6 space-y-6">
           <div>
@@ -877,8 +1148,8 @@ export default function DesignStudioPage() {
               alt="Inpainting result"
               className="mt-4 max-w-full rounded-lg shadow-lg mx-auto"
             />
-            {/* ปุ่มรีเฟรช/สร้างใหม่ ใต้รูป */}
-            <div className="flex justify-center mt-4">
+            {/* ปุ่มรีเฟรช/สร้างใหม่ และรีวิว ใต้รูป */}
+            <div className="flex flex-col sm:flex-row justify-center gap-3 mt-4">
               <button
                 onClick={() => {
                   setResultImage(null);
@@ -887,6 +1158,12 @@ export default function DesignStudioPage() {
                 className="w-full sm:w-auto bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold text-lg py-3 px-10 rounded-full shadow transition-all focus:outline-none focus:ring-2 focus:ring-gray-300 flex items-center justify-center gap-2"
               >
                 🔄 สร้างใหม่ (สุ่มใหม่)
+              </button>
+              <button
+                onClick={() => setShowReviewModal(true)}
+                className="w-full sm:w-auto bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-white font-bold text-lg py-3 px-10 rounded-full shadow transition-all focus:outline-none focus:ring-2 focus:ring-yellow-300 flex items-center justify-center gap-2"
+              >
+                ⭐ ให้คะแนนและรีวิว
               </button>
             </div>
           </div>
@@ -917,24 +1194,98 @@ export default function DesignStudioPage() {
               ))}
             </div>
           </div>
-          {/* ปุ่มขอรายการของและราคา ล่างสุด เด่นสุด */}
-          <div className="pt-8 flex justify-center">
-            <button
-              onClick={handleGenerateBOM}
-              disabled={bomLoading}
-              className="w-full sm:w-auto bg-gradient-to-r from-orange-500 to-pink-500 text-white font-extrabold text-2xl py-5 px-16 rounded-full shadow-2xl hover:from-orange-600 hover:to-pink-600 hover:scale-105 transition-all focus:outline-none focus:ring-4 focus:ring-orange-200 flex items-center justify-center gap-4 my-8 disabled:bg-gray-400"
-            >
-              {bomLoading ? (
-                <>
-                  <FiSend size={28} className="animate-spin" /> กำลังวิเคราะห์...
-                </>
-              ) : (
-                <>
-                  🌱 ขอรายการของและราคา
-                </>
-              )}
-            </button>
+          {/* ตัวเลือกการจัดสวน */}
+          <div className="pt-8">
+            <div className="text-center mb-6">
+              <h3 className="text-xl font-bold text-gray-800 mb-2">
+                เลือกวิธีจัดสวนของคุณ
+              </h3>
+              <p className="text-gray-600 text-sm">
+                ทั้งสองแบบใช้ฟรี และไม่มีค่าใช้จ่ายเพิ่มเติม
+              </p>
+            </div>
+            
+            <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+              {/* AI จัดของ - ทันที */}
+              <div className="bg-gradient-to-br from-blue-50 to-cyan-50 border-2 border-blue-200 rounded-xl p-6 hover:shadow-lg transition-all">
+                <div className="text-center mb-4">
+                  <div className="text-4xl mb-3">🤖</div>
+                  <h4 className="text-lg font-bold text-blue-800 mb-2">
+                    AI จัดของ
+                  </h4>
+                  <p className="text-blue-600 text-sm font-medium">
+                    ได้ทันที • ฟรี
+                  </p>
+                </div>
+                
+                <ul className="text-sm text-blue-700 space-y-2 mb-6">
+                  <li>• วิเคราะห์ภาพและสร้างรายการวัสดุ</li>
+                  <li>• แสดงราคาประมาณการ</li>
+                  <li>• ลิงก์ซื้อจากร้านค้าต่างๆ</li>
+                  <li>• ได้ผลลัพธ์ทันที</li>
+                </ul>
+                
+                <button
+                  onClick={handleGenerateBOM}
+                  disabled={bomLoading}
+                  className="w-full bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-bold py-3 px-6 rounded-lg hover:from-blue-600 hover:to-cyan-600 transition-all disabled:bg-gray-400"
+                >
+                  {bomLoading ? (
+                    <>
+                      <FiSend size={20} className="animate-spin" /> กำลังวิเคราะห์...
+                    </>
+                  ) : (
+                    <>
+                      🚀 เริ่มวิเคราะห์ทันที
+                    </>
+                  )}
+                </button>
+              </div>
+              
+              {/* แอดมินจัดของ - 1-2 ชม. */}
+              <div className="bg-gradient-to-br from-purple-50 to-pink-50 border-2 border-purple-200 rounded-xl p-6 hover:shadow-lg transition-all">
+                <div className="text-center mb-4">
+                  <div className="text-4xl mb-3">👨‍💼</div>
+                  <h4 className="text-lg font-bold text-purple-800 mb-2">
+                    แอดมินจัดของ
+                  </h4>
+                  <p className="text-purple-600 text-sm font-medium">
+                    1-2 ชั่วโมง • ฟรี
+                  </p>
+                </div>
+                
+                <ul className="text-sm text-purple-700 space-y-2 mb-6">
+                  <li>• ทีมงานช่วยเลือกต้นไม้ที่เหมาะสม</li>
+                  <li>• จัดหาจากร้านค้าที่เชื่อถือได้</li>
+                  <li>• คำนวณงบประมาณที่แม่นยำ</li>
+                  <li>• ให้คำแนะนำการดูแลรักษา</li>
+                </ul>
+                <p className="text-purple-600 text-xs mt-2 text-center">
+                  📞 Line: @025hcugd • 📘 Facebook: PlanPick จัดสวนฟรีด้วย AI
+                </p>
+                
+                <div className="space-y-2">
+                  <button
+                    onClick={() => setShowAdminForm(true)}
+                    className="w-full bg-gradient-to-r from-purple-500 to-pink-500 text-white font-bold py-3 px-6 rounded-lg hover:from-purple-600 hover:to-pink-600 transition-all"
+                  >
+                    📋 ส่งข้อมูลให้ทีมงาน
+                  </button>
+                  <a
+                    href="https://line.me/ti/p/@025hcugd"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block w-full bg-green-500 text-white font-bold py-2 px-6 rounded-lg hover:bg-green-600 transition-all text-center text-sm"
+                  >
+                    📞 เพิ่มเพื่อน LINE
+                  </a>
+                </div>
+              </div>
+            </div>
           </div>
+
+
+
         </div>
       )}
     </div>
