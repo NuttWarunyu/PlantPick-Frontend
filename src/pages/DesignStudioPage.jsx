@@ -1038,21 +1038,29 @@ export default function DesignStudioPage() {
             <form onSubmit={async (e) => {
               e.preventDefault();
               try {
-                // TODO: ส่งข้อมูลรีวิวไปยัง Backend
-                console.log('Review data:', {
-                  history_id: historyId,
-                  rating: reviewData.rating,
-                  feedback: reviewData.feedback,
-                  improvement: reviewData.improvement
+                const response = await fetch('/api/reviews/reviews', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    history_id: historyId,
+                    rating: reviewData.rating,
+                    feedback: reviewData.feedback,
+                    improvement: reviewData.improvement
+                  })
                 });
                 
-                alert('ขอบคุณสำหรับรีวิว! เราจะนำไปปรับปรุงบริการให้ดีขึ้น');
-                setShowReviewModal(false);
-                setReviewData({
-                  rating: 0,
-                  feedback: '',
-                  improvement: ''
-                });
+                if (response.ok) {
+                  alert('ขอบคุณสำหรับรีวิว! เราจะนำไปปรับปรุงบริการให้ดีขึ้น');
+                  setShowReviewModal(false);
+                  setReviewData({
+                    rating: 0,
+                    feedback: '',
+                    improvement: ''
+                  });
+                } else {
+                  const errorData = await response.json();
+                  alert(`เกิดข้อผิดพลาด: ${errorData.detail || 'กรุณาลองใหม่อีกครั้ง'}`);
+                }
               } catch (error) {
                 console.error('Error submitting review:', error);
                 alert('เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง');
