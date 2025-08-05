@@ -399,7 +399,7 @@ export default function DesignStudioPage() {
     const coveragePercentage = (paintedPixels / totalPixels) * 100;
     
     if (coveragePercentage < 2) {
-      setError("กรุณาระบายสีให้ครอบคลุมพื้นที่มากขึ้น (อย่างน้อย 2% ของภาพ) เพื่อให้ AI รู้ว่าต้องสร้างสวนตรงไหน");
+              setError("กรุณาระบายสีให้ครอบคลุมพื้นที่มากขึ้น (อย่างน้อย 2% ของภาพ) เพื่อให้ AI รู้ว่าต้องสร้างสวนตรงไหน - พื้นที่ว่าง = พื้นที่ที่ต้องออกแบบ");
       return;
     }
 
@@ -640,8 +640,9 @@ export default function DesignStudioPage() {
                         <h3 className="font-semibold text-blue-800 mb-2">คำแนะนำสำคัญ:</h3>
                         <ul className="text-sm text-blue-700 space-y-1">
                           <li>• <strong>ระบายสีให้ครอบคลุมพื้นที่ที่ต้องการ</strong> ให้เป็นสวน (อย่างน้อย 2%)</li>
-                          <li>• <strong>อย่าปล่อยพื้นที่ว่าง</strong> เพราะ AI จะไม่รู้ว่าต้องสร้างสวนตรงไหน</li>
+                          <li>• <strong>ระบายพื้นที่ว่างทั้งหมด</strong> ที่ต้องการให้เป็นสวน - AI จะใช้พื้นที่ว่างเป็น "พื้นที่ที่ต้องออกแบบ"</li>
                           <li>• <strong>ระบายให้ชิดขอบ</strong> ถ้าต้องการสวนเต็มพื้นที่</li>
+                          <li>• <strong>พื้นที่รก = ผลลัพธ์ดีกว่า</strong> เพราะ AI เห็นขนาดวัตถุได้ชัดเจน</li>
                           <li>• <strong>สีชมพู</strong> = พื้นที่ที่จะสร้างสวน</li>
                         </ul>
                       </div>
@@ -710,11 +711,13 @@ export default function DesignStudioPage() {
                               <strong>วิธีใช้:</strong><br/>
                               • ใช้เมาส์ระบายสีในพื้นที่ที่ต้องการให้เป็นสวน<br/>
                               • ระบายให้ครอบคลุมพื้นที่ทั้งหมดที่ต้องการ<br/>
+                              • <strong>พื้นที่ว่าง = พื้นที่ที่ต้องออกแบบ</strong><br/>
                               • สีชมพูจะแสดงพื้นที่ที่จะสร้างสวน
                             </p>
                             <div className="mt-4 p-3 bg-green-50 rounded-lg">
                               <p className="text-green-700 text-sm">
-                                💡 <strong>เคล็ดลับ:</strong> ระบายให้ครอบคลุมพื้นที่ที่ต้องการให้เป็นสวน (อย่างน้อย 2%)
+                                💡 <strong>เคล็ดลับ:</strong> ระบายให้ครอบคลุมพื้นที่ที่ต้องการให้เป็นสวน (อย่างน้อย 2%)<br/>
+                                🎯 <strong>พื้นที่รก = ผลลัพธ์ดีกว่า</strong> เพราะ AI เห็นขนาดวัตถุได้ชัดเจน
                               </p>
                             </div>
                           </div>
