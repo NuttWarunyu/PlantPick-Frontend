@@ -1051,16 +1051,28 @@ export default function DesignStudioPage() {
                   📞 Line: @025hcugd • 📘 Facebook: PlanPick จัดสวนฟรีด้วย AI
                 </p>
                 
-                <button
-                  onClick={() => {
-                    const gardenInfo = `สวนที่ออกแบบ: ${getFullPrompt()}\nรูปภาพ: ${resultImage}\nต้องการให้ทีมงานช่วยจัดสวนจริง`;
-                    navigator.clipboard.writeText(gardenInfo);
-                    alert('คัดลอกข้อมูลแล้ว! กรุณาส่งให้ทีมงานผ่านช่องทางที่สะดวก\n\n📞 Line: @025hcugd\n📘 Facebook: https://www.facebook.com/profile.php?id=61578796941191');
-                  }}
-                  className="w-full bg-gradient-to-r from-purple-500 to-pink-500 text-white font-bold py-3 px-6 rounded-lg hover:from-purple-600 hover:to-pink-600 transition-all"
-                >
-                  📋 ส่งข้อมูลให้ทีมงาน
-                </button>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => {
+                      const gardenInfo = `🌿 ส่งข้อมูลสวนให้ทีมงานจัดของ\n\n📋 รายละเอียดสวน:\n${getFullPrompt()}\n\n💰 งบประมาณ: ${budgetOptions.find(b => b.level === selectedBudgetLevel)?.label || 'ไม่ระบุ'}\n\n🖼️ รูปภาพ: ${resultImage}\n\nต้องการให้ทีมงานช่วยจัดสวนจริง`;
+                      const encodedText = encodeURIComponent(gardenInfo);
+                      window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(window.location.href)}&quote=${encodedText}`, '_blank');
+                    }}
+                    className="flex-1 bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 transition-all flex items-center justify-center gap-2"
+                  >
+                    📘 Facebook
+                  </button>
+                  <button
+                    onClick={() => {
+                      const gardenInfo = `🌿 ส่งข้อมูลสวนให้ทีมงานจัดของ\n\n📋 รายละเอียดสวน:\n${getFullPrompt()}\n\n💰 งบประมาณ: ${budgetOptions.find(b => b.level === selectedBudgetLevel)?.label || 'ไม่ระบุ'}\n\n🖼️ รูปภาพ: ${resultImage}\n\nต้องการให้ทีมงานช่วยจัดสวนจริง`;
+                      const encodedText = encodeURIComponent(gardenInfo);
+                      window.open(`https://line.me/R/msg/text/?${encodedText}`, '_blank');
+                    }}
+                    className="flex-1 bg-green-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-green-700 transition-all flex items-center justify-center gap-2"
+                  >
+                    💬 Line
+                  </button>
+                </div>
               </div>
             </div>
           </div>
