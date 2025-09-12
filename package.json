@@ -1,0 +1,42 @@
+{
+  "name": "plant-price-system",
+  "version": "1.0.0",
+  "description": "Plant Price Management System - Full Stack Application",
+  "private": true,
+  "workspaces": [
+    "plant-price-system",
+    "backend"
+  ],
+  "scripts": {
+    "install:all": "npm install && cd plant-price-system && npm install && cd ../backend && npm install",
+    "dev:frontend": "cd plant-price-system && npm start",
+    "dev:backend": "cd backend && npm run dev",
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "build:frontend": "cd plant-price-system && npm run build",
+    "build:backend": "cd backend && npm run build",
+    "build": "npm run build:backend && npm run build:frontend",
+    "deploy:backend": "cd backend && railway up --detach",
+    "deploy:frontend": "cd plant-price-system && vercel --prod",
+    "deploy": "./deploy.sh",
+    "test:backend": "cd backend && npm test",
+    "test:frontend": "cd plant-price-system && npm test",
+    "test": "npm run test:backend && npm run test:frontend"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  },
+  "keywords": [
+    "plant",
+    "price",
+    "management",
+    "react",
+    "nodejs",
+    "api"
+  ],
+  "author": "Plant Pick Team",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-username/plant-price-system.git"
+  }
+}
