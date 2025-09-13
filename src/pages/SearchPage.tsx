@@ -19,7 +19,7 @@ const SearchPage: React.FC<SearchPageProps> = ({ selectedPlants, setSelectedPlan
   const [bills, setBills] = useState<BillData[]>([]);
   const [showBills, setShowBills] = useState(false);
   const [plants, setPlants] = useState<Plant[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [, setIsLoading] = useState(true);
   const [showAddSupplierModal, setShowAddSupplierModal] = useState(false);
   const [selectedPlantForSupplier, setSelectedPlantForSupplier] = useState<Plant | null>(null);
 
