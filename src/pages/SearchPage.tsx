@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Plus, Phone, MapPin, FileText, Eye, Trash2, AlertCircle } from 'lucide-react';
+import { Search, Plus, Phone, FileText, Eye, Trash2, AlertCircle } from 'lucide-react';
 import { Plant, SearchResult, BillData } from '../types';
 import { syncService } from '../services/syncService';
 import { initializeBasePlants } from '../data/basePlants';
