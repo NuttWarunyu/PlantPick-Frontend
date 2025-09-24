@@ -152,7 +152,7 @@ class RealApiService {
 
   async getPlants(): Promise<ApiResponse<PlantData[]>> {
     try {
-      const response = await fetch(`${this.baseUrl}/plants`);
+      const response = await fetch(`${this.baseUrl}/api/plants`);
       const data = await response.json();
       return data;
     } catch (error) {
@@ -166,7 +166,7 @@ class RealApiService {
 
   async addSupplier(request: AddSupplierRequest): Promise<ApiResponse<SupplierData>> {
     try {
-      const response = await fetch(`${this.baseUrl}/plants/${request.plantId}/suppliers`, {
+      const response = await fetch(`${this.baseUrl}/api/plants/${request.plantId}/suppliers`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -186,7 +186,7 @@ class RealApiService {
 
   async updateSupplierPrice(plantId: string, supplierId: string, newPrice: number): Promise<ApiResponse<SupplierData>> {
     try {
-      const response = await fetch(`${this.baseUrl}/plants/${plantId}/suppliers/${supplierId}/price`, {
+      const response = await fetch(`${this.baseUrl}/api/plants/${plantId}/suppliers/${supplierId}/price`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
