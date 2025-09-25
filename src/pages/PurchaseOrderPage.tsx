@@ -87,11 +87,11 @@ const PurchaseOrderPage: React.FC<PurchaseOrderPageProps> = ({ selectedPlants, s
           // ถ้ากำลังยืนยัน (เปลี่ยนจาก false เป็น true) ให้อัปเดตราคาในฐานข้อมูล
           if (newConfirmed && !item.confirmed && item.selectedSupplier) {
             updateAndSavePrice(plantId, item.selectedSupplier.id, item.actualPrice);
-            console.log(`อัปเดตราคา ${item.plant.name} จาก ${item.selectedSupplier.name} เป็น ฿${item.actualPrice}`);
+            console.log(`อัปเดตราคา ${item.plant.name} จาก ${item.selectedSupplier?.name || 'ผู้จัดจำหน่าย'} เป็น ฿${item.actualPrice}`);
             
             // แสดงข้อความแจ้งเตือน
             setTimeout(() => {
-              alert(`อัปเดตราคา ${item.plant.name} จาก ${item.selectedSupplier.name} เป็น ฿${item.actualPrice.toLocaleString()} แล้ว`);
+              alert(`อัปเดตราคา ${item.plant.name} จาก ${item.selectedSupplier?.name || 'ผู้จัดจำหน่าย'} เป็น ฿${item.actualPrice.toLocaleString()} แล้ว`);
             }, 100);
           }
           
