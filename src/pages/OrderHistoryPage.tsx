@@ -168,7 +168,7 @@ const OrderHistoryPage: React.FC = () => {
                           <span className="text-gray-800">{item.plant.name}</span>
                           <div className="flex items-center gap-2">
                             <span className="text-gray-600">x{item.quantity}</span>
-                            <span className="font-medium text-green-600">฿{item.selectedSupplier.price.toLocaleString()}</span>
+                            <span className="font-medium text-green-600">฿{item.selectedSupplier?.price.toLocaleString() || '0'}</span>
                           </div>
                         </div>
                       ))}

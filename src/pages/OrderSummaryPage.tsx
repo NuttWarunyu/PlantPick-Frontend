@@ -43,7 +43,7 @@ const OrderSummaryPage: React.FC<OrderSummaryPageProps> = ({ selectedPlants, set
 
   const getTotalPrice = () => {
     return orderItems.reduce((total, item) => {
-      return total + (item.selectedSupplier.price * item.quantity);
+      return total + ((item.selectedSupplier?.price || 0) * item.quantity);
     }, 0);
   };
 
@@ -52,11 +52,13 @@ const OrderSummaryPage: React.FC<OrderSummaryPageProps> = ({ selectedPlants, set
     const groups: { [key: string]: OrderItem[] } = {};
     
     orderItems.forEach(item => {
-      const location = item.selectedSupplier.location;
-      if (!groups[location]) {
-        groups[location] = [];
+      if (item.selectedSupplier) {
+        const location = item.selectedSupplier?.location || 'ไม่ระบุที่ตั้ง';
+        if (!groups[location]) {
+          groups[location] = [];
+        }
+        groups[location].push(item);
       }
-      groups[location].push(item);
     });
     
     return groups;
@@ -205,7 +207,7 @@ const OrderSummaryPage: React.FC<OrderSummaryPageProps> = ({ selectedPlants, set
                   {location}
                 </h3>
                 <p className="text-blue-600">
-                  {items.length} รายการ | ราคารวม: ฿{items.reduce((sum, item) => sum + (item.selectedSupplier.price * item.quantity), 0).toLocaleString()}
+                  {items.length} รายการ | ราคารวม: ฿{items.reduce((sum, item) => sum + ((item.selectedSupplier?.price || 0) * item.quantity), 0).toLocaleString()}
                 </p>
               </div>
             </div>
@@ -239,20 +241,20 @@ const OrderSummaryPage: React.FC<OrderSummaryPageProps> = ({ selectedPlants, set
                         <div className="flex items-center gap-2">
                           <Package className="h-4 w-4 text-green-500" />
                           <span className="font-medium text-gray-800">
-                            {item.selectedSupplier.name}
+                            {item.selectedSupplier?.name || 'ไม่มีผู้จัดจำหน่าย'}
                           </span>
                         </div>
                         <div className="flex items-center gap-2">
                           <MapPin className="h-4 w-4 text-gray-400" />
                           <span className="text-sm text-gray-600">
-                            {item.selectedSupplier.location}
+                            {item.selectedSupplier?.location || 'ไม่ระบุที่ตั้ง'}
                           </span>
                         </div>
                       </div>
                       
                       <div className="flex items-center gap-3">
                         <a
-                          href={`tel:${item.selectedSupplier.phone}`}
+                          href={`tel:${item.selectedSupplier?.phone || ''}`}
                           className="flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
                         >
                           <Phone className="h-4 w-4" />
@@ -275,7 +277,7 @@ const OrderSummaryPage: React.FC<OrderSummaryPageProps> = ({ selectedPlants, set
                           ราคาต่อต้น
                         </label>
                         <div className="px-3 py-2 bg-white rounded-lg border">
-                          ฿{item.selectedSupplier.price.toLocaleString()}
+                          ฿{item.selectedSupplier?.price.toLocaleString() || '0'}
                         </div>
                       </div>
                       <div>
@@ -283,7 +285,7 @@ const OrderSummaryPage: React.FC<OrderSummaryPageProps> = ({ selectedPlants, set
                           ราคารวม
                         </label>
                         <div className="px-3 py-2 bg-white rounded-lg border font-semibold text-green-600">
-                          ฿{(item.selectedSupplier.price * item.quantity).toLocaleString()}
+                          ฿{((item.selectedSupplier?.price || 0) * item.quantity).toLocaleString()}
                         </div>
                       </div>
                     </div>
@@ -322,7 +324,7 @@ const OrderSummaryPage: React.FC<OrderSummaryPageProps> = ({ selectedPlants, set
               {orderItems.map((item) => (
                 <div key={item.plant.id} className="flex justify-between text-sm">
                   <span>{item.plant.name} x{item.quantity}</span>
-                  <span>฿{(item.selectedSupplier.price * item.quantity).toLocaleString()}</span>
+                  <span>฿{((item.selectedSupplier?.price || 0) * item.quantity).toLocaleString()}</span>
                 </div>
               ))}
             </div>
