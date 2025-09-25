@@ -7,6 +7,7 @@ import OrderSummaryPage from './pages/OrderSummaryPage';
 import OrderHistoryPage from './pages/OrderHistoryPage';
 import BillProcessingPage from './pages/BillProcessingPage';
 import BillListPage from './pages/BillListPage';
+import AddPlantPage from './pages/AddPlantPage';
 import { initializeBasePlants } from './data/basePlants';
 import './App.css';
 
@@ -39,6 +40,10 @@ function App() {
                 <a href="/" className="flex items-center space-x-2 text-green-700 hover:text-green-900 transition-colors">
                   <Search className="h-5 w-5" />
                   <span>ค้นหา</span>
+                </a>
+                <a href="/add-plant" className="flex items-center space-x-2 text-green-700 hover:text-green-900 transition-colors">
+                  <Calculator className="h-5 w-5" />
+                  <span>เพิ่มต้นไม้</span>
                 </a>
                 <a href="/bill-processing" className="flex items-center space-x-2 text-green-700 hover:text-green-900 transition-colors">
                   <FileText className="h-5 w-5" />
@@ -98,6 +103,10 @@ function App() {
             <Route 
               path="/bill-list" 
               element={<BillListPage />} 
+            />
+            <Route 
+              path="/add-plant" 
+              element={<AddPlantPage />} 
             />
           </Routes>
         </main>
