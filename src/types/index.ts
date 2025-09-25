@@ -22,7 +22,7 @@ export interface Supplier {
 export interface QuoteItem {
   plant: Plant;
   quantity: number;
-  selectedSupplier: Supplier;
+  selectedSupplier: Supplier | null;
 }
 
 export interface BillItem {
