@@ -26,10 +26,10 @@ const PurchaseOrderPage: React.FC<PurchaseOrderPageProps> = ({ selectedPlants, s
       selectedPlants.map(plant => ({
         plant,
         quantity: 1,
-        selectedSupplier: plant.suppliers[0],
+        selectedSupplier: plant.suppliers && plant.suppliers.length > 0 ? plant.suppliers[0] : null,
         confirmed: false,
         notes: '',
-        actualPrice: plant.suppliers[0].price // เริ่มต้นด้วยราคาจากฐานข้อมูล
+        actualPrice: plant.suppliers && plant.suppliers.length > 0 ? plant.suppliers[0].price : 0 // เริ่มต้นด้วยราคาจากฐานข้อมูล
       }))
     );
   }, [selectedPlants]);
@@ -85,7 +85,7 @@ const PurchaseOrderPage: React.FC<PurchaseOrderPageProps> = ({ selectedPlants, s
           const newConfirmed = !item.confirmed;
           
           // ถ้ากำลังยืนยัน (เปลี่ยนจาก false เป็น true) ให้อัปเดตราคาในฐานข้อมูล
-          if (newConfirmed && !item.confirmed) {
+          if (newConfirmed && !item.confirmed && item.selectedSupplier) {
             updateAndSavePrice(plantId, item.selectedSupplier.id, item.actualPrice);
             console.log(`อัปเดตราคา ${item.plant.name} จาก ${item.selectedSupplier.name} เป็น ฿${item.actualPrice}`);
             
@@ -128,11 +128,13 @@ const PurchaseOrderPage: React.FC<PurchaseOrderPageProps> = ({ selectedPlants, s
     const groups: { [key: string]: PurchaseOrderItem[] } = {};
     
     purchaseItems.forEach(item => {
-      const location = item.selectedSupplier.location;
-      if (!groups[location]) {
-        groups[location] = [];
+      if (item.selectedSupplier) {
+        const location = item.selectedSupplier.location;
+        if (!groups[location]) {
+          groups[location] = [];
+        }
+        groups[location].push(item);
       }
-      groups[location].push(item);
     });
     
     return groups;
