@@ -6,6 +6,7 @@ export interface Plant {
   plantType: 'ไม้ประดับ' | 'ไม้ล้อม' | 'ไม้คลุมดิน' | 'ไม้ดอก' | 'ไม้ใบ' | 'แคคตัส' | 'บอนไซ' | 'กล้วยไม้';
   measurementType: 'ความสูง' | 'ขนาดลำต้น' | 'ขนาดถุงดำ' | 'ขนาดกระถาง' | 'จำนวนกิ่ง';
   suppliers: Supplier[];
+  hasSuppliers?: boolean;
 }
 
 export interface Supplier {
@@ -21,7 +22,7 @@ export interface Supplier {
 export interface QuoteItem {
   plant: Plant;
   quantity: number;
-  selectedSupplier: Supplier;
+  selectedSupplier: Supplier | null;
 }
 
 export interface BillItem {

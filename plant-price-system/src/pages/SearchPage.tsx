@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Plus, Phone, MapPin, FileText, Eye, Trash2, AlertCircle } from 'lucide-react';
+import { Search, Plus, Eye, Trash2, AlertCircle, CheckSquare, Square, ShoppingCart, X } from 'lucide-react';
 import { Plant, SearchResult, BillData } from '../types';
 import { syncService } from '../services/syncService';
 import { initializeBasePlants } from '../data/basePlants';
@@ -19,7 +19,7 @@ const SearchPage: React.FC<SearchPageProps> = ({ selectedPlants, setSelectedPlan
   const [bills, setBills] = useState<BillData[]>([]);
   const [showBills, setShowBills] = useState(false);
   const [plants, setPlants] = useState<Plant[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [, setIsLoading] = useState(true);
   const [showAddSupplierModal, setShowAddSupplierModal] = useState(false);
   const [selectedPlantForSupplier, setSelectedPlantForSupplier] = useState<Plant | null>(null);
 
@@ -137,30 +137,42 @@ const SearchPage: React.FC<SearchPageProps> = ({ selectedPlants, setSelectedPlan
   const priceRange = getTotalPriceRange();
 
   return (
-    <div className="max-w-4xl mx-auto">
-      {/* Search Bar */}
-      <div className="relative mb-8">
+    <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-emerald-50">
+      {/* Simple Header */}
+      <div className="bg-white shadow-sm border-b border-green-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <div className="text-center">
+            <h1 className="text-3xl font-bold text-green-800 mb-2">
+              🌿 PlantPick
+            </h1>
+            <p className="text-gray-600">ระบบจัดการราคาต้นไม้สำหรับธุรกิจสวน</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Search Section */}
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <div className="relative">
-          <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-green-500 h-6 w-6" />
+          <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-green-500 h-5 w-5" />
           <input
             type="text"
-            placeholder="พิมพ์ชื่อต้นไม้ ภาษาไทย หรือชื่อวิทยาศาสตร์ เช่น: มอนสเตอร่า, Monstera, ไม้ใบ"
+            placeholder="ค้นหาต้นไม้ เช่น มอนสเตอร่า, ไทรใบสัก, แคคตัส..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-12 pr-4 py-4 text-lg border-2 border-green-200 rounded-xl focus:border-green-500 focus:outline-none transition-colors"
+            className="w-full pl-12 pr-4 py-4 text-lg border-2 border-green-200 rounded-xl focus:border-green-500 focus:outline-none transition-all duration-300 shadow-sm"
           />
         </div>
         
         {/* Search Examples */}
         {!showResults && searchTerm === '' && (
-          <div className="mt-4 text-center">
-            <p className="text-sm text-green-600 mb-2">ตัวอย่างการค้นหา:</p>
-            <div className="flex flex-wrap justify-center gap-2">
+          <div className="mt-4">
+            <p className="text-sm text-gray-500 mb-2">ตัวอย่างการค้นหา:</p>
+            <div className="flex flex-wrap gap-2">
               {['มอนสเตอร่า', 'ไทรใบสัก', 'กุหลาบ', 'แคคตัส', 'ไผ่', 'บอนไซ'].map((example) => (
                 <button
                   key={example}
                   onClick={() => setSearchTerm(example)}
-                  className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm hover:bg-green-200 transition-colors"
+                  className="px-3 py-1 bg-white text-green-700 rounded-full text-sm hover:bg-green-50 transition-colors border border-green-200 hover:border-green-300"
                 >
                   {example}
                 </button>
@@ -170,168 +182,95 @@ const SearchPage: React.FC<SearchPageProps> = ({ selectedPlants, setSelectedPlan
         )}
       </div>
 
-      {/* Bills Section */}
-      <div className="mb-8">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-semibold text-green-800">
-            รายการบิลล่าสุด ({bills.length} บิล)
-          </h2>
-          <button
-            onClick={() => setShowBills(!showBills)}
-            className="text-green-600 hover:text-green-800 transition-colors"
-          >
-            {showBills ? 'ซ่อน' : 'แสดง'} รายการบิล
-          </button>
-        </div>
-
-        {showBills && bills.length > 0 && (
-          <div className="space-y-4">
-            {bills.slice(0, 3).map((bill, index) => (
-              <div
-                key={index}
-                className="bg-white rounded-xl shadow-sm border border-green-200 p-4"
-              >
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <h3 className="text-lg font-semibold text-green-800">
-                        {bill.supplierInfo.name}
-                      </h3>
-                      <span className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">
-                        {bill.supplierInfo.province}
-                      </span>
-                      <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full">
-                        {getTotalItems(bill)} รายการ
-                      </span>
-                    </div>
-                    
-                    <div className="text-sm text-gray-600 mb-2">
-                      เบอร์โทร: {bill.supplierInfo.phone} | 
-                      ราคารวม: ฿{bill.totalAmount.toLocaleString()} | 
-                      วันที่: {new Date(bill.date).toLocaleDateString('th-TH')}
-                    </div>
-
-                    {/* Items Preview */}
-                    <div className="bg-gray-50 rounded-lg p-2">
-                      <div className="text-xs text-gray-500 mb-1">รายการสินค้า:</div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-1">
-                        {bill.items.slice(0, 4).map((item, itemIndex) => (
-                          <div key={itemIndex} className="text-xs text-gray-700">
-                            {item.name} x{item.quantity} ฿{item.price.toLocaleString()}
-                          </div>
-                        ))}
-                        {bill.items.length > 4 && (
-                          <div className="text-xs text-gray-500 italic">
-                            และอีก {bill.items.length - 4} รายการ...
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  <button
-                    onClick={() => deleteBill(index)}
-                    className="ml-4 text-red-500 hover:text-red-700 transition-colors"
-                    title="ลบบิล"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                </div>
-              </div>
-            ))}
-            
-            {bills.length > 3 && (
-              <div className="text-center text-sm text-green-600">
-                และอีก {bills.length - 3} บิล... 
-                <a href="/bill-list" className="ml-2 underline hover:text-green-800">
-                  ดูทั้งหมด
-                </a>
-              </div>
-            )}
-          </div>
-        )}
-
-        {showBills && bills.length === 0 && (
-          <div className="bg-gray-50 rounded-xl p-6 text-center">
-            <FileText className="h-12 w-12 text-gray-400 mx-auto mb-3" />
-            <p className="text-gray-600">ยังไม่มีบิลในระบบ</p>
-            <p className="text-sm text-gray-500 mt-1">
-              ไปที่หน้า "ประมวลผลใบเสร็จ" เพื่อเพิ่มบิลใหม่
-            </p>
-          </div>
-        )}
-      </div>
 
       {/* Search Results - แสดงเฉพาะเมื่อมีการค้นหา */}
       {searchTerm && (
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <h2 className="text-xl font-semibold mb-4 text-green-800">🔍 ผลการค้นหา</h2>
-          
-          {searchResults.length > 0 ? (
-            <div>
-              <p className="text-sm text-gray-600 mb-4">
-                พบ {searchResults.length} รายการสำหรับ "{searchTerm}"
-              </p>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <div className="bg-white rounded-xl shadow-sm border border-green-200 p-6">
+            <div className="mb-6">
+              <h2 className="text-xl font-bold text-gray-900 mb-2">🔍 ผลการค้นหา</h2>
+              {searchResults.length > 0 && (
+                <p className="text-gray-600">
+                  พบ <span className="font-semibold text-green-600">{searchResults.length}</span> รายการสำหรับ "<span className="font-semibold">{searchTerm}</span>"
+                </p>
+              )}
+            </div>
+            
+            {searchResults.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                 {searchResults.map((result) => (
-                  <div key={result.plant.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center">
-                        <span className="text-2xl mr-3">🌿</span>
-                        <div>
-                          <h3 className="font-medium text-gray-900">{result.plant.name}</h3>
-                          <p className="text-sm text-gray-500 italic">{result.plant.scientificName}</p>
-                        </div>
-                      </div>
+                  <div 
+                    key={result.plant.id} 
+                    className="group relative bg-gray-50 border border-gray-200 rounded-lg p-4 hover:shadow-md transition-all duration-300 hover:border-green-300"
+                  >
+                    {/* Plant Icon */}
+                    <div className="text-center mb-3">
+                      <div className="text-4xl mb-2">🌿</div>
                     </div>
-                    
-                    <div className="flex items-center justify-between">
+
+                    {/* Plant Info */}
+                    <div className="text-center mb-3">
+                      <h3 className="text-lg font-bold text-gray-900 mb-1">{result.plant.name}</h3>
+                      <p className="text-sm text-gray-500 italic mb-2">{result.plant.scientificName}</p>
                       <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
                         {result.plant.category}
                       </span>
-                      
-                      <button
-                        onClick={() => togglePlantSelection(result.plant)}
-                        disabled={result.isSelected}
-                        className={`flex items-center px-3 py-1 rounded-lg text-sm transition-colors ${
-                          result.isSelected
-                            ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
-                            : 'bg-green-600 text-white hover:bg-green-700'
-                        }`}
-                      >
-                        <Plus className="w-3 h-3 mr-1" />
-                        {result.isSelected ? 'เลือกแล้ว' : 'เพิ่ม'}
-                      </button>
                     </div>
+
+                    {/* Price Info */}
+                    {result.plant.suppliers.length > 0 && (
+                      <div className="text-center mb-3">
+                        <div className="text-lg font-bold text-green-600">
+                          ฿{getLowestPrice(result.plant).toLocaleString()}
+                          {getLowestPrice(result.plant) !== getHighestPrice(result.plant) && (
+                            <span className="text-sm text-gray-500"> - ฿{getHighestPrice(result.plant).toLocaleString()}</span>
+                          )}
+                        </div>
+                        <p className="text-xs text-gray-500">ราคาต่อต้น</p>
+                      </div>
+                    )}
+
+                    {/* Action Button */}
+                    <button
+                      onClick={() => togglePlantSelection(result.plant)}
+                      disabled={result.isSelected}
+                      className={`w-full flex items-center justify-center px-3 py-2 rounded-lg text-sm font-semibold transition-all duration-300 ${
+                        result.isSelected
+                          ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                          : 'bg-green-500 text-white hover:bg-green-600'
+                      }`}
+                    >
+                      <Plus className="w-4 h-4 mr-2" />
+                      {result.isSelected ? 'เลือกแล้ว' : 'เพิ่มลงรายการ'}
+                    </button>
                   </div>
                 ))}
               </div>
-            </div>
-          ) : (
-            <div className="text-center py-8 text-gray-500">
-              <Search className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-              <p>ไม่พบต้นไม้ที่ค้นหา "{searchTerm}"</p>
-              <p className="text-sm">ลองค้นหาด้วยคำอื่น หรือตรวจสอบการสะกดคำ</p>
-            </div>
-          )}
+            ) : (
+              <div className="text-center py-12">
+                <div className="text-6xl mb-4">🔍</div>
+                <h3 className="text-xl font-bold text-gray-900 mb-2">ไม่พบต้นไม้ที่ค้นหา</h3>
+                <p className="text-gray-600 mb-4">ลองค้นหาด้วยคำอื่น หรือดูตัวอย่างการค้นหาด้านบน</p>
+                <button
+                  onClick={() => setSearchTerm('')}
+                  className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
+                >
+                  ล้างการค้นหา
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       )}
 
-      {!searchTerm && (
-        <div className="bg-white rounded-lg shadow-md p-6 text-center py-12">
-          <Search className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-          <h3 className="text-lg font-medium text-gray-700 mb-2">เริ่มค้นหาต้นไม้</h3>
-          <p className="text-gray-500">พิมพ์ชื่อต้นไม้ที่ต้องการในช่องค้นหาด้านบน</p>
-          <p className="text-sm text-gray-400 mt-2">เช่น "มอนสเตอร่า", "กุหลาบ", "แคคตัส"</p>
-        </div>
-      )}
 
       {/* Selected Plants */}
       {selectedPlants.length > 0 && (
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <h2 className="text-xl font-semibold mb-4 text-green-800">
-            🛒 รายการที่เลือก ({selectedPlants.length} รายการ)
-          </h2>
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <div className="bg-white rounded-xl shadow-sm border border-green-200 p-6">
+            <h2 className="text-xl font-semibold mb-4 text-green-800">
+              🛒 รายการที่เลือก ({selectedPlants.length} รายการ)
+            </h2>
           
           <div className="space-y-4 mb-6">
             {selectedPlants.map((plant) => (
@@ -426,27 +365,6 @@ const SearchPage: React.FC<SearchPageProps> = ({ selectedPlants, setSelectedPlan
               สร้างรายการสั่งซื้อ
             </button>
           </div>
-        </div>
-      )}
-
-      {/* Selected Plants Summary */}
-      {selectedPlants.length > 0 && (
-        <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 bg-white rounded-xl shadow-lg border border-green-200 p-4">
-          <div className="flex items-center gap-4">
-            <div className="text-center">
-              <div className="text-lg font-semibold text-green-800">
-                เลือกแล้ว {selectedPlants.length} รายการ
-              </div>
-              <div className="text-sm text-green-600">
-                ราคารวม: {priceRange.min > 0 ? `฿${priceRange.min.toLocaleString()} - ฿${priceRange.max.toLocaleString()}` : 'ไม่มีข้อมูลราคา'}
-              </div>
-            </div>
-            <button
-              onClick={() => navigate('/purchase-order')}
-              className="px-6 py-3 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-colors"
-            >
-              สร้างรายการสั่งซื้อ
-            </button>
           </div>
         </div>
       )}

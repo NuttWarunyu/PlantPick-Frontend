@@ -26,10 +26,10 @@ const PurchaseOrderPage: React.FC<PurchaseOrderPageProps> = ({ selectedPlants, s
       selectedPlants.map(plant => ({
         plant,
         quantity: 1,
-        selectedSupplier: plant.suppliers[0],
+        selectedSupplier: plant.suppliers && plant.suppliers.length > 0 ? plant.suppliers[0] : null,
         confirmed: false,
         notes: '',
-        actualPrice: plant.suppliers[0].price // เริ่มต้นด้วยราคาจากฐานข้อมูล
+        actualPrice: plant.suppliers && plant.suppliers.length > 0 ? plant.suppliers[0].price : 0 // เริ่มต้นด้วยราคาจากฐานข้อมูล
       }))
     );
   }, [selectedPlants]);
@@ -85,13 +85,13 @@ const PurchaseOrderPage: React.FC<PurchaseOrderPageProps> = ({ selectedPlants, s
           const newConfirmed = !item.confirmed;
           
           // ถ้ากำลังยืนยัน (เปลี่ยนจาก false เป็น true) ให้อัปเดตราคาในฐานข้อมูล
-          if (newConfirmed && !item.confirmed) {
+          if (newConfirmed && !item.confirmed && item.selectedSupplier) {
             updateAndSavePrice(plantId, item.selectedSupplier.id, item.actualPrice);
-            console.log(`อัปเดตราคา ${item.plant.name} จาก ${item.selectedSupplier.name} เป็น ฿${item.actualPrice}`);
+            console.log(`อัปเดตราคา ${item.plant.name} จาก ${item.selectedSupplier?.name || 'ผู้จัดจำหน่าย'} เป็น ฿${item.actualPrice}`);
             
             // แสดงข้อความแจ้งเตือน
             setTimeout(() => {
-              alert(`อัปเดตราคา ${item.plant.name} จาก ${item.selectedSupplier.name} เป็น ฿${item.actualPrice.toLocaleString()} แล้ว`);
+              alert(`อัปเดตราคา ${item.plant.name} จาก ${item.selectedSupplier?.name || 'ผู้จัดจำหน่าย'} เป็น ฿${item.actualPrice.toLocaleString()} แล้ว`);
             }, 100);
           }
           
@@ -128,11 +128,13 @@ const PurchaseOrderPage: React.FC<PurchaseOrderPageProps> = ({ selectedPlants, s
     const groups: { [key: string]: PurchaseOrderItem[] } = {};
     
     purchaseItems.forEach(item => {
-      const location = item.selectedSupplier.location;
-      if (!groups[location]) {
-        groups[location] = [];
+      if (item.selectedSupplier) {
+        const location = item.selectedSupplier.location;
+        if (!groups[location]) {
+          groups[location] = [];
+        }
+        groups[location].push(item);
       }
-      groups[location].push(item);
     });
     
     return groups;
@@ -267,7 +269,7 @@ const PurchaseOrderPage: React.FC<PurchaseOrderPageProps> = ({ selectedPlants, s
                       ผู้จัดจำหน่าย:
                     </label>
                     <select
-                      value={item.selectedSupplier.id}
+                      value={item.selectedSupplier?.id || ''}
                       onChange={(e) => updateSupplier(item.plant.id, e.target.value)}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:border-green-500 focus:outline-none"
                     >
@@ -305,7 +307,7 @@ const PurchaseOrderPage: React.FC<PurchaseOrderPageProps> = ({ selectedPlants, s
                         placeholder="ราคาจริงจากสวน"
                       />
                       <div className="text-xs text-gray-500 mt-1">
-                        ราคาอ้างอิง: ฿{item.selectedSupplier.price.toLocaleString()}
+                        ราคาอ้างอิง: ฿{item.selectedSupplier?.price.toLocaleString() || '0'}
                       </div>
                     </div>
                     
@@ -326,8 +328,8 @@ const PurchaseOrderPage: React.FC<PurchaseOrderPageProps> = ({ selectedPlants, s
                         <div className="flex items-center gap-2">
                           <Package className="h-4 w-4 text-green-500" />
                           <span className="font-medium text-gray-800">
-                            {item.selectedSupplier.name}
-                            {item.selectedSupplier.size && (
+                            {item.selectedSupplier?.name || 'ไม่มีผู้จัดจำหน่าย'}
+                            {item.selectedSupplier?.size && (
                               <span className="ml-2 px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full">
                                 {item.selectedSupplier.size}
                               </span>
@@ -337,19 +339,21 @@ const PurchaseOrderPage: React.FC<PurchaseOrderPageProps> = ({ selectedPlants, s
                         <div className="flex items-center gap-2">
                           <MapPin className="h-4 w-4 text-gray-400" />
                           <span className="text-sm text-gray-600">
-                            {item.selectedSupplier.location}
+                            {item.selectedSupplier?.location || 'ไม่ระบุที่ตั้ง'}
                           </span>
                         </div>
                       </div>
                       
                       <div className="flex items-center gap-3">
-                        <a
-                          href={`tel:${item.selectedSupplier.phone}`}
-                          className="flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
-                        >
-                          <Phone className="h-4 w-4" />
-                          <span>โทร</span>
-                        </a>
+                        {item.selectedSupplier && (
+                          <a
+                            href={`tel:${item.selectedSupplier.phone}`}
+                            className="flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
+                          >
+                            <Phone className="h-4 w-4" />
+                            <span>โทร</span>
+                          </a>
+                        )}
                         
                         <button
                           onClick={() => toggleConfirmation(item.plant.id)}
@@ -403,7 +407,7 @@ const PurchaseOrderPage: React.FC<PurchaseOrderPageProps> = ({ selectedPlants, s
                 {purchaseItems.map((item) => (
                   <div key={item.plant.id} className="flex justify-between text-sm">
                     <span>{item.plant.name} x{item.quantity}</span>
-                    <span>฿{(item.selectedSupplier.price * item.quantity).toLocaleString()}</span>
+                    <span>฿{((item.selectedSupplier?.price || 0) * item.quantity).toLocaleString()}</span>
                   </div>
                 ))}
               </div>
