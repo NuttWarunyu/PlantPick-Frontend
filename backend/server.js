@@ -187,25 +187,49 @@ app.get('/api/suppliers', async (req, res) => {
       let specialties = [];
       let paymentMethods = [];
       
-      try {
-        if (row.specialties && row.specialties.trim() !== '') {
-          specialties = JSON.parse(row.specialties);
-        } else {
-          specialties = [];
+      // Handle specialties - check if it's valid JSON
+      if (row.specialties && row.specialties.trim() !== '') {
+        try {
+          // Check if it's already an array or object
+          if (typeof row.specialties === 'string') {
+            if (row.specialties.startsWith('[') || row.specialties.startsWith('{')) {
+              specialties = JSON.parse(row.specialties);
+            } else {
+              // If it's a comma-separated string, convert to array
+              specialties = row.specialties.split(',').map(s => s.trim()).filter(s => s);
+            }
+          } else {
+            specialties = row.specialties;
+          }
+        } catch (e) {
+          console.error('Error parsing specialties:', e);
+          // Fallback: treat as comma-separated string
+          specialties = row.specialties.split(',').map(s => s.trim()).filter(s => s);
         }
-      } catch (e) {
-        console.error('Error parsing specialties:', e);
+      } else {
         specialties = [];
       }
       
-      try {
-        if (row.payment_methods && row.payment_methods.trim() !== '') {
-          paymentMethods = JSON.parse(row.payment_methods);
-        } else {
-          paymentMethods = [];
+      // Handle payment methods - check if it's valid JSON
+      if (row.payment_methods && row.payment_methods.trim() !== '') {
+        try {
+          // Check if it's already an array or object
+          if (typeof row.payment_methods === 'string') {
+            if (row.payment_methods.startsWith('[') || row.payment_methods.startsWith('{')) {
+              paymentMethods = JSON.parse(row.payment_methods);
+            } else {
+              // If it's a comma-separated string, convert to array
+              paymentMethods = row.payment_methods.split(',').map(s => s.trim()).filter(s => s);
+            }
+          } else {
+            paymentMethods = row.payment_methods;
+          }
+        } catch (e) {
+          console.error('Error parsing paymentMethods:', e);
+          // Fallback: treat as comma-separated string
+          paymentMethods = row.payment_methods.split(',').map(s => s.trim()).filter(s => s);
         }
-      } catch (e) {
-        console.error('Error parsing paymentMethods:', e);
+      } else {
         paymentMethods = [];
       }
       
