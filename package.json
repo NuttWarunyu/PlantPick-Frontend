@@ -14,7 +14,7 @@
     "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
     "build:frontend": "cd plant-price-system && npm run build",
     "build:backend": "cd backend && npm run build",
-    "build": "npm run build:backend && npm run build:frontend",
+    "build": "npm run build:backend",
     "deploy:backend": "cd backend && railway up --detach",
     "deploy:frontend": "cd plant-price-system && vercel --prod",
     "deploy": "./deploy.sh",
