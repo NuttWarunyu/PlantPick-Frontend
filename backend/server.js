@@ -188,14 +188,22 @@ app.get('/api/suppliers', async (req, res) => {
       let paymentMethods = [];
       
       try {
-        specialties = row.specialties ? JSON.parse(row.specialties) : [];
+        if (row.specialties && row.specialties.trim() !== '') {
+          specialties = JSON.parse(row.specialties);
+        } else {
+          specialties = [];
+        }
       } catch (e) {
         console.error('Error parsing specialties:', e);
         specialties = [];
       }
       
       try {
-        paymentMethods = row.payment_methods ? JSON.parse(row.payment_methods) : [];
+        if (row.payment_methods && row.payment_methods.trim() !== '') {
+          paymentMethods = JSON.parse(row.payment_methods);
+        } else {
+          paymentMethods = [];
+        }
       } catch (e) {
         console.error('Error parsing paymentMethods:', e);
         paymentMethods = [];
