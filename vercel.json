@@ -1,6 +1,6 @@
 {
-  "buildCommand": "cd plant-price-system && npm run build",
-  "outputDirectory": "plant-price-system/build",
-  "installCommand": "cd plant-price-system && npm install",
+  "buildCommand": "npm run build",
+  "outputDirectory": "build",
+  "installCommand": "npm install",
   "framework": "create-react-app"
 }
