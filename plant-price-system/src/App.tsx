@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { Search, FileText, Calculator, History, Store, Link, FolderOpen, Camera, BarChart3, TrendingUp, MapPin, PieChart, Menu, X } from 'lucide-react';
+import { Search, FileText, Calculator, History, Store, Link, FolderOpen, Camera, BarChart3, TrendingUp, MapPin, PieChart, Menu, X, Database } from 'lucide-react';
 import SearchPage from './pages/SearchPage';
 import PurchaseOrderPage from './pages/PurchaseOrderPage';
 import OrderSummaryPage from './pages/OrderSummaryPage';
@@ -18,7 +18,9 @@ import PriceAnalysisPage from './pages/PriceAnalysisPage';
 import RouteOptimizationPage from './pages/RouteOptimizationPage';
 import CostAnalysisPage from './pages/CostAnalysisPage';
 import SupplierListPage from './pages/SupplierListPage';
+import DatabaseManagementPage from './pages/DatabaseManagementPage';
 import { initializeBasePlants } from './data/basePlants';
+import './utils/testDataManager'; // Load test data manager
 import './App.css';
 
 function App() {
@@ -149,6 +151,10 @@ function App() {
                     <FileText className="h-4 w-4" />
                     <span>รายการบิล</span>
                   </a>
+                  <a href="/database" className="flex items-center space-x-2 px-3 py-2 text-sm text-green-700 hover:text-green-900 hover:bg-green-50 rounded-md transition-colors">
+                    <Database className="h-4 w-4" />
+                    <span>จัดการฐานข้อมูล</span>
+                  </a>
                 </nav>
               </div>
             )}
@@ -240,6 +246,10 @@ function App() {
                 <Route 
                   path="/suppliers" 
                   element={<SupplierListPage />} 
+                />
+                <Route 
+                  path="/database" 
+                  element={<DatabaseManagementPage />} 
                 />
           </Routes>
         </main>

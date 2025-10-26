@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Save, Store, MapPin, Phone, DollarSign, Package } from 'lucide-react';
+import { apiService } from '../services/api';
 
 const AddSupplierPage: React.FC = () => {
   const navigate = useNavigate();
@@ -68,22 +69,27 @@ const AddSupplierPage: React.FC = () => {
     setIsLoading(true);
 
     try {
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/suppliers`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(supplierData),
-      });
+      // ใช้ Mock API แทนการเรียก API จริง
+      const mockSupplier = {
+        id: `supplier_${Date.now()}`,
+        name: supplierData.name,
+        location: supplierData.location,
+        phone: supplierData.phone,
+        email: supplierData.email,
+        website: supplierData.website,
+        description: supplierData.description,
+        specialties: supplierData.specialties,
+        businessHours: supplierData.businessHours,
+        paymentMethods: supplierData.paymentMethods
+      };
 
-      const result = await response.json();
+      // บันทึกข้อมูลใน localStorage
+      const existingSuppliers = JSON.parse(localStorage.getItem('suppliers') || '[]');
+      existingSuppliers.push(mockSupplier);
+      localStorage.setItem('suppliers', JSON.stringify(existingSuppliers));
 
-      if (result.success) {
-        alert('เพิ่มข้อมูลร้านค้าสำเร็จ!');
-        navigate('/');
-      } else {
-        alert('เกิดข้อผิดพลาด: ' + result.message);
-      }
+      alert('เพิ่มข้อมูลร้านค้าสำเร็จ!');
+      navigate('/suppliers');
     } catch (error) {
       console.error('Error adding supplier:', error);
       alert('เกิดข้อผิดพลาดในการเพิ่มข้อมูลร้านค้า');

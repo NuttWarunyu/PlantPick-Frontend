@@ -36,10 +36,27 @@ const AddPlantPage: React.FC = () => {
 
   const loadSuppliers = async () => {
     try {
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/suppliers`);
-      const result = await response.json();
-      if (result.success) {
-        setSuppliers(result.data);
+      // ใช้ข้อมูลจาก localStorage แทนการเรียก API
+      const storedSuppliers = localStorage.getItem('suppliers');
+      if (storedSuppliers) {
+        const suppliers = JSON.parse(storedSuppliers);
+        setSuppliers(suppliers);
+      } else {
+        // ถ้าไม่มีข้อมูล ให้ใช้ข้อมูลตัวอย่าง
+        setSuppliers([
+          {
+            id: 'supplier_1',
+            name: 'ร้านตัวอย่าง A',
+            location: 'กรุงเทพฯ',
+            phone: '081-234-5678'
+          },
+          {
+            id: 'supplier_2', 
+            name: 'ร้านตัวอย่าง B',
+            location: 'นครปฐม',
+            phone: '082-345-6789'
+          }
+        ]);
       }
     } catch (error) {
       console.error('Error loading suppliers:', error);
@@ -67,44 +84,46 @@ const AddPlantPage: React.FC = () => {
     setIsLoading(true);
 
     try {
-      // 1. เพิ่มต้นไม้
-      const plantResponse = await fetch(`${process.env.REACT_APP_API_URL}/api/plants`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(plantData),
-      });
+      // 1. เพิ่มต้นไม้ใน localStorage
+      const newPlant = {
+        id: `plant_${Date.now()}`,
+        name: plantData.name,
+        scientificName: plantData.scientificName,
+        category: plantData.category,
+        plantType: plantData.plantType,
+        measurementType: plantData.measurementType,
+        description: plantData.description,
+        suppliers: [],
+        hasSuppliers: false
+      };
 
-      const plantResult = await plantResponse.json();
-
-      if (!plantResult.success) {
-        alert('เกิดข้อผิดพลาดในการเพิ่มต้นไม้: ' + plantResult.message);
-        return;
-      }
+      // บันทึกต้นไม้ใน localStorage
+      const existingPlants = JSON.parse(localStorage.getItem('plantsData') || '[]');
+      existingPlants.push(newPlant);
+      localStorage.setItem('plantsData', JSON.stringify(existingPlants));
 
       // 2. ถ้ามีการเพิ่มร้านค้า ให้เชื่อมต่อต้นไม้กับร้านค้า
       if (addSupplier && supplierData.supplierId && supplierData.price) {
-        const connectionResponse = await fetch(`${process.env.REACT_APP_API_URL}/api/plant-suppliers`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            plantId: plantResult.data.id,
-            supplierId: supplierData.supplierId,
+        const selectedSupplier = suppliers.find(s => s.id === supplierData.supplierId);
+        if (selectedSupplier) {
+          const supplierConnection = {
+            id: `supplier_${Date.now()}`,
+            name: selectedSupplier.name,
             price: parseFloat(supplierData.price),
-            size: supplierData.size || null,
-            stockQuantity: parseInt(supplierData.stockQuantity) || 0,
-            notes: supplierData.notes || null
-          }),
-        });
+            phone: selectedSupplier.phone,
+            location: selectedSupplier.location,
+            lastUpdated: new Date().toISOString(),
+            size: supplierData.size || undefined
+          };
 
-        const connectionResult = await connectionResponse.json();
-
-        if (!connectionResult.success) {
-          alert('เพิ่มต้นไม้สำเร็จ แต่เกิดข้อผิดพลาดในการเชื่อมต่อร้านค้า: ' + connectionResult.message);
-          return;
+          // อัปเดตต้นไม้ใน localStorage
+          const updatedPlants = JSON.parse(localStorage.getItem('plantsData') || '[]');
+          const plantIndex = updatedPlants.findIndex((p: any) => p.id === newPlant.id);
+          if (plantIndex !== -1) {
+            updatedPlants[plantIndex].suppliers.push(supplierConnection);
+            updatedPlants[plantIndex].hasSuppliers = true;
+            localStorage.setItem('plantsData', JSON.stringify(updatedPlants));
+          }
         }
       }
 
