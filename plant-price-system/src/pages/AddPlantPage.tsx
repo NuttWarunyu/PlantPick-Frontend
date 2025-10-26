@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Plus, Save, Store, DollarSign } from 'lucide-react';
+import { ArrowLeft, Save, Store, Search, Plus } from 'lucide-react';
 
 interface Supplier {
   id: string;
   name: string;
   location: string;
   phone: string;
+  specialties?: string[];
 }
 
 const AddPlantPage: React.FC = () => {
@@ -29,10 +30,16 @@ const AddPlantPage: React.FC = () => {
     notes: ''
   });
   const [addSupplier, setAddSupplier] = useState(false);
+  const [supplierSearchTerm, setSupplierSearchTerm] = useState('');
+  const [filteredSuppliers, setFilteredSuppliers] = useState<Supplier[]>([]);
 
   useEffect(() => {
     loadSuppliers();
   }, []);
+
+  useEffect(() => {
+    filterSuppliers();
+  }, [suppliers, supplierSearchTerm, plantData.plantType]);
 
   const loadSuppliers = async () => {
     try {
@@ -48,19 +55,42 @@ const AddPlantPage: React.FC = () => {
             id: 'supplier_1',
             name: 'ร้านตัวอย่าง A',
             location: 'กรุงเทพฯ',
-            phone: '081-234-5678'
+            phone: '081-234-5678',
+            specialties: ['ไม้ประดับ', 'ไม้ล้อม']
           },
           {
             id: 'supplier_2', 
             name: 'ร้านตัวอย่าง B',
             location: 'นครปฐม',
-            phone: '082-345-6789'
+            phone: '082-345-6789',
+            specialties: ['ไม้ดอก', 'แคคตัส']
           }
         ]);
       }
     } catch (error) {
       console.error('Error loading suppliers:', error);
     }
+  };
+
+  const filterSuppliers = () => {
+    let filtered = suppliers;
+
+    // Filter by search term
+    if (supplierSearchTerm) {
+      filtered = filtered.filter(supplier =>
+        supplier.name.toLowerCase().includes(supplierSearchTerm.toLowerCase()) ||
+        supplier.location.toLowerCase().includes(supplierSearchTerm.toLowerCase())
+      );
+    }
+
+    // Filter by plant type specialty
+    if (plantData.plantType && plantData.plantType !== '') {
+      filtered = filtered.filter(supplier =>
+        !supplier.specialties || supplier.specialties.includes(plantData.plantType)
+      );
+    }
+
+    setFilteredSuppliers(filtered);
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -292,24 +322,67 @@ const AddPlantPage: React.FC = () => {
 
               {addSupplier && (
                 <div className="space-y-4 bg-gray-50 p-4 rounded-lg">
+                  {/* Supplier Search */}
                   <div>
-                    <label htmlFor="supplierId" className="block text-sm font-medium text-gray-700 mb-2">
-                      เลือกร้านค้า
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      ค้นหาหรือเลือกร้านค้า
                     </label>
-                    <select
-                      id="supplierId"
-                      name="supplierId"
-                      value={supplierData.supplierId}
-                      onChange={handleSupplierInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-                    >
-                      <option value="">เลือกร้านค้า</option>
-                      {suppliers.map(supplier => (
-                        <option key={supplier.id} value={supplier.id}>
-                          {supplier.name} - {supplier.location}
-                        </option>
-                      ))}
-                    </select>
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                      <input
+                        type="text"
+                        value={supplierSearchTerm}
+                        onChange={(e) => setSupplierSearchTerm(e.target.value)}
+                        className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                        placeholder="ค้นหาชื่อร้านค้าหรือสถานที่..."
+                      />
+                    </div>
+                    
+                    {/* Supplier List */}
+                    <div className="mt-3 max-h-40 overflow-y-auto border border-gray-200 rounded-md">
+                      {filteredSuppliers.length > 0 ? (
+                        filteredSuppliers.map(supplier => (
+                          <div
+                            key={supplier.id}
+                            className={`p-3 cursor-pointer hover:bg-green-50 border-b border-gray-100 ${
+                              supplierData.supplierId === supplier.id ? 'bg-green-100 border-green-300' : ''
+                            }`}
+                            onClick={() => setSupplierData(prev => ({ ...prev, supplierId: supplier.id }))}
+                          >
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <div className="font-medium text-gray-900">{supplier.name}</div>
+                                <div className="text-sm text-gray-600">{supplier.location}</div>
+                                <div className="text-xs text-gray-500">{supplier.phone}</div>
+                              </div>
+                              {supplier.specialties && (
+                                <div className="flex flex-wrap gap-1">
+                                  {supplier.specialties.slice(0, 2).map(specialty => (
+                                    <span key={specialty} className="px-2 py-1 text-xs bg-green-100 text-green-800 rounded">
+                                      {specialty}
+                                    </span>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="p-4 text-center text-gray-500">
+                          {supplierSearchTerm ? 'ไม่พบร้านค้าที่ตรงกับการค้นหา' : 'ไม่มีร้านค้าในระบบ'}
+                          <div className="mt-2">
+                            <button
+                              type="button"
+                              onClick={() => navigate('/add-supplier')}
+                              className="text-green-600 hover:text-green-700 text-sm font-medium"
+                            >
+                              <Plus className="w-4 h-4 inline mr-1" />
+                              เพิ่มร้านค้าใหม่
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
