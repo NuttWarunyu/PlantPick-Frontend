@@ -6,6 +6,7 @@ const multer = require('multer');
 const csv = require('csv-parser');
 const { v4: uuidv4 } = require('uuid');
 const { db, pool } = require('./database');
+const aiService = require('./services/aiService');
 require('dotenv').config();
 
 const app = express();
@@ -433,6 +434,84 @@ app.delete('/api/plants/:plantId/suppliers/:supplierId', async (req, res) => {
       success: false,
       data: null,
       message: 'เกิดข้อผิดพลาดในการลบข้อมูลผู้จัดจำหน่าย'
+    });
+  }
+});
+
+// 🤖 AI Endpoints
+
+// AI Validation - ตรวจสอบข้อมูลด้วย AI
+app.post('/api/ai/validate', async (req, res) => {
+  try {
+    const { data, type } = req.body;
+    
+    const validation = await aiService.validateDataWithAI(data, type);
+    
+    res.json({
+      success: true,
+      data: validation,
+      message: 'ตรวจสอบข้อมูลสำเร็จ'
+    });
+  } catch (error) {
+    console.error('AI Validation Error:', error);
+    res.status(500).json({
+      success: false,
+      data: null,
+      message: 'เกิดข้อผิดพลาดในการตรวจสอบข้อมูล'
+    });
+  }
+});
+
+// AI Price Analysis - วิเคราะห์ราคาด้วย AI
+app.post('/api/ai/analyze-price', async (req, res) => {
+  try {
+    const { plantName, price, category, historicalPrices } = req.body;
+    
+    // ใช้ AI วิเคราะห์ราคา
+    const aiAnalysis = await aiService.analyzePrice(plantName, price, category);
+    
+    // ใช้ Smart Pricing
+    const optimalPrice = aiService.suggestOptimalPrice(plantName, category, price, historicalPrices || []);
+    
+    res.json({
+      success: true,
+      data: {
+        aiAnalysis,
+        optimalPrice,
+        timestamp: new Date().toISOString()
+      },
+      message: 'วิเคราะห์ราคาสำเร็จ'
+    });
+  } catch (error) {
+    console.error('AI Price Analysis Error:', error);
+    res.status(500).json({
+      success: false,
+      data: null,
+      message: 'เกิดข้อผิดพลาดในการวิเคราะห์ราคา'
+    });
+  }
+});
+
+// AI Business Insights - ดูข้อมูลเชิงลึก
+app.get('/api/ai/insights', async (req, res) => {
+  try {
+    const plants = await db.getPlants();
+    const suppliers = await db.getAllSuppliers();
+    const orders = await db.getOrders();
+    
+    const insights = aiService.generateInsights(plants, suppliers, orders);
+    
+    res.json({
+      success: true,
+      data: insights,
+      message: 'ดึงข้อมูลเชิงลึกสำเร็จ'
+    });
+  } catch (error) {
+    console.error('AI Insights Error:', error);
+    res.status(500).json({
+      success: false,
+      data: null,
+      message: 'เกิดข้อผิดพลาดในการดึงข้อมูลเชิงลึก'
     });
   }
 });
