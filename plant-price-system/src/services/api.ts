@@ -90,8 +90,36 @@ class MockApiService {
     }
   }
 
-  // เพิ่มข้อมูลผู้จัดจำหน่าย
-  async addSupplier(request: AddSupplierRequest): Promise<ApiResponse<SupplierData>> {
+  // เพิ่มข้อมูลผู้จัดจำหน่าย (สำหรับ Mock)
+  async addSupplier(request: any): Promise<ApiResponse<any>> {
+    try {
+      const newSupplier = {
+        id: `supplier_${Date.now()}`,
+        ...request,
+        created_at: new Date().toISOString()
+      };
+
+      // บันทึกใน localStorage
+      const existingSuppliers = JSON.parse(localStorage.getItem('suppliers') || '[]');
+      existingSuppliers.push(newSupplier);
+      localStorage.setItem('suppliers', JSON.stringify(existingSuppliers));
+
+      return {
+        success: true,
+        data: newSupplier,
+        message: 'เพิ่มข้อมูลร้านค้าสำเร็จ'
+      };
+    } catch (error) {
+      return {
+        success: false,
+        data: {},
+        message: 'เกิดข้อผิดพลาดในการเพิ่มข้อมูลร้านค้า'
+      };
+    }
+  }
+
+  // เพิ่มข้อมูลผู้จัดจำหน่ายต้นไม้ (สำหรับ Mock)
+  async addPlantSupplier(request: AddSupplierRequest): Promise<ApiResponse<SupplierData>> {
     try {
       const newSupplier: SupplierData = {
         id: `supplier_${Date.now()}`,
@@ -285,7 +313,27 @@ class RealApiService {
     }
   }
 
-  async addSupplier(request: AddSupplierRequest): Promise<ApiResponse<SupplierData>> {
+  async addSupplier(request: any): Promise<ApiResponse<any>> {
+    try {
+      const response = await fetch(`${this.baseUrl}/suppliers`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(request),
+      });
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      return {
+        success: false,
+        data: {},
+        message: 'เกิดข้อผิดพลาดในการเชื่อมต่อ server'
+      };
+    }
+  }
+
+  async addPlantSupplier(request: AddSupplierRequest): Promise<ApiResponse<SupplierData>> {
     try {
       const response = await fetch(`${this.baseUrl}/api/plants/${request.plantId}/suppliers`, {
         method: 'POST',

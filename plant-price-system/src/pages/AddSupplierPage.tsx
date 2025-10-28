@@ -69,9 +69,8 @@ const AddSupplierPage: React.FC = () => {
     setIsLoading(true);
 
     try {
-      // ใช้ Mock API แทนการเรียก API จริง
-      const mockSupplier = {
-        id: `supplier_${Date.now()}`,
+      // เรียก API จริงเพื่อบันทึกข้อมูลลง PostgreSQL
+      const response = await apiService.addSupplier({
         name: supplierData.name,
         location: supplierData.location,
         phone: supplierData.phone,
@@ -81,15 +80,14 @@ const AddSupplierPage: React.FC = () => {
         specialties: supplierData.specialties,
         businessHours: supplierData.businessHours,
         paymentMethods: supplierData.paymentMethods
-      };
+      });
 
-      // บันทึกข้อมูลใน localStorage
-      const existingSuppliers = JSON.parse(localStorage.getItem('suppliers') || '[]');
-      existingSuppliers.push(mockSupplier);
-      localStorage.setItem('suppliers', JSON.stringify(existingSuppliers));
-
-      alert('เพิ่มข้อมูลร้านค้าสำเร็จ!');
-      navigate('/suppliers');
+      if (response.success) {
+        alert('เพิ่มข้อมูลร้านค้าสำเร็จ!');
+        navigate('/suppliers');
+      } else {
+        alert(`เกิดข้อผิดพลาด: ${response.message || 'ไม่ทราบสาเหตุ'}`);
+      }
     } catch (error) {
       console.error('Error adding supplier:', error);
       alert('เกิดข้อผิดพลาดในการเพิ่มข้อมูลร้านค้า');
