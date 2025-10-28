@@ -8,6 +8,7 @@ const BillProcessingPage: React.FC = () => {
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
   const [ocrText, setOcrText] = useState<string>('');
   const [billData, setBillData] = useState<BillData | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
   const [editData, setEditData] = useState<BillData | null>(null);
   const [aiSuggestions, setAiSuggestions] = useState<string[]>([]);
   const [confidence, setConfidence] = useState<number>(0);
