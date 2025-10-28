@@ -383,4 +383,4 @@ class RealApiService {
 }
 
 // Export service instance
-export const apiService = new RealApiService(); // เปลี่ยนจาก MockApiService เป็น RealApiService
+export const apiService = new MockApiService(); // ใช้ MockApiService (localStorage) ชั่วคราว
