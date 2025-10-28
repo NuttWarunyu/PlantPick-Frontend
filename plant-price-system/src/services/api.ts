@@ -315,7 +315,7 @@ class RealApiService {
 
   async addSupplier(request: any): Promise<ApiResponse<any>> {
     try {
-      const response = await fetch(`${this.baseUrl}/suppliers`, {
+      const response = await fetch(`${this.baseUrl}/api/suppliers`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
