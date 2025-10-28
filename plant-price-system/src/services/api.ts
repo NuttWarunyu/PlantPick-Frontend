@@ -382,5 +382,16 @@ class RealApiService {
   }
 }
 
-// Export service instance
-export const apiService = new MockApiService(); // ใช้ MockApiService (localStorage) ชั่วคราว
+// Export service instance - Auto-detect ซึ่ง service ใช้
+export const apiService = (() => {
+  // ตรวจสอบว่ามี backend URL หรือไม่
+  const backendUrl = process.env.REACT_APP_API_URL;
+  
+  if (backendUrl && backendUrl !== 'http://localhost:3002/api' && !backendUrl.includes('localhost')) {
+    // ถ้ามี backend URL ที่ถูกต้อง ให้ใช้ RealApiService
+    return new RealApiService();
+  } else {
+    // ถ้าไม่มี ให้ใช้ MockApiService (localStorage)
+    return new MockApiService();
+  }
+})();
