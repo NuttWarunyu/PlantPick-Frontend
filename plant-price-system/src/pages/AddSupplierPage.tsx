@@ -10,7 +10,6 @@ const AddSupplierPage: React.FC = () => {
     name: '',
     location: '',
     phone: '',
-    email: '',
     website: '',
     description: '',
     specialties: [] as string[],
@@ -74,7 +73,6 @@ const AddSupplierPage: React.FC = () => {
         name: supplierData.name,
         location: supplierData.location,
         phone: supplierData.phone,
-        email: supplierData.email,
         website: supplierData.website,
         description: supplierData.description,
         specialties: supplierData.specialties,
@@ -167,21 +165,6 @@ const AddSupplierPage: React.FC = () => {
                     required
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
                     placeholder="เช่น 123 ถนนสุขุมวิท แขวงคลองตัน เขตวัฒนา กรุงเทพฯ 10110"
-                  />
-                </div>
-
-                <div>
-                  <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-                    อีเมล
-                  </label>
-                  <input
-                    type="email"
-                    id="email"
-                    name="email"
-                    value={supplierData.email}
-                    onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-                    placeholder="เช่น info@example.com"
                   />
                 </div>
 

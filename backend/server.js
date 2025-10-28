@@ -44,13 +44,13 @@ app.get('/api/health', (req, res) => {
 // Add supplier endpoint
 app.post('/api/suppliers', async (req, res) => {
   try {
-    const { name, location, phone, email, website, description, specialties, businessHours, paymentMethods } = req.body;
+    const { name, location, phone, website, description, specialties, businessHours, paymentMethods } = req.body;
     
     const supplierId = `supplier_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     
     const query = `
-      INSERT INTO suppliers (id, name, location, phone, email, website, description, specialties, business_hours, payment_methods, created_at)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW())
+      INSERT INTO suppliers (id, name, location, phone, website, description, specialties, business_hours, payment_methods, created_at)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW())
       RETURNING *
     `;
     
@@ -59,7 +59,6 @@ app.post('/api/suppliers', async (req, res) => {
       name,
       location,
       phone || null,
-      email || null,
       website || null,
       description || null,
       JSON.stringify(specialties),
@@ -176,7 +175,7 @@ app.get('/api/plant-suppliers', async (req, res) => {
 app.get('/api/suppliers', async (req, res) => {
   try {
     const query = `
-      SELECT id, name, location, phone, email, website, description, 
+      SELECT id, name, location, phone, website, description, 
              specialties, business_hours, payment_methods, created_at
       FROM suppliers
       ORDER BY created_at DESC
