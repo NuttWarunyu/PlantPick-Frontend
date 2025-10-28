@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Save, Store, Search, Plus } from 'lucide-react';
+import { ArrowLeft, Save, Store, Search, Plus, Bot, Zap, AlertCircle } from 'lucide-react';
 
 interface Supplier {
   id: string;
@@ -31,15 +31,43 @@ const AddPlantPage: React.FC = () => {
   });
   const [addSupplier, setAddSupplier] = useState(false);
   const [supplierSearchTerm, setSupplierSearchTerm] = useState('');
-  const [filteredSuppliers, setFilteredSuppliers] = useState<Supplier[]>([]);
+  const [aiSuggestions, setAiSuggestions] = useState<string[]>([]);
+  const [duplicateCheck, setDuplicateCheck] = useState<{isDuplicate: boolean, similarPlants: any[]}>({isDuplicate: false, similarPlants: []});
+  const [suppliersToShow, setSuppliersToShow] = useState<Supplier[]>([]);
 
   useEffect(() => {
     loadSuppliers();
   }, []);
 
   useEffect(() => {
-    filterSuppliers();
+    let filtered = suppliers;
+
+    // Filter by search term
+    if (supplierSearchTerm) {
+      filtered = filtered.filter(supplier =>
+        supplier.name.toLowerCase().includes(supplierSearchTerm.toLowerCase()) ||
+        supplier.location.toLowerCase().includes(supplierSearchTerm.toLowerCase())
+      );
+    }
+
+    // Filter by plant type specialty
+    if (plantData.plantType && plantData.plantType !== '') {
+      filtered = filtered.filter(supplier =>
+        !supplier.specialties || supplier.specialties.includes(plantData.plantType)
+      );
+    }
+
+    setSuppliersToShow(filtered);
   }, [suppliers, supplierSearchTerm, plantData.plantType]);
+
+  useEffect(() => {
+    // AI Data Entry Helper - Auto-complete and suggestions
+    if (plantData.name) {
+      generateAISuggestions();
+      checkForDuplicates();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [plantData.name, plantData.plantType]);
 
   const loadSuppliers = async () => {
     try {
@@ -72,25 +100,102 @@ const AddPlantPage: React.FC = () => {
     }
   };
 
-  const filterSuppliers = () => {
-    let filtered = suppliers;
-
-    // Filter by search term
-    if (supplierSearchTerm) {
-      filtered = filtered.filter(supplier =>
-        supplier.name.toLowerCase().includes(supplierSearchTerm.toLowerCase()) ||
-        supplier.location.toLowerCase().includes(supplierSearchTerm.toLowerCase())
-      );
+  const generateAISuggestions = () => {
+    const suggestions: string[] = [];
+    
+    // Auto-complete suggestions for plant name
+    if (plantData.name && plantData.name.length > 2) {
+      const existingPlants = JSON.parse(localStorage.getItem('plantsData') || '[]');
+      const similarNames = existingPlants
+        .filter((plant: any) => 
+          plant.name.toLowerCase().includes(plantData.name.toLowerCase()) ||
+          plant.scientificName.toLowerCase().includes(plantData.name.toLowerCase())
+        )
+        .slice(0, 3)
+        .map((plant: any) => plant.name);
+      
+      if (similarNames.length > 0) {
+        suggestions.push(`💡 ชื่อต้นไม้ที่คล้ายกัน: ${similarNames.join(', ')}`);
+      }
     }
-
-    // Filter by plant type specialty
-    if (plantData.plantType && plantData.plantType !== '') {
-      filtered = filtered.filter(supplier =>
-        !supplier.specialties || supplier.specialties.includes(plantData.plantType)
-      );
+    
+    // Price suggestions based on plant type
+    if (plantData.plantType && supplierData.price) {
+      const price = parseFloat(supplierData.price);
+      const suggestions = getPriceSuggestions(plantData.plantType, price);
+      if (suggestions.length > 0) {
+        suggestions.push(...suggestions);
+      }
     }
+    
+    // Size suggestions
+    if (plantData.plantType && !supplierData.size) {
+      const sizeSuggestions = getSizeSuggestions(plantData.plantType);
+      if (sizeSuggestions.length > 0) {
+        suggestions.push(`📏 ขนาดที่แนะนำ: ${sizeSuggestions.join(', ')}`);
+      }
+    }
+    
+    setAiSuggestions(suggestions);
+  };
 
-    setFilteredSuppliers(filtered);
+  const checkForDuplicates = () => {
+    if (!plantData.name || plantData.name.length < 3) return;
+    
+    const existingPlants = JSON.parse(localStorage.getItem('plantsData') || '[]');
+    const similarPlants = existingPlants.filter((plant: any) => 
+      plant.name.toLowerCase() === plantData.name.toLowerCase() ||
+      plant.scientificName.toLowerCase() === plantData.scientificName.toLowerCase()
+    );
+    
+    setDuplicateCheck({
+      isDuplicate: similarPlants.length > 0,
+      similarPlants: similarPlants
+    });
+  };
+
+  const getPriceSuggestions = (plantType: string, currentPrice: number): string[] => {
+    const suggestions: string[] = [];
+    
+    // Price ranges for different plant types
+    const priceRanges: { [key: string]: { min: number; max: number; avg: number } } = {
+      'ไม้ประดับ': { min: 50, max: 2000, avg: 500 },
+      'ไม้ล้อม': { min: 200, max: 5000, avg: 1000 },
+      'ไม้คลุมดิน': { min: 20, max: 200, avg: 80 },
+      'ไม้ดอก': { min: 30, max: 800, avg: 200 },
+      'ไม้ใบ': { min: 100, max: 3000, avg: 800 },
+      'แคคตัส': { min: 50, max: 1500, avg: 300 },
+      'บอนไซ': { min: 500, max: 10000, avg: 2000 },
+      'กล้วยไม้': { min: 100, max: 2000, avg: 600 }
+    };
+    
+    const range = priceRanges[plantType];
+    if (range) {
+      if (currentPrice < range.min) {
+        suggestions.push(`💰 ราคาต่ำกว่าปกติ - ราคาเฉลี่ย ${plantType}: ${range.avg} บาท`);
+      } else if (currentPrice > range.max) {
+        suggestions.push(`💸 ราคาสูงกว่าปกติ - ราคาเฉลี่ย ${plantType}: ${range.avg} บาท`);
+      } else {
+        suggestions.push(`✅ ราคาอยู่ในเกณฑ์ปกติ - ราคาเฉลี่ย ${plantType}: ${range.avg} บาท`);
+      }
+    }
+    
+    return suggestions;
+  };
+
+  const getSizeSuggestions = (plantType: string): string[] => {
+    const sizeSuggestions: { [key: string]: string[] } = {
+      'ไม้ประดับ': ['S', 'M', 'L', '1-2 ฟุต', '2-3 ฟุต'],
+      'ไม้ล้อม': ['1-2 เมตร', '2-3 เมตร', '3-4 เมตร'],
+      'ไม้คลุมดิน': ['3 นิ้ว', '4 นิ้ว', '6 นิ้ว'],
+      'ไม้ดอก': ['3 นิ้ว', '4 นิ้ว', '6 นิ้ว', '8 นิ้ว'],
+      'ไม้ใบ': ['S', 'M', 'L', '1-2 ฟุต'],
+      'แคคตัส': ['3 นิ้ว', '4 นิ้ว', '6 นิ้ว'],
+      'บอนไซ': ['S', 'M', 'L', 'Mini'],
+      'กล้วยไม้': ['3 นิ้ว', '4 นิ้ว', '6 นิ้ว']
+    };
+    
+    return sizeSuggestions[plantType] || [];
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -285,6 +390,53 @@ const AddPlantPage: React.FC = () => {
               </div>
             </div>
 
+            {/* AI Suggestions */}
+            {(aiSuggestions.length > 0 || duplicateCheck.isDuplicate) && (
+              <div className="bg-blue-50 rounded-lg border border-blue-200 p-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <Bot className="h-5 w-5 text-blue-600" />
+                  <h4 className="font-medium text-blue-800">🤖 คำแนะนำจาก AI</h4>
+                </div>
+                
+                {/* Duplicate Warning */}
+                {duplicateCheck.isDuplicate && (
+                  <div className="mb-3 p-3 bg-red-50 border border-red-200 rounded-lg">
+                    <div className="flex items-start gap-2">
+                      <AlertCircle className="h-4 w-4 text-red-500 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <p className="text-sm font-medium text-red-800">⚠️ พบข้อมูลซ้ำ!</p>
+                        <p className="text-sm text-red-700">
+                          มีต้นไม้ชื่อ "{plantData.name}" ในระบบแล้ว
+                        </p>
+                        {duplicateCheck.similarPlants.length > 0 && (
+                          <div className="mt-2">
+                            <p className="text-xs text-red-600">ต้นไม้ที่คล้ายกัน:</p>
+                            <ul className="text-xs text-red-600 list-disc list-inside">
+                              {duplicateCheck.similarPlants.slice(0, 3).map((plant: any, index: number) => (
+                                <li key={index}>{plant.name} ({plant.category})</li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+                
+                {/* AI Suggestions */}
+                {aiSuggestions.length > 0 && (
+                  <div className="space-y-2">
+                    {aiSuggestions.map((suggestion, index) => (
+                      <div key={index} className="flex items-start gap-2 p-2 bg-white rounded border border-blue-200">
+                        <Zap className="h-4 w-4 text-blue-500 mt-0.5 flex-shrink-0" />
+                        <span className="text-sm text-blue-800">{suggestion}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
             <div>
               <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-2">
                 คำอธิบาย
@@ -340,8 +492,8 @@ const AddPlantPage: React.FC = () => {
                     
                     {/* Supplier List */}
                     <div className="mt-3 max-h-40 overflow-y-auto border border-gray-200 rounded-md">
-                      {filteredSuppliers.length > 0 ? (
-                        filteredSuppliers.map(supplier => (
+                      {suppliersToShow.length > 0 ? (
+                        suppliersToShow.map(supplier => (
                           <div
                             key={supplier.id}
                             className={`p-3 cursor-pointer hover:bg-green-50 border-b border-gray-100 ${
@@ -369,7 +521,7 @@ const AddPlantPage: React.FC = () => {
                         ))
                       ) : (
                         <div className="p-4 text-center text-gray-500">
-                          {supplierSearchTerm ? 'ไม่พบร้านค้าที่ตรงกับการค้นหา' : 'ไม่มีร้านค้าในระบบ'}
+                          ไม่พบร้านค้า
                           <div className="mt-2">
                             <button
                               type="button"

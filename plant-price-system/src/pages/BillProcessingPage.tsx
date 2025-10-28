@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Upload, FileText, Edit, Check, X, Loader2 } from 'lucide-react';
+import { Upload, FileText, Edit, Check, X, Loader2, AlertCircle, Bot } from 'lucide-react';
 import Tesseract from 'tesseract.js';
 import { BillData, BillItem } from '../types';
 
@@ -8,8 +8,9 @@ const BillProcessingPage: React.FC = () => {
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
   const [ocrText, setOcrText] = useState<string>('');
   const [billData, setBillData] = useState<BillData | null>(null);
-  const [isEditing, setIsEditing] = useState(false);
   const [editData, setEditData] = useState<BillData | null>(null);
+  const [aiSuggestions, setAiSuggestions] = useState<string[]>([]);
+  const [confidence, setConfidence] = useState<number>(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -38,15 +39,122 @@ const BillProcessingPage: React.FC = () => {
       const extractedText = result.data.text;
       setOcrText(extractedText);
 
-      // Simulate AI processing (in real app, this would call ChatGPT API)
-      const mockBillData = await simulateAIParsing(extractedText);
-      setBillData(mockBillData);
-      setEditData(mockBillData);
+      // AI processing with suggestions and confidence
+      const aiResult = await processWithAI(extractedText);
+      setBillData(aiResult.billData);
+      setEditData(aiResult.billData);
+      setAiSuggestions(aiResult.suggestions);
+      setConfidence(aiResult.confidence);
+      
+      // Auto-save if confidence is high
+      if (aiResult.confidence > 0.8) {
+        await autoSaveBillData(aiResult.billData);
+      }
     } catch (error) {
       console.error('OCR Error:', error);
       alert('เกิดข้อผิดพลาดในการประมวลผลภาพ');
     } finally {
       setIsProcessing(false);
+    }
+  };
+
+  const processWithAI = async (text: string): Promise<{
+    billData: BillData;
+    suggestions: string[];
+    confidence: number;
+  }> => {
+    // Simulate AI processing with enhanced features
+    const mockBillData = await simulateAIParsing(text);
+    
+    // Generate AI suggestions
+    const suggestions = generateAISuggestions(mockBillData);
+    
+    // Calculate confidence score
+    const confidence = calculateConfidence(mockBillData, text);
+    
+    return {
+      billData: mockBillData,
+      suggestions,
+      confidence
+    };
+  };
+
+  const generateAISuggestions = (billData: BillData): string[] => {
+    const suggestions: string[] = [];
+    
+    // Check for missing information
+    if (!billData.supplierInfo.phone) {
+      suggestions.push('⚠️ ไม่พบเบอร์โทรศัพท์ของร้านค้า - ควรเพิ่มข้อมูลติดต่อ');
+    }
+    
+    // Check for unusual prices
+    billData.items.forEach((item, index) => {
+      if (item.price < 10) {
+        suggestions.push(`💰 ราคา ${item.name} ต่ำมาก (${item.price} บาท) - ตรวจสอบความถูกต้อง`);
+      }
+      if (item.price > 10000) {
+        suggestions.push(`💸 ราคา ${item.name} สูงมาก (${item.price} บาท) - ตรวจสอบความถูกต้อง`);
+      }
+    });
+    
+    // Check for duplicate items
+    const itemNames = billData.items.map(item => item.name.toLowerCase());
+    const duplicates = itemNames.filter((name, index) => itemNames.indexOf(name) !== index);
+    if (duplicates.length > 0) {
+      suggestions.push('🔄 พบรายการซ้ำ - ควรรวมจำนวนเข้าด้วยกัน');
+    }
+    
+    // Check for missing plant information
+    billData.items.forEach((item, index) => {
+      const itemAny = item as any;
+      if (!itemAny.size && item.name.includes('ต้น')) {
+        suggestions.push(`📏 ${item.name} ไม่ระบุขนาด - ควรเพิ่มข้อมูลขนาด`);
+      }
+    });
+    
+    return suggestions;
+  };
+
+  const calculateConfidence = (billData: BillData, originalText: string): number => {
+    let confidence = 0.5; // Base confidence
+    
+    // Check if supplier info is complete
+    if (billData.supplierInfo.name && billData.supplierInfo.phone) {
+      confidence += 0.2;
+    }
+    
+    // Check if items have reasonable prices
+    const validPrices = billData.items.filter(item => item.price > 0 && item.price < 50000);
+    confidence += (validPrices.length / billData.items.length) * 0.2;
+    
+    // Check if total amount matches
+    const calculatedTotal = billData.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    const totalMatch = Math.abs(calculatedTotal - billData.totalAmount) < 1;
+    if (totalMatch) {
+      confidence += 0.1;
+    }
+    
+    return Math.min(confidence, 1.0);
+  };
+
+  const autoSaveBillData = async (billData: BillData) => {
+    try {
+      // Save to localStorage
+      const existingBills = JSON.parse(localStorage.getItem('processedBills') || '[]');
+      const newBill = {
+        ...billData,
+        id: `bill_${Date.now()}`,
+        processedAt: new Date().toISOString(),
+        confidence: confidence,
+        autoSaved: true
+      };
+      existingBills.push(newBill);
+      localStorage.setItem('processedBills', JSON.stringify(existingBills));
+      
+      // Show success message
+      alert('✅ บันทึกข้อมูลอัตโนมัติสำเร็จ! (ความเชื่อมั่น: ' + Math.round(confidence * 100) + '%)');
+    } catch (error) {
+      console.error('Auto-save error:', error);
     }
   };
 
@@ -227,6 +335,43 @@ const BillProcessingPage: React.FC = () => {
             <pre className="whitespace-pre-wrap text-sm text-gray-700 font-mono">
               {ocrText}
             </pre>
+          </div>
+        </div>
+      )}
+
+      {/* AI Suggestions */}
+      {aiSuggestions.length > 0 && (
+        <div className="bg-blue-50 rounded-xl shadow-sm border border-blue-200 p-6 mb-8">
+          <div className="flex items-center gap-2 mb-4">
+            <Bot className="h-6 w-6 text-blue-600" />
+            <h3 className="text-xl font-semibold text-blue-800">
+              🤖 คำแนะนำจาก AI
+            </h3>
+            <div className="flex items-center gap-2 ml-auto">
+              <span className="text-sm text-blue-600">ความเชื่อมั่น:</span>
+              <div className="flex items-center gap-1">
+                <div className="w-20 bg-blue-200 rounded-full h-2">
+                  <div 
+                    className={`h-2 rounded-full ${
+                      confidence > 0.8 ? 'bg-green-500' : 
+                      confidence > 0.6 ? 'bg-yellow-500' : 'bg-red-500'
+                    }`}
+                    style={{ width: `${confidence * 100}%` }}
+                  ></div>
+                </div>
+                <span className="text-sm font-medium text-blue-800">
+                  {Math.round(confidence * 100)}%
+                </span>
+              </div>
+            </div>
+          </div>
+          <div className="space-y-2">
+            {aiSuggestions.map((suggestion, index) => (
+              <div key={index} className="flex items-start gap-2 p-3 bg-white rounded-lg border border-blue-200">
+                <AlertCircle className="h-4 w-4 text-blue-500 mt-0.5 flex-shrink-0" />
+                <span className="text-sm text-blue-800">{suggestion}</span>
+              </div>
+            ))}
           </div>
         </div>
       )}
