@@ -144,18 +144,18 @@ const DashboardPage: React.FC = () => {
 
   const loadStatistics = async () => {
     try {
-      // โหลดสถิติจาก API
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/statistics`);
-      const result = await response.json();
+      // ใช้ข้อมูลจาก localStorage แทนการเรียก API
+      const plants = JSON.parse(localStorage.getItem('plantsData') || '[]');
+      const suppliers = JSON.parse(localStorage.getItem('suppliers') || '[]');
+      const projects = JSON.parse(localStorage.getItem('projects') || '[]');
+      const bills = JSON.parse(localStorage.getItem('processedBills') || '[]');
       
-      if (result.success) {
-        setStatistics({
-          totalPlants: result.data.totalPlants,
-          totalSuppliers: result.data.totalSuppliers,
-          totalProjects: 3, // ข้อมูลจำลอง
-          totalBills: 5 // ข้อมูลจำลอง
-        });
-      }
+      setStatistics({
+        totalPlants: plants.length,
+        totalSuppliers: suppliers.length,
+        totalProjects: projects.length,
+        totalBills: bills.length
+      });
     } catch (error) {
       console.error('Error loading statistics:', error);
     } finally {
