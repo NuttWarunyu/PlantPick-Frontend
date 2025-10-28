@@ -11,9 +11,10 @@
 - หา `REACT_APP_API_URL`
 - เช็คว่า Value เป็นอะไร
 
-### 3. ถ้า Value ถูกต้อง
-- Value ควรเป็น: `https://plant-price-backend-production.up.railway.app`
-- **ไม่ต้องแก้ไขอะไร** - Vercel จะ auto-deploy
+### 3. ⚠️ Value ปัจจุบัน
+- Value ปัจจุบัน: `https://plantpick-frontend.up.railway.app`
+- **❌ ผิด! ต้องแก้ไข**
+- เปลี่ยนเป็น: `https://plant-price-backend-production.up.railway.app`
 
 ### 4. ถ้า Value ไม่ถูกต้อง
 - คลิกที่ `REACT_APP_API_URL` เพื่อแก้ไข
