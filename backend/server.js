@@ -291,6 +291,46 @@ app.get('/api/statistics', async (req, res) => {
   }
 });
 
+// 📊 Statistics Endpoint - ดึงข้อมูลสถิติ
+app.get('/statistics', async (req, res) => {
+  try {
+    const plants = await db.getPlants();
+    const suppliers = await db.getAllSuppliers();
+    
+    // นับจำนวนต้นไม้ตามหมวดหมู่
+    const categoryCount = {};
+    const plantTypeCount = {};
+    
+    plants.forEach(plant => {
+      categoryCount[plant.category] = (categoryCount[plant.category] || 0) + 1;
+      plantTypeCount[plant.plant_type] = (plantTypeCount[plant.plant_type] || 0) + 1;
+    });
+    
+    res.json({
+      success: true,
+      data: {
+        totalPlants: plants.length,
+        totalSuppliers: suppliers.length,
+        categoryCount,
+        plantTypeCount
+      },
+      message: 'ดึงข้อมูลสถิติสำเร็จ'
+    });
+  } catch (error) {
+    console.error('Error fetching statistics:', error);
+    res.status(500).json({
+      success: false,
+      data: {
+        totalPlants: 0,
+        totalSuppliers: 0,
+        categoryCount: {},
+        plantTypeCount: {}
+      },
+      message: 'เกิดข้อผิดพลาดในการดึงข้อมูลสถิติ'
+    });
+  }
+});
+
 // Get all plants
 app.get('/api/plants', async (req, res) => {
   try {

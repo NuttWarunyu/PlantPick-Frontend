@@ -15,6 +15,7 @@ import {
   Plus,
   PieChart
 } from 'lucide-react';
+import { apiService } from '../services/api';
 
 interface QuickAction {
   id: string;
@@ -144,7 +145,26 @@ const DashboardPage: React.FC = () => {
 
   const loadStatistics = async () => {
     try {
-      // ใช้ข้อมูลจาก localStorage แทนการเรียก API
+      // ใช้ API Service เพื่อดึงข้อมูลสถิติจาก Backend
+      const statisticsResponse = await apiService.getStatistics();
+      
+      if (statisticsResponse.success) {
+        // ดึงข้อมูลจาก localStorage สำหรับ projects และ bills (ยังไม่มี API)
+        const projects = JSON.parse(localStorage.getItem('projects') || '[]');
+        const bills = JSON.parse(localStorage.getItem('processedBills') || '[]');
+        
+        setStatistics({
+          totalPlants: statisticsResponse.data.totalPlants,
+          totalSuppliers: statisticsResponse.data.totalSuppliers,
+          totalProjects: projects.length,
+          totalBills: bills.length
+        });
+      } else {
+        throw new Error('Failed to fetch statistics from API');
+      }
+    } catch (error) {
+      console.error('Error loading statistics:', error);
+      // Fallback to localStorage if API fails
       const plants = JSON.parse(localStorage.getItem('plantsData') || '[]');
       const suppliers = JSON.parse(localStorage.getItem('suppliers') || '[]');
       const projects = JSON.parse(localStorage.getItem('projects') || '[]');
@@ -156,8 +176,6 @@ const DashboardPage: React.FC = () => {
         totalProjects: projects.length,
         totalBills: bills.length
       });
-    } catch (error) {
-      console.error('Error loading statistics:', error);
     } finally {
       setIsLoading(false);
     }
