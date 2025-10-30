@@ -396,7 +396,7 @@ class RealApiService {
   // ดึงข้อมูลผู้จัดจำหน่ายทั้งหมด
   async getSuppliers(): Promise<ApiResponse<any[]>> {
     try {
-      const response = await fetch(`${this.baseUrl}/suppliers`);
+      const response = await fetch(`${this.baseUrl}/api/suppliers`);
       const data = await response.json();
       return data;
     } catch (error) {
