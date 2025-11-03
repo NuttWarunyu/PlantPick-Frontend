@@ -392,6 +392,28 @@ app.get('/statistics', async (req, res) => {
 // Get all plants
 app.get('/api/plants', async (req, res) => {
   try {
+    // ตรวจสอบว่าตาราง plants และ plant_suppliers มีอยู่หรือไม่
+    const plantsTableCheck = await pool.query(`
+      SELECT EXISTS (
+        SELECT FROM information_schema.tables 
+        WHERE table_schema = 'public' 
+        AND table_name = 'plants'
+      );
+    `);
+    const plantSuppliersTableCheck = await pool.query(`
+      SELECT EXISTS (
+        SELECT FROM information_schema.tables 
+        WHERE table_schema = 'public' 
+        AND table_name = 'plant_suppliers'
+      );
+    `);
+    
+    if (!plantsTableCheck.rows[0].exists || !plantSuppliersTableCheck.rows[0].exists) {
+      console.log('⚠️ ตารางบางตารางไม่มี กำลังสร้าง...');
+      // สร้างตารางอัตโนมัติ
+      await initializeDatabase();
+    }
+    
     const plants = await db.getPlants();
     res.json({
       success: true,
@@ -403,7 +425,7 @@ app.get('/api/plants', async (req, res) => {
     res.status(500).json({
       success: false,
       data: [],
-      message: 'เกิดข้อผิดพลาดในการดึงข้อมูลต้นไม้'
+      message: `เกิดข้อผิดพลาดในการดึงข้อมูลต้นไม้: ${error.message}`
     });
   }
 });
