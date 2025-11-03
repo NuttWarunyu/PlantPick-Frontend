@@ -255,7 +255,7 @@ app.get('/api/suppliers', async (req, res) => {
   }
 });
 
-// Get statistics
+// 📊 Statistics Endpoint - ดึงข้อมูลสถิติ
 app.get('/api/statistics', async (req, res) => {
   try {
     const plants = await db.getPlants();
@@ -284,13 +284,18 @@ app.get('/api/statistics', async (req, res) => {
     console.error('Error fetching statistics:', error);
     res.status(500).json({
       success: false,
-      data: null,
+      data: {
+        totalPlants: 0,
+        totalSuppliers: 0,
+        categoryCount: {},
+        plantTypeCount: {}
+      },
       message: 'เกิดข้อผิดพลาดในการดึงข้อมูลสถิติ'
     });
   }
 });
 
-// 📊 Statistics Endpoint - ดึงข้อมูลสถิติ
+// Alias for compatibility
 app.get('/statistics', async (req, res) => {
   try {
     const plants = await db.getPlants();

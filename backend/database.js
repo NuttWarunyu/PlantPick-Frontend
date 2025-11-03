@@ -220,12 +220,13 @@ const db = {
     return result.rows[0];
   },
 
-  // Get all suppliers
+  // Get all suppliers (standalone suppliers table)
   async getAllSuppliers() {
     const query = `
-      SELECT DISTINCT s.name, s.location, s.phone
-      FROM suppliers s
-      ORDER BY s.name
+      SELECT id, name, location, phone, website, description,
+             specialties, business_hours, payment_methods, created_at
+      FROM suppliers
+      ORDER BY created_at DESC
     `;
     const result = await pool.query(query);
     return result.rows;
