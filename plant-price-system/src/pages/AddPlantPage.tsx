@@ -108,8 +108,8 @@ const AddPlantPage: React.FC = () => {
       const existingPlants = JSON.parse(localStorage.getItem('plantsData') || '[]');
       const similarNames = existingPlants
         .filter((plant: any) => 
-          plant.name.toLowerCase().includes(plantData.name.toLowerCase()) ||
-          plant.scientificName.toLowerCase().includes(plantData.name.toLowerCase())
+          plant.name?.toLowerCase().includes(plantData.name.toLowerCase()) ||
+          (plant.scientificName && plant.scientificName.toLowerCase().includes(plantData.name.toLowerCase()))
         )
         .slice(0, 3)
         .map((plant: any) => plant.name);
@@ -144,8 +144,9 @@ const AddPlantPage: React.FC = () => {
     
     const existingPlants = JSON.parse(localStorage.getItem('plantsData') || '[]');
     const similarPlants = existingPlants.filter((plant: any) => 
-      plant.name.toLowerCase() === plantData.name.toLowerCase() ||
-      plant.scientificName.toLowerCase() === plantData.scientificName.toLowerCase()
+      plant.name?.toLowerCase() === plantData.name.toLowerCase() ||
+      (plant.scientificName && plantData.scientificName && 
+       plant.scientificName.toLowerCase() === plantData.scientificName.toLowerCase())
     );
     
     setDuplicateCheck({

@@ -53,8 +53,8 @@ const AddPlantSupplierPage: React.FC = () => {
   useEffect(() => {
     if (plantSearchTerm) {
       const filtered = plants.filter(plant =>
-        plant.name.toLowerCase().includes(plantSearchTerm.toLowerCase()) ||
-        plant.scientificName.toLowerCase().includes(plantSearchTerm.toLowerCase())
+        plant.name?.toLowerCase().includes(plantSearchTerm.toLowerCase()) ||
+        (plant.scientificName && plant.scientificName.toLowerCase().includes(plantSearchTerm.toLowerCase()))
       );
       setFilteredPlants(filtered);
     } else {

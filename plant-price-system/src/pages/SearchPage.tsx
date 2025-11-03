@@ -59,9 +59,9 @@ const SearchPage: React.FC<SearchPageProps> = ({ selectedPlants, setSelectedPlan
 
     const filtered = plants
       .filter(plant => 
-        plant.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        plant.scientificName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        plant.category.toLowerCase().includes(searchTerm.toLowerCase())
+        plant.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (plant.scientificName && plant.scientificName.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        plant.category?.toLowerCase().includes(searchTerm.toLowerCase())
       )
       .map(plant => ({
         plant: plant as Plant,
@@ -211,9 +211,11 @@ const SearchPage: React.FC<SearchPageProps> = ({ selectedPlants, setSelectedPlan
                     {/* Plant Info */}
                     <div className="text-center mb-3">
                       <h3 className="text-lg font-bold text-gray-900 mb-1">{result.plant.name}</h3>
-                      <p className="text-sm text-gray-500 italic mb-2">{result.plant.scientificName}</p>
+                      {result.plant.scientificName && (
+                        <p className="text-sm text-gray-500 italic mb-2">{result.plant.scientificName}</p>
+                      )}
                       <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
-                        {result.plant.category}
+                        {result.plant.category || 'อื่นๆ'}
                       </span>
                     </div>
 
