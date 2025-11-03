@@ -806,11 +806,52 @@ app.use('*', (req, res) => {
   });
 });
 
+// Initialize database tables
+async function initializeDatabase() {
+  try {
+    console.log('🔍 กำลังตรวจสอบและสร้างตาราง suppliers...');
+    
+    // สร้างตาราง suppliers ถ้ายังไม่มี
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS suppliers (
+        id VARCHAR(255) PRIMARY KEY,
+        name VARCHAR(255) NOT NULL,
+        location TEXT NOT NULL,
+        phone VARCHAR(20),
+        website VARCHAR(255),
+        description TEXT,
+        specialties TEXT DEFAULT '[]',
+        business_hours VARCHAR(255),
+        payment_methods TEXT DEFAULT '[]',
+        created_at TIMESTAMP DEFAULT NOW(),
+        updated_at TIMESTAMP DEFAULT NOW()
+      )
+    `);
+    
+    // สร้าง index
+    await pool.query('CREATE INDEX IF NOT EXISTS idx_suppliers_name ON suppliers(name)');
+    await pool.query('CREATE INDEX IF NOT EXISTS idx_suppliers_location ON suppliers(location)');
+    
+    console.log('✅ ตาราง suppliers พร้อมใช้งาน');
+    
+    // ตรวจสอบจำนวนข้อมูล
+    const countResult = await pool.query('SELECT COUNT(*) FROM suppliers');
+    console.log(`📊 จำนวนร้านค้าในฐานข้อมูล: ${countResult.rows[0].count} รายการ`);
+    
+  } catch (error) {
+    console.error('❌ เกิดข้อผิดพลาดในการสร้างตาราง:', error.message);
+    // ไม่ throw error เพราะอาจมีตารางอยู่แล้ว
+  }
+}
+
 // Start server
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
   console.log(`🌱 Plant Price API Server running on port ${PORT}`);
   console.log(`📊 Health check: http://localhost:${PORT}/api/health`);
   console.log(`🌿 Plants API: http://localhost:${PORT}/api/plants`);
+  
+  // Initialize database tables
+  await initializeDatabase();
 });
 
 module.exports = app;
