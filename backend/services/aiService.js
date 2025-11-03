@@ -190,6 +190,136 @@ class AIService {
       marketTrend: 'stable'
     };
   }
+
+  // 📸 สแกนใบเสร็จด้วย ChatGPT Vision (GPT-4o)
+  async scanBill(base64Image) {
+    if (!this.apiKey) {
+      console.warn('OpenAI API key not found. Using mock data.');
+      return this.getMockBillScanResult();
+    }
+
+    try {
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${this.apiKey}`
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o',
+          messages: [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'text',
+                  text: `อ่านใบเสร็จร้านต้นไม้นี้และแปลงเป็น JSON format ตามโครงสร้างนี้:
+                  {
+                    "supplierName": "ชื่อร้านค้า",
+                    "supplierPhone": "เบอร์โทรศัพท์",
+                    "supplierLocation": "ที่อยู่",
+                    "billDate": "วันที่ (YYYY-MM-DD)",
+                    "totalAmount": ราคารวม,
+                    "items": [
+                      {
+                        "plantName": "ชื่อต้นไม้",
+                        "quantity": จำนวน,
+                        "price": ราคาต่อต้น,
+                        "total": ราคารวม,
+                        "size": "ไซต์ (ถ้ามี)",
+                        "notes": "หมายเหตุ (ถ้ามี)"
+                      }
+                    ],
+                    "confidence": 0.95
+                  }
+                  
+                  กรุณาอ่านข้อมูลให้ครบถ้วนและแม่นยำ`
+                },
+                {
+                  type: 'image_url',
+                  image_url: {
+                    url: `data:image/jpeg;base64,${base64Image}`
+                  }
+                }
+              ]
+            }
+          ],
+          max_tokens: 2000,
+          temperature: 0.1
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`OpenAI API error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const content = data.choices[0]?.message?.content;
+      
+      if (!content) {
+        throw new Error('No content received from OpenAI');
+      }
+
+      // แปลง JSON string เป็น object
+      const result = JSON.parse(content);
+      return result;
+
+    } catch (error) {
+      console.error('Error scanning bill with AI:', error);
+      // กลับไปใช้ข้อมูลจำลองเมื่อเกิดข้อผิดพลาด
+      return this.getMockBillScanResult();
+    }
+  }
+
+  // Mock data สำหรับ Bill Scan
+  getMockBillScanResult() {
+    return {
+      supplierName: 'สวนไม้ประดับ ณัฐพล',
+      supplierPhone: '081-234-5678',
+      supplierLocation: 'นครปฐม',
+      billDate: new Date().toISOString().split('T')[0],
+      totalAmount: 15750,
+      confidence: 0.92,
+      items: [
+        {
+          plantName: 'มอนสเตอร่า เดลิซิโอซ่า',
+          quantity: 2,
+          price: 450,
+          total: 900,
+          size: '1-2 ฟุต',
+          notes: 'ต้นใหญ่'
+        },
+        {
+          plantName: 'ยางอินเดีย',
+          quantity: 3,
+          price: 350,
+          total: 1050,
+          size: '2-3 ฟุต'
+        },
+        {
+          plantName: 'ฟิโลเดนดรอน เฮเดรซิฟอลิอัม',
+          quantity: 1,
+          price: 280,
+          total: 280,
+          size: 'S'
+        },
+        {
+          plantName: 'แคคตัส หลากชนิด',
+          quantity: 10,
+          price: 120,
+          total: 1200,
+          notes: 'ชุด 10 ต้น'
+        },
+        {
+          plantName: 'ไม้ล้อม - ต้นไผ่',
+          quantity: 5,
+          price: 2500,
+          total: 12500,
+          size: '3-4 เมตร'
+        }
+      ]
+    };
+  }
 }
 
 module.exports = new AIService();

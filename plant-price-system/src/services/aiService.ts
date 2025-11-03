@@ -56,20 +56,7 @@ export interface RouteStep {
 }
 
 class AIService {
-  private apiKey: string;
-  private baseUrl: string = 'https://api.openai.com/v1';
-
-  constructor() {
-    this.apiKey = process.env.REACT_APP_OPENAI_API_KEY || '';
-    if (!this.apiKey) {
-      console.warn('OpenAI API key not found. AI features will be disabled.');
-    }
-  }
-
-  // ตรวจสอบว่า API key มีอยู่หรือไม่
-  private isApiKeyAvailable(): boolean {
-    return !!this.apiKey;
-  }
+  // ⚠️ ไม่ใช้ API Key ใน Frontend อีกต่อไป - เรียกผ่าน Backend เพื่อความปลอดภัย
 
   // แปลงไฟล์เป็น Base64
   private async fileToBase64(file: File): Promise<string> {
@@ -86,80 +73,37 @@ class AIService {
     });
   }
 
-  // สแกนใบเสร็จด้วย ChatGPT Vision
+  // สแกนใบเสร็จด้วย ChatGPT Vision (เรียกผ่าน Backend เพื่อความปลอดภัย)
   async scanBill(imageFile: File): Promise<BillScanResult> {
-    if (!this.isApiKeyAvailable()) {
-      // จำลองข้อมูลเมื่อไม่มี API key
-      return this.getMockBillScanResult();
-    }
-
     try {
+      // แปลงไฟล์เป็น Base64
       const base64Image = await this.fileToBase64(imageFile);
       
-      const response = await fetch(`${this.baseUrl}/chat/completions`, {
+      // เรียก Backend API แทนการเรียก OpenAI โดยตรง (ปลอดภัยกว่า - API Key อยู่บน Backend)
+      const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:3002';
+      const backendUrl = apiUrl.replace(/\/api$/, ''); // ลบ /api ถ้ามี
+      
+      const response = await fetch(`${backendUrl}/api/ai/scan-bill`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.apiKey}`
         },
         body: JSON.stringify({
-          model: 'gpt-4o', // ใช้ GPT-4 Vision
-          messages: [
-            {
-              role: 'user',
-              content: [
-                {
-                  type: 'text',
-                  text: `อ่านใบเสร็จร้านต้นไม้นี้และแปลงเป็น JSON format ตามโครงสร้างนี้:
-                  {
-                    "supplierName": "ชื่อร้านค้า",
-                    "supplierPhone": "เบอร์โทรศัพท์",
-                    "supplierLocation": "ที่อยู่",
-                    "billDate": "วันที่ (YYYY-MM-DD)",
-                    "totalAmount": ราคารวม,
-                    "items": [
-                      {
-                        "plantName": "ชื่อต้นไม้",
-                        "quantity": จำนวน,
-                        "price": ราคาต่อต้น,
-                        "total": ราคารวม,
-                        "size": "ไซต์ (ถ้ามี)",
-                        "notes": "หมายเหตุ (ถ้ามี)"
-                      }
-                    ],
-                    "confidence": 0.95
-                  }
-                  
-                  กรุณาอ่านข้อมูลให้ครบถ้วนและแม่นยำ`
-                },
-                {
-                  type: 'image_url',
-                  image_url: {
-                    url: `data:image/jpeg;base64,${base64Image}`
-                  }
-                }
-              ]
-            }
-          ],
-          max_tokens: 2000,
-          temperature: 0.1
+          base64Image: base64Image
         })
       });
 
       if (!response.ok) {
-        throw new Error(`OpenAI API error: ${response.status}`);
+        throw new Error(`Backend API error: ${response.status}`);
       }
 
       const data = await response.json();
-      const content = data.choices[0]?.message?.content;
       
-      if (!content) {
-        throw new Error('No content received from OpenAI');
+      if (data.success && data.data) {
+        return data.data as BillScanResult;
+      } else {
+        throw new Error(data.message || 'Failed to scan bill');
       }
-
-      // แปลง JSON string เป็น object
-      const result = JSON.parse(content);
-      return result as BillScanResult;
 
     } catch (error) {
       console.error('Error scanning bill with AI:', error);
@@ -168,12 +112,12 @@ class AIService {
     }
   }
 
-  // วิเคราะห์ราคาด้วย AI
+  // วิเคราะห์ราคาด้วย AI (ใช้ Mock Data ชั่วคราว - สามารถปรับให้เรียกผ่าน Backend ทีหลัง)
   async analyzePrice(plantId: string, plantName: string, currentPrice: number, historicalPrices: number[]): Promise<PriceAnalysis> {
-    if (!this.isApiKeyAvailable()) {
-      return this.getMockPriceAnalysis(plantName, currentPrice);
-    }
+    // TODO: ปรับให้เรียกผ่าน Backend API `/api/ai/analyze-price` เพื่อความปลอดภัย
+    return this.getMockPriceAnalysis(plantName, currentPrice);
 
+    /* Legacy code - เรียก OpenAI โดยตรง (ไม่ปลอดภัย)
     try {
       const averagePrice = historicalPrices.reduce((sum, price) => sum + price, 0) / historicalPrices.length;
       const priceChange = currentPrice - averagePrice;
@@ -208,90 +152,18 @@ class AIService {
           temperature: 0.3
         })
       });
-
-      if (!response.ok) {
-        throw new Error(`OpenAI API error: ${response.status}`);
-      }
-
-      const data = await response.json();
-      const recommendation = data.choices[0]?.message?.content || 'ไม่สามารถวิเคราะห์ได้';
-
-      return {
-        plantId,
-        plantName,
-        currentPrice,
-        averagePrice,
-        priceChange,
-        priceChangePercent,
-        trend: priceChangePercent > 5 ? 'up' : priceChangePercent < -5 ? 'down' : 'stable',
-        recommendation
-      };
-
-    } catch (error) {
-      console.error('Error analyzing price with AI:', error);
-      return this.getMockPriceAnalysis(plantName, currentPrice);
-    }
+      // ... rest of legacy code ...
+    */
   }
 
-  // วางแผนเส้นทางด้วย AI
+  // วางแผนเส้นทางด้วย AI (ใช้ Mock Data ชั่วคราว - สามารถปรับให้เรียกผ่าน Backend ทีหลัง)
   async optimizeRoute(selectedSuppliers: any[], projectLocation: string): Promise<RouteOptimization> {
-    if (!this.isApiKeyAvailable()) {
-      return this.getMockRouteOptimization(selectedSuppliers);
-    }
+    // TODO: ปรับให้เรียกผ่าน Backend API `/api/ai/optimize-route` เพื่อความปลอดภัย
+    return this.getMockRouteOptimization(selectedSuppliers);
 
-    try {
-      const suppliersInfo = selectedSuppliers.map(s => 
-        `- ${s.name} (${s.location}) - ต้นไม้: ${s.plants?.join(', ') || 'ไม่ระบุ'}`
-      ).join('\n');
-
-      const response = await fetch(`${this.baseUrl}/chat/completions`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.apiKey}`
-        },
-        body: JSON.stringify({
-          model: 'gpt-3.5-turbo',
-          messages: [
-            {
-              role: 'user',
-              content: `วางแผนเส้นทางที่ประหยัดที่สุดสำหรับการซื้อต้นไม้
-              
-              ร้านค้าที่เลือก:
-              ${suppliersInfo}
-              
-              ที่ตั้งโปรเจกต์: ${projectLocation}
-              
-              กรุณาแนะนำลำดับการเดินทางที่:
-              1. ใช้เวลาและระยะทางน้อยที่สุด
-              2. ประหยัดค่าใช้จ่ายในการเดินทาง
-              3. หลีกเลี่ยงการจราจรติดขัด
-              
-              ตอบเป็น JSON format`
-            }
-          ],
-          max_tokens: 1000,
-          temperature: 0.2
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error(`OpenAI API error: ${response.status}`);
-      }
-
-      const data = await response.json();
-      const content = data.choices[0]?.message?.content;
-      
-      if (content) {
-        return JSON.parse(content);
-      } else {
-        return this.getMockRouteOptimization(selectedSuppliers);
-      }
-
-    } catch (error) {
-      console.error('Error optimizing route with AI:', error);
-      return this.getMockRouteOptimization(selectedSuppliers);
-    }
+    /* Legacy code - เรียก OpenAI โดยตรง (ไม่ปลอดภัย)
+    // ... removed for security ...
+    */
   }
 
   // ข้อมูลจำลองสำหรับการทดสอบ

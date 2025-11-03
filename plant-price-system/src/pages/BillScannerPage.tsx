@@ -12,6 +12,8 @@ const BillScannerPage: React.FC = () => {
   const [isScanning, setIsScanning] = useState(false);
   const [scanResult, setScanResult] = useState<BillScanResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveResult, setSaveResult] = useState<any | null>(null);
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -44,9 +46,16 @@ const BillScannerPage: React.FC = () => {
   const handleSaveToDatabase = async () => {
     if (!scanResult) return;
 
+    setIsSaving(true);
+    setSaveResult(null);
+    setError(null);
+
     try {
+      const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:3002';
+      const backendUrl = apiUrl.replace(/\/api$/, ''); // ลบ /api ถ้ามี
+
       // บันทึกข้อมูลลงฐานข้อมูล
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/bills`, {
+      const response = await fetch(`${backendUrl}/api/bills`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -57,20 +66,36 @@ const BillScannerPage: React.FC = () => {
           supplierLocation: scanResult.supplierLocation,
           billDate: scanResult.billDate,
           totalAmount: scanResult.totalAmount,
-          items: scanResult.items,
+          items: scanResult.items.map(item => ({
+            plantName: item.plantName,
+            name: item.plantName, // สำหรับ backward compatibility
+            price: item.price,
+            unitPrice: item.price, // สำหรับ backward compatibility
+            quantity: item.quantity || 1,
+            total: item.total || (item.price * (item.quantity || 1)),
+            size: item.size || null,
+            notes: item.notes || null
+          })),
           imageUrl: imagePreview
         }),
       });
 
-      if (response.ok) {
-        alert('บันทึกข้อมูลใบเสร็จสำเร็จ!');
-        navigate('/bill-list');
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        setSaveResult(data.data);
+        // รอ 3 วินาทีแล้วไปหน้าบิลลิสต์
+        setTimeout(() => {
+          navigate('/bill-list');
+        }, 3000);
       } else {
-        throw new Error('Failed to save bill');
+        throw new Error(data.message || 'Failed to save bill');
       }
-    } catch (err) {
-      alert('เกิดข้อผิดพลาดในการบันทึกข้อมูล');
+    } catch (err: any) {
+      setError(`เกิดข้อผิดพลาดในการบันทึกข้อมูล: ${err.message}`);
       console.error('Save error:', err);
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -240,13 +265,49 @@ const BillScannerPage: React.FC = () => {
                   </div>
                 </div>
 
+                {/* Save Result */}
+                {saveResult && (
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
+                    <div className="flex items-center mb-2">
+                      <CheckCircle className="w-5 h-5 text-green-500 mr-2" />
+                      <h3 className="font-semibold text-green-900">บันทึกสำเร็จ!</h3>
+                    </div>
+                    <div className="text-sm text-green-800 space-y-1">
+                      <p>✅ ร้านค้า: <span className="font-medium">{saveResult.bill?.supplierName || scanResult.supplierName}</span></p>
+                      <p>✅ บันทึกรายการ: <span className="font-medium">{saveResult.summary?.itemsProcessed || 0}</span>/{saveResult.summary?.itemsTotal || scanResult.items.length} รายการ</p>
+                      <p>✅ ราคารวม: <span className="font-medium">{scanResult.totalAmount.toLocaleString()} ฿</span></p>
+                      {saveResult.summary?.errors && saveResult.summary.errors.length > 0 && (
+                        <div className="mt-2 text-orange-700">
+                          <p className="font-medium">⚠️ ข้อผิดพลาด:</p>
+                          <ul className="list-disc list-inside">
+                            {saveResult.summary.errors.map((err: string, idx: number) => (
+                              <li key={idx}>{err}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
+                    <p className="text-xs text-green-600 mt-2">กำลังนำไปยังหน้ารายการบิล...</p>
+                  </div>
+                )}
+
                 {/* Actions */}
                 <div className="flex space-x-3 mt-6">
                   <button
                     onClick={handleSaveToDatabase}
-                    className="flex-1 bg-green-600 text-white py-3 px-4 rounded-lg hover:bg-green-700 transition-colors"
+                    disabled={isSaving || !!saveResult}
+                    className="flex-1 bg-green-600 text-white py-3 px-4 rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    💾 บันทึกข้อมูล
+                    {isSaving ? (
+                      <>
+                        <RefreshCw className="w-4 h-4 inline animate-spin mr-2" />
+                        กำลังบันทึก...
+                      </>
+                    ) : (
+                      <>
+                        💾 บันทึกข้อมูล
+                      </>
+                    )}
                   </button>
                   <button
                     onClick={() => navigate('/bill-list')}

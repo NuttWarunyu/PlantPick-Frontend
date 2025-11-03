@@ -636,6 +636,38 @@ app.get('/api/ai/insights', async (req, res) => {
   }
 });
 
+// 📸 AI Bill Scanner - สแกนใบเสร็จด้วย ChatGPT Vision (ปลอดภัย - API Key อยู่บน Backend)
+app.post('/api/ai/scan-bill', async (req, res) => {
+  try {
+    const { base64Image } = req.body;
+
+    if (!base64Image) {
+      return res.status(400).json({
+        success: false,
+        data: null,
+        message: 'ไม่พบรูปภาพที่ส่งมา'
+      });
+    }
+
+    // เรียก AI Service เพื่อสแกนใบเสร็จ (API Key อยู่บน Backend - ปลอดภัย)
+    const scanResult = await aiService.scanBill(base64Image);
+
+    res.json({
+      success: true,
+      data: scanResult,
+      message: 'สแกนใบเสร็จสำเร็จ'
+    });
+
+  } catch (error) {
+    console.error('AI Bill Scan Error:', error);
+    res.status(500).json({
+      success: false,
+      data: null,
+      message: `เกิดข้อผิดพลาดในการสแกนใบเสร็จ: ${error.message}`
+    });
+  }
+});
+
 // Orders
 app.get('/api/orders', async (req, res) => {
   try {
@@ -868,6 +900,155 @@ app.post('/api/plants/bulk-import', upload.single('file'), async (req, res) => {
   }
 });
 
+// 📄 Bills API - บันทึกใบเสร็จและแยกข้อมูลอัตโนมัติ
+app.post('/api/bills', async (req, res) => {
+  try {
+    const { supplierName, supplierPhone, supplierLocation, billDate, totalAmount, items, imageUrl } = req.body;
+
+    // Validate required fields
+    if (!supplierName || !items || !Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({
+        success: false,
+        data: null,
+        message: 'ข้อมูลไม่ครบถ้วน: ต้องมีชื่อร้านค้าและรายการสินค้า'
+      });
+    }
+
+    // ตรวจสอบว่าตารางมีอยู่หรือไม่
+    const billsTableCheck = await pool.query(`
+      SELECT EXISTS (
+        SELECT FROM information_schema.tables 
+        WHERE table_schema = 'public' 
+        AND table_name = 'bills'
+      );
+    `);
+    
+    if (!billsTableCheck.rows[0].exists) {
+      console.log('⚠️ ตาราง bills ยังไม่มี กำลังสร้าง...');
+      await initializeDatabase();
+    }
+
+    // 1. หาหรือเพิ่ม Supplier
+    console.log(`🔍 กำลังหาหรือเพิ่มร้านค้า: ${supplierName}`);
+    const supplier = await db.findOrCreateSupplier({
+      name: supplierName,
+      location: supplierLocation || '',
+      phone: supplierPhone || null
+    });
+    console.log(`✅ ร้านค้า: ${supplier.name} (ID: ${supplier.id})`);
+
+    // 2. บันทึกใบเสร็จ
+    const bill = await db.createBill({
+      supplierId: supplier.id,
+      supplierName: supplierName,
+      supplierPhone: supplierPhone || null,
+      supplierLocation: supplierLocation || null,
+      billDate: billDate ? new Date(billDate) : new Date(),
+      totalAmount: parseFloat(totalAmount) || 0,
+      imageUrl: imageUrl || null,
+      notes: null
+    });
+    console.log(`✅ บันทึกใบเสร็จสำเร็จ (Bill ID: ${bill.id})`);
+
+    // 3. ประมวลผลรายการแต่ละรายการ
+    const processedItems = [];
+    const errors = [];
+
+    for (const item of items) {
+      try {
+        const plantName = item.plantName || item.name;
+        const itemPrice = parseFloat(item.price) || parseFloat(item.unitPrice) || 0;
+        const itemQuantity = parseInt(item.quantity) || 1;
+        const itemSize = item.size || null;
+        
+        if (!plantName) {
+          errors.push(`รายการไม่มีชื่อต้นไม้: ${JSON.stringify(item)}`);
+          continue;
+        }
+
+        // 3.1 หาหรือเพิ่ม Plant
+        console.log(`🔍 กำลังหาหรือเพิ่มต้นไม้: ${plantName}`);
+        const plant = await db.findOrCreatePlant({
+          name: plantName,
+          category: item.category || 'อื่นๆ',
+          plantType: item.plantType || 'อื่นๆ',
+          measurementType: item.measurementType || 'ต้น',
+          description: item.description || null
+        });
+        console.log(`✅ ต้นไม้: ${plant.name} (ID: ${plant.id})`);
+
+        // 3.2 บันทึกรายการใบเสร็จ
+        const billItem = await db.addBillItem(bill.id, {
+          plantId: plant.id,
+          plantName: plantName,
+          quantity: itemQuantity,
+          price: itemPrice,
+          totalPrice: itemPrice * itemQuantity,
+          size: itemSize,
+          notes: item.notes || null
+        });
+        console.log(`✅ บันทึกรายการ: ${plantName} x${itemQuantity} = ${itemPrice * itemQuantity} บาท`);
+
+        // 3.3 อัพเดทหรือเพิ่ม plant_supplier (ราคา)
+        await db.upsertPlantSupplier(plant.id, supplier.id, {
+          price: itemPrice,
+          size: itemSize
+        });
+        console.log(`✅ อัพเดทราคา: ${plant.name} ที่ ${supplier.name} = ${itemPrice} บาท`);
+
+        processedItems.push({
+          plantName,
+          plantId: plant.id,
+          quantity: itemQuantity,
+          price: itemPrice,
+          totalPrice: itemPrice * itemQuantity
+        });
+
+      } catch (itemError) {
+        console.error(`❌ ข้อผิดพลาดในการประมวลผลรายการ: ${item.plantName || item.name}`, itemError);
+        errors.push(`ไม่สามารถประมวลผล ${item.plantName || item.name}: ${itemError.message}`);
+      }
+    }
+
+    // สรุปผล
+    const summary = {
+      billId: bill.id,
+      supplierName: supplier.name,
+      supplierId: supplier.id,
+      totalAmount: bill.total_amount,
+      itemsProcessed: processedItems.length,
+      itemsTotal: items.length,
+      errors: errors.length > 0 ? errors : undefined
+    };
+
+    console.log(`📊 สรุปการบันทึกใบเสร็จ: ${processedItems.length}/${items.length} รายการสำเร็จ`);
+
+    res.json({
+      success: true,
+      data: {
+        bill: {
+          id: bill.id,
+          supplierName: supplier.name,
+          supplierId: supplier.id,
+          billDate: bill.bill_date,
+          totalAmount: bill.total_amount
+        },
+        processedItems,
+        summary
+      },
+      message: `บันทึกใบเสร็จสำเร็จ: ${processedItems.length}/${items.length} รายการ`
+    });
+
+  } catch (error) {
+    console.error('❌ Error saving bill:', error);
+    res.status(500).json({
+      success: false,
+      data: null,
+      message: `เกิดข้อผิดพลาดในการบันทึกใบเสร็จ: ${error.message}`
+    });
+  }
+});
+
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error(err.stack);
@@ -954,6 +1135,48 @@ async function initializeDatabase() {
     await pool.query('CREATE INDEX IF NOT EXISTS idx_plant_suppliers_plant_id ON plant_suppliers(plant_id)');
     await pool.query('CREATE INDEX IF NOT EXISTS idx_plant_suppliers_supplier_id ON plant_suppliers(supplier_id)');
     console.log('✅ ตาราง plant_suppliers พร้อมใช้งาน');
+    
+    // สร้างตาราง bills ถ้ายังไม่มี
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS bills (
+        id VARCHAR(255) PRIMARY KEY,
+        supplier_id VARCHAR(255),
+        supplier_name VARCHAR(255) NOT NULL,
+        supplier_phone VARCHAR(20),
+        supplier_location TEXT,
+        bill_date DATE,
+        total_amount DECIMAL(10,2) NOT NULL,
+        image_url TEXT,
+        notes TEXT,
+        created_at TIMESTAMP DEFAULT NOW(),
+        updated_at TIMESTAMP DEFAULT NOW(),
+        FOREIGN KEY (supplier_id) REFERENCES suppliers(id) ON DELETE SET NULL
+      )
+    `);
+    await pool.query('CREATE INDEX IF NOT EXISTS idx_bills_supplier_id ON bills(supplier_id)');
+    await pool.query('CREATE INDEX IF NOT EXISTS idx_bills_date ON bills(bill_date)');
+    console.log('✅ ตาราง bills พร้อมใช้งาน');
+    
+    // สร้างตาราง bill_items ถ้ายังไม่มี
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS bill_items (
+        id VARCHAR(255) PRIMARY KEY,
+        bill_id VARCHAR(255) NOT NULL,
+        plant_id VARCHAR(255),
+        plant_name VARCHAR(255) NOT NULL,
+        quantity INTEGER DEFAULT 1,
+        price DECIMAL(10,2) NOT NULL,
+        total_price DECIMAL(10,2) NOT NULL,
+        size VARCHAR(100),
+        notes TEXT,
+        created_at TIMESTAMP DEFAULT NOW(),
+        FOREIGN KEY (bill_id) REFERENCES bills(id) ON DELETE CASCADE,
+        FOREIGN KEY (plant_id) REFERENCES plants(id) ON DELETE SET NULL
+      )
+    `);
+    await pool.query('CREATE INDEX IF NOT EXISTS idx_bill_items_bill_id ON bill_items(bill_id)');
+    await pool.query('CREATE INDEX IF NOT EXISTS idx_bill_items_plant_id ON bill_items(plant_id)');
+    console.log('✅ ตาราง bill_items พร้อมใช้งาน');
     
     // ตรวจสอบจำนวนข้อมูล
     const plantsCount = await pool.query('SELECT COUNT(*) FROM plants');
