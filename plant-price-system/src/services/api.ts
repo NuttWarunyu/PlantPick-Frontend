@@ -297,7 +297,12 @@ class MockApiService {
 
 // Real API Service สำหรับ production
 class RealApiService {
-  private baseUrl = process.env.REACT_APP_API_URL || 'http://localhost:3002/api';
+  // ลบ /api ออกจาก baseUrl ถ้ามี (เพราะจะเติมในแต่ละ endpoint)
+  private baseUrl = (() => {
+    const url = process.env.REACT_APP_API_URL || 'http://localhost:3002';
+    // ลบ /api ท้าย URL ถ้ามี
+    return url.replace(/\/api$/, '');
+  })();
 
   async getPlants(): Promise<ApiResponse<PlantData[]>> {
     try {
@@ -376,7 +381,7 @@ class RealApiService {
   // ดึงข้อมูลสถิติ
   async getStatistics(): Promise<ApiResponse<StatisticsData>> {
     try {
-      const response = await fetch(`${this.baseUrl}/statistics`);
+      const response = await fetch(`${this.baseUrl}/api/statistics`);
       const data = await response.json();
       return data;
     } catch (error) {
@@ -435,7 +440,11 @@ export const apiService = (() => {
   // ตรวจสอบว่ามี backend URL หรือไม่
   const backendUrl = process.env.REACT_APP_API_URL;
   
-  if (backendUrl && backendUrl !== 'http://localhost:3002/api' && !backendUrl.includes('localhost')) {
+  // ตรวจสอบว่ามี backend URL ที่ถูกต้อง (ไม่ใช่ localhost และไม่ว่างเปล่า)
+  if (backendUrl && 
+      backendUrl !== 'http://localhost:3002' && 
+      backendUrl !== 'http://localhost:3002/api' &&
+      !backendUrl.includes('localhost')) {
     // ถ้ามี backend URL ที่ถูกต้อง ให้ใช้ RealApiService
     return new RealApiService();
   } else {
