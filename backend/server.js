@@ -174,6 +174,21 @@ app.get('/api/plant-suppliers', async (req, res) => {
 // Get all suppliers
 app.get('/api/suppliers', async (req, res) => {
   try {
+    // ตรวจสอบว่าตาราง suppliers มีอยู่หรือไม่
+    const tableCheck = await pool.query(`
+      SELECT EXISTS (
+        SELECT FROM information_schema.tables 
+        WHERE table_schema = 'public' 
+        AND table_name = 'suppliers'
+      );
+    `);
+    
+    if (!tableCheck.rows[0].exists) {
+      console.log('⚠️ ตาราง suppliers ไม่มีอยู่ กำลังสร้าง...');
+      // สร้างตารางอัตโนมัติ
+      await initializeDatabase();
+    }
+    
     const query = `
       SELECT id, name, location, phone, website, description, 
              specialties, business_hours, payment_methods, created_at
