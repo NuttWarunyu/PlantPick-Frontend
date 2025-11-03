@@ -233,7 +233,7 @@ class AIService {
                     "confidence": 0.95
                   }
                   
-                  กรุณาอ่านข้อมูลให้ครบถ้วนและแม่นยำ`
+                  กรุณาอ่านข้อมูลให้ครบถ้วนและแม่นยำ และตอบเป็น JSON ล้วนๆ เท่านั้น ห้ามใส่โค้ดบล็อก (เช่น code fences) หรือคำอธิบายอื่นๆ`
                 },
                 {
                   type: 'image_url',
@@ -273,9 +273,18 @@ class AIService {
         throw new Error('No content received from OpenAI');
       }
 
-      // แปลง JSON string เป็น object
+      // แปลง JSON string เป็น object พร้อม sanitize กรณีมี ``` หรือ prefix อื่นๆ
       try {
-        const result = JSON.parse(content);
+        // ตัด code fences ``` และ ```json ออก
+        let cleaned = content.replace(/```json|```/gi, '').trim();
+        
+        // ดึงส่วนที่เป็น JSON หลัก (จาก { ... } บล็อกแรก)
+        const match = cleaned.match(/\{[\s\S]*\}/);
+        if (match) {
+          cleaned = match[0];
+        }
+        
+        const result = JSON.parse(cleaned);
         return result;
       } catch (parseError) {
         throw new Error(`Failed to parse OpenAI response: ${parseError.message}`);
