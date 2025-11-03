@@ -19,8 +19,9 @@ app.use(cors({
   credentials: true
 }));
 app.use(morgan('combined'));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+// เพิ่ม body size limit สำหรับรองรับ base64 image (50MB)
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 // Configure multer for file uploads
 const upload = multer({ 
@@ -673,6 +674,8 @@ app.post('/api/ai/scan-bill', async (req, res) => {
         errorMessage = '⚠️ เกิน Rate Limit ของ OpenAI API. กรุณารอสักครู่แล้วลองใหม่';
       } else if (error.message.includes('timeout')) {
         errorMessage = '⚠️ การเชื่อมต่อกับ OpenAI API หมดเวลา. กรุณาลองใหม่อีกครั้ง';
+      } else if (error.message.includes('PayloadTooLargeError') || error.message.includes('entity too large')) {
+        errorMessage = '⚠️ รูปภาพมีขนาดใหญ่เกินไป. กรุณาลองลดขนาดรูปหรืออัพโหลดรูปที่มีขนาดเล็กกว่า (แนะนำ: < 5MB)';
       } else {
         errorMessage = `เกิดข้อผิดพลาด: ${error.message}`;
       }
