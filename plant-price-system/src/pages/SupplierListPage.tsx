@@ -8,6 +8,7 @@ interface Supplier {
   name: string;
   location: string;
   phone: string;
+  phone_numbers?: string[];
   email?: string;
   website?: string;
   description?: string;
@@ -57,7 +58,13 @@ const SupplierListPage: React.FC = () => {
             : supplier.specialties || [],
           paymentMethods: typeof supplier.paymentMethods === 'string'
             ? JSON.parse(supplier.paymentMethods || '[]')
-            : supplier.paymentMethods || []
+            : supplier.paymentMethods || [],
+          phone_numbers: Array.isArray(supplier.phone_numbers)
+            ? supplier.phone_numbers
+            : (typeof supplier.phone_numbers === 'string'
+                ? (() => { try { return JSON.parse(supplier.phone_numbers || '[]'); } catch { return []; } })()
+                : []
+              )
         }));
         setSuppliers(suppliers);
       } else {
@@ -206,9 +213,25 @@ const SupplierListPage: React.FC = () => {
 
                 {/* Contact Info */}
                 <div className="space-y-2 mb-4">
-                  <div className="flex items-center text-sm text-gray-600">
-                    <Phone className="w-4 h-4 mr-2" />
-                    <span>{supplier.phone}</span>
+                  <div className="flex items-start text-sm text-gray-600">
+                    <Phone className="w-4 h-4 mr-2 mt-0.5" />
+                    <div className="space-y-1">
+                      {(() => {
+                        const nums = (supplier.phone_numbers && supplier.phone_numbers.length > 0)
+                          ? supplier.phone_numbers
+                          : (supplier.phone ? [supplier.phone] : []);
+                        const unique = Array.from(new Set(nums.filter(Boolean)));
+                        return unique.length > 0 ? (
+                          <div className="flex flex-wrap gap-1">
+                            {unique.map((p) => (
+                              <span key={p} className="px-2 py-0.5 bg-gray-100 text-gray-700 rounded text-xs">
+                                {p}
+                              </span>
+                            ))}
+                          </div>
+                        ) : <span className="text-gray-400">-</span>;
+                      })()}
+                    </div>
                   </div>
                   {supplier.email && (
                     <div className="flex items-center text-sm text-gray-600">

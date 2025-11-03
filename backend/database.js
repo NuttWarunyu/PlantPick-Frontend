@@ -223,7 +223,7 @@ const db = {
   // Get all suppliers (standalone suppliers table)
   async getAllSuppliers() {
     const query = `
-      SELECT id, name, location, phone, website, description,
+      SELECT id, name, location, phone, phone_numbers, website, description,
              specialties, business_hours, payment_methods, created_at
       FROM suppliers
       ORDER BY created_at DESC
@@ -234,6 +234,20 @@ const db = {
 
   // Find or create supplier by name
   async findOrCreateSupplier(supplierData) {
+    // ทำความสะอาดเบอร์โทร: เลือกหมายเลขแรก, ตัดช่องว่างและอักขระที่ไม่ใช่ตัวเลข/เครื่องหมายบวก
+    const rawPhone = supplierData.phone || '';
+    // แยกหลายเบอร์ด้วย , / หรือช่องว่างหลายตัว
+    const allPhones = rawPhone
+      .split(/[,/]|\s{2,}|\s,|,\s/)
+      .map(p => p.trim())
+      .filter(Boolean)
+      .map(p => p.replace(/[^0-9+]/g, ''))
+      .filter(Boolean);
+    // เอาเฉพาะตัวไม่ซ้ำ และตัดความยาวสูงสุด 50
+    const uniquePhones = Array.from(new Set(allPhones)).map(p => p.slice(0, 50));
+    const normalizedPhone = uniquePhones[0] || null; // primary phone
+    const phoneNumbersJson = JSON.stringify(uniquePhones);
+
     // ค้นหาร้านค้าที่มีชื่อเหมือนกัน
     const findQuery = `SELECT id FROM suppliers WHERE LOWER(name) = LOWER($1) LIMIT 1`;
     const findResult = await pool.query(findQuery, [supplierData.name]);
@@ -241,17 +255,26 @@ const db = {
     if (findResult.rows.length > 0) {
       // ถ้ามีแล้ว ให้อัพเดทข้อมูล
       const supplierId = findResult.rows[0].id;
+      // รวมเบอร์เดิม + ใหม่
+      const existing = await pool.query(`SELECT phone_numbers FROM suppliers WHERE id = $1`, [supplierId]);
+      const existingPhones = (() => {
+        try { return JSON.parse(existing.rows[0]?.phone_numbers || '[]'); } catch { return []; }
+      })();
+      const mergedPhones = Array.from(new Set([...(existingPhones || []), ...uniquePhones]));
+
       const updateQuery = `
         UPDATE suppliers 
         SET location = COALESCE($1, location),
             phone = COALESCE($2, phone),
+            phone_numbers = $3,
             updated_at = NOW()
-        WHERE id = $3
+        WHERE id = $4
         RETURNING *
       `;
       const updateResult = await pool.query(updateQuery, [
         supplierData.location,
-        supplierData.phone,
+        normalizedPhone,
+        JSON.stringify(mergedPhones),
         supplierId
       ]);
       return updateResult.rows[0];
@@ -260,15 +283,16 @@ const db = {
       const { v4: uuidv4 } = require('uuid');
       const supplierId = `supplier_${uuidv4()}`;
       const insertQuery = `
-        INSERT INTO suppliers (id, name, location, phone, description)
-        VALUES ($1, $2, $3, $4, $5)
+        INSERT INTO suppliers (id, name, location, phone, phone_numbers, description)
+        VALUES ($1, $2, $3, $4, $5, $6)
         RETURNING *
       `;
       const insertResult = await pool.query(insertQuery, [
         supplierId,
         supplierData.name,
         supplierData.location || '',
-        supplierData.phone || null,
+        normalizedPhone,
+        phoneNumbersJson,
         supplierData.description || null
       ]);
       return insertResult.rows[0];

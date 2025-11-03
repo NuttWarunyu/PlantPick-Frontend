@@ -988,6 +988,29 @@ app.post('/api/bills', async (req, res) => {
           continue;
         }
 
+        // ข้ามรายการบริการ/ค่าแรง ไม่ต้องสร้างต้นไม้และไม่อัปเดตราคา
+        const serviceKeywords = ['ค่าแรง', 'ค่าขน', 'ค่าขนส่ง', 'ค่าจัดส่ง', 'ค่าบริการ'];
+        const isService = (itemSize && itemSize.trim() === 'งาน') || serviceKeywords.some(k => plantName.includes(k));
+        if (isService) {
+          await db.addBillItem(bill.id, {
+            plantId: null,
+            plantName: plantName,
+            quantity: itemQuantity,
+            price: itemPrice,
+            totalPrice: itemPrice * itemQuantity,
+            size: itemSize,
+            notes: 'SERVICE_ITEM'
+          });
+          processedItems.push({
+            plantName,
+            plantId: null,
+            quantity: itemQuantity,
+            price: itemPrice,
+            totalPrice: itemPrice * itemQuantity
+          });
+          continue;
+        }
+
         // 3.1 หาหรือเพิ่ม Plant
         console.log(`🔍 กำลังหาหรือเพิ่มต้นไม้: ${plantName}`);
         const plant = await db.findOrCreatePlant({
@@ -1132,6 +1155,14 @@ async function initializeDatabase() {
     await pool.query('CREATE INDEX IF NOT EXISTS idx_suppliers_name ON suppliers(name)');
     await pool.query('CREATE INDEX IF NOT EXISTS idx_suppliers_location ON suppliers(location)');
     console.log('✅ ตาราง suppliers พร้อมใช้งาน');
+    // ขยายความยาวเบอร์โทรรองรับหลายเบอร์
+    try {
+      await pool.query(`ALTER TABLE suppliers ALTER COLUMN phone TYPE VARCHAR(50)`);
+    } catch (e) {}
+    // เพิ่มคอลัมน์ phone_numbers (เก็บหลายเบอร์เป็น JSON)
+    try {
+      await pool.query(`ALTER TABLE suppliers ADD COLUMN IF NOT EXISTS phone_numbers TEXT DEFAULT '[]'`);
+    } catch (e) {}
     
     // สร้างตาราง plant_suppliers ถ้ายังไม่มี
     await pool.query(`
@@ -1164,7 +1195,7 @@ async function initializeDatabase() {
         id VARCHAR(255) PRIMARY KEY,
         supplier_id VARCHAR(255),
         supplier_name VARCHAR(255) NOT NULL,
-        supplier_phone VARCHAR(20),
+        supplier_phone VARCHAR(50),
         supplier_location TEXT,
         bill_date DATE,
         total_amount DECIMAL(10,2) NOT NULL,
@@ -1178,6 +1209,10 @@ async function initializeDatabase() {
     await pool.query('CREATE INDEX IF NOT EXISTS idx_bills_supplier_id ON bills(supplier_id)');
     await pool.query('CREATE INDEX IF NOT EXISTS idx_bills_date ON bills(bill_date)');
     console.log('✅ ตาราง bills พร้อมใช้งาน');
+    // ขยายความยาวเบอร์โทรในบิล
+    try {
+      await pool.query(`ALTER TABLE bills ALTER COLUMN supplier_phone TYPE VARCHAR(50)`);
+    } catch (e) {}
     
     // สร้างตาราง bill_items ถ้ายังไม่มี
     await pool.query(`
