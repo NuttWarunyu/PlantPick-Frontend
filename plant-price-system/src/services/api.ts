@@ -213,23 +213,26 @@ class MockApiService {
     }
   }
 
-  // ดึงข้อมูลผู้จัดจำหน่ายทั้งหมด
+  // ดึงข้อมูลผู้จัดจำหน่ายทั้งหมด (สำหรับ Mock - ใช้ localStorage หรือ mock data)
   async getSuppliers(): Promise<ApiResponse<any[]>> {
     try {
-      // ใช้ข้อมูลจากฐานข้อมูลจริงผ่าน RealApiService
-      const realApi = new RealApiService();
-      const response = await realApi.getSuppliers();
-      
-      if (response.success) {
-        return response;
-      } else {
-        // ถ้า RealApiService ล้มเหลว ให้ใช้ Mock Data
+      // ใช้ข้อมูลจาก localStorage ถ้ามี
+      const storedSuppliers = localStorage.getItem('suppliers');
+      if (storedSuppliers) {
+        const suppliers = JSON.parse(storedSuppliers);
         return {
           success: true,
-          data: mockSuppliers,
-          message: 'ดึงข้อมูลผู้จัดจำหน่ายสำเร็จ (Mock Data)'
+          data: suppliers,
+          message: 'ดึงข้อมูลผู้จัดจำหน่ายสำเร็จ (localStorage)'
         };
       }
+      
+      // ถ้าไม่มี ให้ใช้ Mock Data
+      return {
+        success: true,
+        data: mockSuppliers,
+        message: 'ดึงข้อมูลผู้จัดจำหน่ายสำเร็จ (Mock Data)'
+      };
     } catch (error) {
       // ถ้าเกิด error ให้ใช้ Mock Data
       return {
