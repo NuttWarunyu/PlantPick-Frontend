@@ -273,16 +273,55 @@ app.get('/api/suppliers', async (req, res) => {
 // 📊 Statistics Endpoint - ดึงข้อมูลสถิติ
 app.get('/api/statistics', async (req, res) => {
   try {
-    const plants = await db.getPlants();
-    const suppliers = await db.getAllSuppliers();
+    // ตรวจสอบว่าตารางมีอยู่หรือไม่
+    const plantsTableCheck = await pool.query(`
+      SELECT EXISTS (
+        SELECT FROM information_schema.tables 
+        WHERE table_schema = 'public' 
+        AND table_name = 'plants'
+      );
+    `);
+    const suppliersTableCheck = await pool.query(`
+      SELECT EXISTS (
+        SELECT FROM information_schema.tables 
+        WHERE table_schema = 'public' 
+        AND table_name = 'suppliers'
+      );
+    `);
+    
+    if (!plantsTableCheck.rows[0].exists || !suppliersTableCheck.rows[0].exists) {
+      console.log('⚠️ ตารางบางตารางไม่มี กำลังสร้าง...');
+      await initializeDatabase();
+    }
+    
+    let plants = [];
+    let suppliers = [];
+    
+    try {
+      plants = await db.getPlants();
+    } catch (error) {
+      console.error('Error getting plants:', error);
+      // ถ้า error ให้ใช้ array ว่าง
+    }
+    
+    try {
+      suppliers = await db.getAllSuppliers();
+    } catch (error) {
+      console.error('Error getting suppliers:', error);
+      // ถ้า error ให้ใช้ array ว่าง
+    }
     
     // นับจำนวนต้นไม้ตามหมวดหมู่
     const categoryCount = {};
     const plantTypeCount = {};
     
     plants.forEach(plant => {
-      categoryCount[plant.category] = (categoryCount[plant.category] || 0) + 1;
-      plantTypeCount[plant.plantType] = (plantTypeCount[plant.plantType] || 0) + 1;
+      if (plant.category) {
+        categoryCount[plant.category] = (categoryCount[plant.category] || 0) + 1;
+      }
+      if (plant.plantType) {
+        plantTypeCount[plant.plantType] = (plantTypeCount[plant.plantType] || 0) + 1;
+      }
     });
     
     res.json({
@@ -305,7 +344,7 @@ app.get('/api/statistics', async (req, res) => {
         categoryCount: {},
         plantTypeCount: {}
       },
-      message: 'เกิดข้อผิดพลาดในการดึงข้อมูลสถิติ'
+      message: `เกิดข้อผิดพลาดในการดึงข้อมูลสถิติ: ${error.message}`
     });
   }
 });
@@ -829,7 +868,25 @@ app.use('*', (req, res) => {
 // Initialize database tables
 async function initializeDatabase() {
   try {
-    console.log('🔍 กำลังตรวจสอบและสร้างตาราง suppliers...');
+    console.log('🔍 กำลังตรวจสอบและสร้างตาราง...');
+    
+    // สร้างตาราง plants ถ้ายังไม่มี
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS plants (
+        id VARCHAR(255) PRIMARY KEY,
+        name VARCHAR(255) NOT NULL,
+        scientific_name VARCHAR(255),
+        category VARCHAR(100),
+        plant_type VARCHAR(100),
+        measurement_type VARCHAR(100),
+        description TEXT,
+        created_at TIMESTAMP DEFAULT NOW(),
+        updated_at TIMESTAMP DEFAULT NOW()
+      )
+    `);
+    await pool.query('CREATE INDEX IF NOT EXISTS idx_plants_name ON plants(name)');
+    await pool.query('CREATE INDEX IF NOT EXISTS idx_plants_category ON plants(category)');
+    console.log('✅ ตาราง plants พร้อมใช้งาน');
     
     // สร้างตาราง suppliers ถ้ายังไม่มี
     await pool.query(`
@@ -847,16 +904,40 @@ async function initializeDatabase() {
         updated_at TIMESTAMP DEFAULT NOW()
       )
     `);
-    
-    // สร้าง index
     await pool.query('CREATE INDEX IF NOT EXISTS idx_suppliers_name ON suppliers(name)');
     await pool.query('CREATE INDEX IF NOT EXISTS idx_suppliers_location ON suppliers(location)');
-    
     console.log('✅ ตาราง suppliers พร้อมใช้งาน');
     
+    // สร้างตาราง plant_suppliers ถ้ายังไม่มี
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS plant_suppliers (
+        id VARCHAR(255) PRIMARY KEY,
+        plant_id VARCHAR(255) NOT NULL,
+        supplier_id VARCHAR(255) NOT NULL,
+        price DECIMAL(10,2) NOT NULL,
+        size VARCHAR(100),
+        stock_quantity INTEGER DEFAULT 0,
+        min_order_quantity INTEGER DEFAULT 1,
+        delivery_available BOOLEAN DEFAULT false,
+        delivery_cost DECIMAL(10,2) DEFAULT 0,
+        notes TEXT,
+        is_active BOOLEAN DEFAULT true,
+        created_at TIMESTAMP DEFAULT NOW(),
+        updated_at TIMESTAMP DEFAULT NOW(),
+        FOREIGN KEY (plant_id) REFERENCES plants(id) ON DELETE CASCADE,
+        FOREIGN KEY (supplier_id) REFERENCES suppliers(id) ON DELETE CASCADE,
+        UNIQUE(plant_id, supplier_id, size)
+      )
+    `);
+    await pool.query('CREATE INDEX IF NOT EXISTS idx_plant_suppliers_plant_id ON plant_suppliers(plant_id)');
+    await pool.query('CREATE INDEX IF NOT EXISTS idx_plant_suppliers_supplier_id ON plant_suppliers(supplier_id)');
+    console.log('✅ ตาราง plant_suppliers พร้อมใช้งาน');
+    
     // ตรวจสอบจำนวนข้อมูล
-    const countResult = await pool.query('SELECT COUNT(*) FROM suppliers');
-    console.log(`📊 จำนวนร้านค้าในฐานข้อมูล: ${countResult.rows[0].count} รายการ`);
+    const plantsCount = await pool.query('SELECT COUNT(*) FROM plants');
+    const suppliersCount = await pool.query('SELECT COUNT(*) FROM suppliers');
+    console.log(`📊 จำนวนต้นไม้: ${plantsCount.rows[0].count} รายการ`);
+    console.log(`📊 จำนวนร้านค้า: ${suppliersCount.rows[0].count} รายการ`);
     
   } catch (error) {
     console.error('❌ เกิดข้อผิดพลาดในการสร้างตาราง:', error.message);
