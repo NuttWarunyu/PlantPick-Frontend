@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Store, Phone, Mail, Globe, Clock, Search, Filter, Plus } from 'lucide-react';
+import { apiService } from '../services/api';
 
 interface Supplier {
   id: string;
@@ -44,41 +45,28 @@ const SupplierListPage: React.FC = () => {
     try {
       setIsLoading(true);
       
-      // ใช้ข้อมูลจาก localStorage แทนการเรียก API
-      const storedSuppliers = localStorage.getItem('suppliers');
-      if (storedSuppliers) {
-        const suppliers = JSON.parse(storedSuppliers);
+      // ใช้ apiService เพื่อดึงข้อมูลจาก backend
+      const response = await apiService.getSuppliers();
+      
+      if (response.success && response.data) {
+        // แปลงข้อมูล specialties และ paymentMethods ถ้าเป็น string (JSON)
+        const suppliers = response.data.map((supplier: any) => ({
+          ...supplier,
+          specialties: typeof supplier.specialties === 'string' 
+            ? JSON.parse(supplier.specialties || '[]') 
+            : supplier.specialties || [],
+          paymentMethods: typeof supplier.paymentMethods === 'string'
+            ? JSON.parse(supplier.paymentMethods || '[]')
+            : supplier.paymentMethods || []
+        }));
         setSuppliers(suppliers);
       } else {
-        // ถ้าไม่มีข้อมูล ให้ใช้ข้อมูลตัวอย่าง
-        const sampleSuppliers = [
-          {
-            id: 'supplier_1',
-            name: 'ร้านตัวอย่าง A',
-            location: 'กรุงเทพฯ',
-            phone: '081-234-5678',
-            email: 'info@example-a.com',
-            specialties: ['ไม้ประดับ', 'ไม้ล้อม'],
-            businessHours: 'จันทร์-เสาร์ 8:00-18:00',
-            paymentMethods: ['เงินสด', 'โอนเงิน']
-          },
-          {
-            id: 'supplier_2',
-            name: 'ร้านตัวอย่าง B',
-            location: 'นครปฐม',
-            phone: '082-345-6789',
-            email: 'contact@example-b.com',
-            specialties: ['ไม้ดอก', 'แคคตัส'],
-            businessHours: 'จันทร์-อาทิตย์ 9:00-19:00',
-            paymentMethods: ['เงินสด', 'บัตรเครดิต']
-          }
-        ];
-        setSuppliers(sampleSuppliers);
-        // บันทึกข้อมูลตัวอย่างใน localStorage
-        localStorage.setItem('suppliers', JSON.stringify(sampleSuppliers));
+        console.error('Failed to load suppliers:', response.message);
+        setSuppliers([]);
       }
     } catch (error) {
       console.error('Error loading suppliers:', error);
+      setSuppliers([]);
     } finally {
       setIsLoading(false);
     }
