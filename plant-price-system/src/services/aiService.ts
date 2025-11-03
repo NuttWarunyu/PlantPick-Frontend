@@ -93,22 +93,35 @@ class AIService {
         })
       });
 
+      // ตรวจสอบ HTTP status
       if (!response.ok) {
-        throw new Error(`Backend API error: ${response.status}`);
+        // อ่าน error message จาก backend
+        let errorMessage = `เกิดข้อผิดพลาด: ${response.status}`;
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.message || errorMessage;
+        } catch (e) {
+          // ถ้า parse JSON ไม่ได้ ให้ใช้ default message
+          errorMessage = `เกิดข้อผิดพลาดจาก Backend (Status: ${response.status})`;
+        }
+        throw new Error(errorMessage);
       }
 
       const data = await response.json();
       
+      // ตรวจสอบว่า response สำเร็จหรือไม่
       if (data.success && data.data) {
         return data.data as BillScanResult;
       } else {
-        throw new Error(data.message || 'Failed to scan bill');
+        // Backend ส่ง response มาว่าไม่สำเร็จ
+        throw new Error(data.message || 'ไม่สามารถสแกนใบเสร็จได้');
       }
 
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error scanning bill with AI:', error);
-      // กลับไปใช้ข้อมูลจำลองเมื่อเกิดข้อผิดพลาด
-      return this.getMockBillScanResult();
+      // ⚠️ ไม่ใช้ Mock Data อีกต่อไป - throw error ต่อให้ UI จัดการ
+      // ให้ UI แสดง error message ที่ชัดเจนแทน
+      throw error;
     }
   }
 

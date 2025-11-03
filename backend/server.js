@@ -659,11 +659,30 @@ app.post('/api/ai/scan-bill', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('AI Bill Scan Error:', error);
+    console.error('❌ AI Bill Scan Error:', error);
+    
+    // ตรวจสอบ error type เพื่อให้ error message ชัดเจนขึ้น
+    let errorMessage = 'เกิดข้อผิดพลาดในการสแกนใบเสร็จ';
+    
+    if (error.message) {
+      if (error.message.includes('API key')) {
+        errorMessage = '⚠️ ยังไม่ได้ตั้งค่า OPENAI_API_KEY ใน Railway. กรุณาเพิ่ม API Key ใน Railway Dashboard → Variables';
+      } else if (error.message.includes('401') || error.message.includes('unauthorized')) {
+        errorMessage = '⚠️ OpenAI API Key ไม่ถูกต้อง. กรุณาตรวจสอบ API Key ใน Railway';
+      } else if (error.message.includes('429') || error.message.includes('rate limit')) {
+        errorMessage = '⚠️ เกิน Rate Limit ของ OpenAI API. กรุณารอสักครู่แล้วลองใหม่';
+      } else if (error.message.includes('timeout')) {
+        errorMessage = '⚠️ การเชื่อมต่อกับ OpenAI API หมดเวลา. กรุณาลองใหม่อีกครั้ง';
+      } else {
+        errorMessage = `เกิดข้อผิดพลาด: ${error.message}`;
+      }
+    }
+    
     res.status(500).json({
       success: false,
       data: null,
-      message: `เกิดข้อผิดพลาดในการสแกนใบเสร็จ: ${error.message}`
+      message: errorMessage,
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 });

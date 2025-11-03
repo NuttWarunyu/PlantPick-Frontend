@@ -30,13 +30,27 @@ const BillScannerPage: React.FC = () => {
 
     setIsScanning(true);
     setError(null);
+    setScanResult(null); // Clear previous result
 
     try {
       // ใช้ AIService จริง
       const result = await aiService.scanBill(image);
       setScanResult(result);
-    } catch (err) {
-      setError('เกิดข้อผิดพลาดในการสแกนใบเสร็จ กรุณาลองใหม่อีกครั้ง');
+    } catch (err: any) {
+      // แสดง error message ที่ชัดเจน
+      const errorMessage = err.message || 'เกิดข้อผิดพลาดในการสแกนใบเสร็จ';
+      
+      // ตรวจสอบ error type
+      if (errorMessage.includes('500') || errorMessage.includes('Backend')) {
+        setError(`⚠️ เกิดข้อผิดพลาดจาก Backend: ${errorMessage}\n\nอาจเป็นเพราะ:\n- ยังไม่ได้ตั้งค่า OPENAI_API_KEY ใน Railway\n- Backend service ยังไม่พร้อม\n- OpenAI API มีปัญหา`);
+      } else if (errorMessage.includes('400')) {
+        setError(`⚠️ ข้อมูลไม่ถูกต้อง: ${errorMessage}`);
+      } else if (errorMessage.includes('401') || errorMessage.includes('403')) {
+        setError(`⚠️ ปัญหาการเข้าถึง: ${errorMessage}\n\nกรุณาตรวจสอบ API Key ใน Railway`);
+      } else {
+        setError(`❌ ${errorMessage}`);
+      }
+      
       console.error('Scan error:', err);
     } finally {
       setIsScanning(false);
@@ -202,9 +216,19 @@ const BillScannerPage: React.FC = () => {
           <div className="space-y-6">
             {error && (
               <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                <div className="flex items-center">
-                  <AlertCircle className="w-5 h-5 text-red-500 mr-2" />
-                  <span className="text-red-700">{error}</span>
+                <div className="flex items-start">
+                  <AlertCircle className="w-5 h-5 text-red-500 mr-2 mt-0.5 flex-shrink-0" />
+                  <div className="flex-1">
+                    <p className="text-red-700 whitespace-pre-line font-medium">{error}</p>
+                    <div className="mt-3 pt-3 border-t border-red-200">
+                      <p className="text-sm text-red-600">💡 วิธีแก้ไข:</p>
+                      <ul className="text-sm text-red-600 mt-1 ml-4 list-disc">
+                        <li>ตรวจสอบ Railway Logs เพื่อดู error detail</li>
+                        <li>ตรวจสอบว่า OPENAI_API_KEY ถูกตั้งค่าใน Railway หรือยัง</li>
+                        <li>ลองอัพโหลดรูปใหม่</li>
+                      </ul>
+                    </div>
+                  </div>
                 </div>
               </div>
             )}

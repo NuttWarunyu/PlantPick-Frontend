@@ -193,9 +193,9 @@ class AIService {
 
   // 📸 สแกนใบเสร็จด้วย ChatGPT Vision (GPT-4o)
   async scanBill(base64Image) {
+    // ตรวจสอบว่ามี API Key หรือไม่
     if (!this.apiKey) {
-      console.warn('OpenAI API key not found. Using mock data.');
-      return this.getMockBillScanResult();
+      throw new Error('OpenAI API key not found. Please set OPENAI_API_KEY in Railway variables.');
     }
 
     try {
@@ -249,8 +249,21 @@ class AIService {
         })
       });
 
+      // ตรวจสอบ HTTP status
       if (!response.ok) {
-        throw new Error(`OpenAI API error: ${response.status}`);
+        const errorData = await response.json().catch(() => ({}));
+        let errorMessage = `OpenAI API error: ${response.status}`;
+        
+        // ตรวจสอบ error type
+        if (response.status === 401 || response.status === 403) {
+          errorMessage = 'OpenAI API key is invalid or unauthorized';
+        } else if (response.status === 429) {
+          errorMessage = 'OpenAI API rate limit exceeded';
+        } else if (errorData.error?.message) {
+          errorMessage = `OpenAI API error: ${errorData.error.message}`;
+        }
+        
+        throw new Error(errorMessage);
       }
 
       const data = await response.json();
@@ -261,13 +274,17 @@ class AIService {
       }
 
       // แปลง JSON string เป็น object
-      const result = JSON.parse(content);
-      return result;
+      try {
+        const result = JSON.parse(content);
+        return result;
+      } catch (parseError) {
+        throw new Error(`Failed to parse OpenAI response: ${parseError.message}`);
+      }
 
     } catch (error) {
-      console.error('Error scanning bill with AI:', error);
-      // กลับไปใช้ข้อมูลจำลองเมื่อเกิดข้อผิดพลาด
-      return this.getMockBillScanResult();
+      console.error('❌ Error scanning bill with AI:', error);
+      // ⚠️ ไม่ใช้ Mock Data - throw error ต่อให้ endpoint จัดการ
+      throw error;
     }
   }
 
