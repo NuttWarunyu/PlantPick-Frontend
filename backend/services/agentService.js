@@ -294,10 +294,10 @@ ${JSON.stringify(extractedData, null, 2)}
 
       return {
         jobId,
-        supplierId: supplier?.id,
         plants: savedPlants,
         count: savedPlants.length,
-        confidence: data.confidence || 0.5
+        confidence: data.confidence || 0.5,
+        status: 'pending' // All results are pending approval
       };
 
     } catch (error) {
