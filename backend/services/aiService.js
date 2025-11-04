@@ -297,6 +297,67 @@ class AIService {
     }
   }
 
+  // Analyze text with AI (for AI Agent)
+  async analyzeText(prompt) {
+    if (!this.apiKey) {
+      throw new Error('OpenAI API key not found. Please set OPENAI_API_KEY in Railway variables.');
+    }
+
+    try {
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${this.apiKey}`
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o', // ใช้ GPT-4o สำหรับการแกะข้อมูลที่ซับซ้อน
+          messages: [
+            {
+              role: 'system',
+              content: 'คุณเป็น AI Agent ที่ช่วยแกะข้อมูลต้นไม้และราคาจากเว็บไซต์ ตอบเป็น JSON format เท่านั้น'
+            },
+            {
+              role: 'user',
+              content: prompt
+            }
+          ],
+          max_tokens: 2000,
+          temperature: 0.1
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error?.message || `OpenAI API error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      let content = data.choices[0]?.message?.content;
+      if (!content) {
+        throw new Error('No content received from OpenAI');
+      }
+
+      // Sanitize JSON response (remove markdown code fences)
+      try {
+        let cleaned = content.replace(/```json|```/gi, '').trim();
+        const match = cleaned.match(/\{[\s\S]*\}/);
+        if (match) {
+          cleaned = match[0];
+        }
+        const result = JSON.parse(cleaned);
+        return result;
+      } catch (parseError) {
+        console.error('JSON Parse Error:', parseError);
+        console.error('Raw content:', content);
+        throw new Error(`Failed to parse OpenAI response: ${parseError.message}`);
+      }
+    } catch (error) {
+      console.error('AI Analyze Text Error:', error);
+      throw error;
+    }
+  }
+
   // Mock data สำหรับ Bill Scan
   getMockBillScanResult() {
     return {

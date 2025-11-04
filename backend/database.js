@@ -312,13 +312,14 @@ const db = {
       const { v4: uuidv4 } = require('uuid');
       const plantId = `plant_${uuidv4()}`;
       const insertQuery = `
-        INSERT INTO plants (id, name, category, plant_type, measurement_type, description)
-        VALUES ($1, $2, $3, $4, $5, $6)
+        INSERT INTO plants (id, name, scientific_name, category, plant_type, measurement_type, description)
+        VALUES ($1, $2, $3, $4, $5, $6, $7)
         RETURNING *
       `;
       const insertResult = await pool.query(insertQuery, [
         plantId,
         plantData.name,
+        plantData.scientificName || null,
         plantData.category || 'อื่นๆ',
         plantData.plantType || 'อื่นๆ',
         plantData.measurementType || 'ต้น',

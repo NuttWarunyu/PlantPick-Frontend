@@ -7,6 +7,9 @@ const csv = require('csv-parser');
 const { v4: uuidv4 } = require('uuid');
 const { db, pool } = require('./database');
 const aiService = require('./services/aiService');
+const adminAuth = require('./services/adminAuth');
+const { requireAdmin, optionalAdmin } = require('./middleware/adminAuth');
+const agentService = require('./services/agentService');
 require('dotenv').config();
 
 const app = express();
@@ -1094,6 +1097,332 @@ app.post('/api/bills', async (req, res) => {
   }
 });
 
+// 🔐 Admin Authentication Endpoints
+app.post('/api/admin/login', async (req, res) => {
+  try {
+    const { password } = req.body;
+    const result = adminAuth.login(password);
+    
+    if (result.success) {
+      res.json({
+        success: true,
+        data: {
+          token: result.token,
+          isAdmin: true
+        },
+        message: 'Login successful'
+      });
+    } else {
+      res.status(401).json({
+        success: false,
+        data: null,
+        message: result.message || 'Invalid password'
+      });
+    }
+  } catch (error) {
+    console.error('Admin login error:', error);
+    res.status(500).json({
+      success: false,
+      data: null,
+      message: 'เกิดข้อผิดพลาดในการ login'
+    });
+  }
+});
+
+app.post('/api/admin/logout', async (req, res) => {
+  try {
+    const token = req.headers['authorization']?.replace('Bearer ', '') || 
+                  req.headers['x-admin-token'] || 
+                  req.body.token;
+    const result = adminAuth.logout(token);
+    res.json({
+      success: result.success,
+      message: 'Logout successful'
+    });
+  } catch (error) {
+    console.error('Admin logout error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'เกิดข้อผิดพลาดในการ logout'
+    });
+  }
+});
+
+app.get('/api/admin/check', optionalAdmin, (req, res) => {
+  res.json({
+    success: true,
+    data: {
+      isAdmin: req.admin || false
+    }
+  });
+});
+
+// 🤖 AI Agent Endpoints
+
+// Get all websites (public read, admin can manage)
+app.get('/api/agents/websites', optionalAdmin, async (req, res) => {
+  try {
+    const query = `
+      SELECT id, name, url, description, enabled, schedule, last_scraped, created_at, updated_at
+      FROM websites
+      WHERE enabled = true OR $1 = true
+      ORDER BY created_at DESC
+    `;
+    const result = await pool.query(query, [req.admin || false]);
+    res.json({
+      success: true,
+      data: result.rows,
+      message: 'ดึงข้อมูลเว็บไซต์สำเร็จ'
+    });
+  } catch (error) {
+    console.error('Error fetching websites:', error);
+    res.status(500).json({
+      success: false,
+      data: [],
+      message: 'เกิดข้อผิดพลาดในการดึงข้อมูลเว็บไซต์'
+    });
+  }
+});
+
+// Add website (admin only)
+app.post('/api/agents/websites', requireAdmin, async (req, res) => {
+  try {
+    const { name, url, description, schedule } = req.body;
+    
+    if (!name || !url) {
+      return res.status(400).json({
+        success: false,
+        data: null,
+        message: 'กรุณาระบุชื่อและ URL ของเว็บไซต์'
+      });
+    }
+
+    const websiteId = `website_${Date.now()}_${uuidv4()}`;
+    const query = `
+      INSERT INTO websites (id, name, url, description, schedule, enabled, created_at)
+      VALUES ($1, $2, $3, $4, $5, $6, NOW())
+      RETURNING *
+    `;
+    const result = await pool.query(query, [
+      websiteId,
+      name,
+      url,
+      description || null,
+      schedule || 'manual',
+      true
+    ]);
+
+    res.json({
+      success: true,
+      data: result.rows[0],
+      message: 'เพิ่มเว็บไซต์สำเร็จ'
+    });
+  } catch (error) {
+    console.error('Error adding website:', error);
+    res.status(500).json({
+      success: false,
+      data: null,
+      message: 'เกิดข้อผิดพลาดในการเพิ่มเว็บไซต์'
+    });
+  }
+});
+
+// Update website (admin only)
+app.put('/api/agents/websites/:id', requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, url, description, schedule, enabled } = req.body;
+
+    const query = `
+      UPDATE websites
+      SET name = COALESCE($1, name),
+          url = COALESCE($2, url),
+          description = COALESCE($3, description),
+          schedule = COALESCE($4, schedule),
+          enabled = COALESCE($5, enabled),
+          updated_at = NOW()
+      WHERE id = $6
+      RETURNING *
+    `;
+    const result = await pool.query(query, [name, url, description, schedule, enabled, id]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        data: null,
+        message: 'ไม่พบเว็บไซต์ที่ต้องการ'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: result.rows[0],
+      message: 'อัพเดทเว็บไซต์สำเร็จ'
+    });
+  } catch (error) {
+    console.error('Error updating website:', error);
+    res.status(500).json({
+      success: false,
+      data: null,
+      message: 'เกิดข้อผิดพลาดในการอัพเดทเว็บไซต์'
+    });
+  }
+});
+
+// Delete website (admin only)
+app.delete('/api/agents/websites/:id', requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    await pool.query('DELETE FROM websites WHERE id = $1', [id]);
+    res.json({
+      success: true,
+      message: 'ลบเว็บไซต์สำเร็จ'
+    });
+  } catch (error) {
+    console.error('Error deleting website:', error);
+    res.status(500).json({
+      success: false,
+      message: 'เกิดข้อผิดพลาดในการลบเว็บไซต์'
+    });
+  }
+});
+
+// Trigger scraping (admin only)
+app.post('/api/agents/scrape', requireAdmin, async (req, res) => {
+  try {
+    const { websiteId, url } = req.body;
+
+    if (!websiteId && !url) {
+      return res.status(400).json({
+        success: false,
+        data: null,
+        message: 'กรุณาระบุ websiteId หรือ url'
+      });
+    }
+
+    // Get website info if websiteId provided
+    let websiteUrl = url;
+    let websiteName = 'Manual Scrape';
+    if (websiteId) {
+      const websiteResult = await pool.query('SELECT url, name FROM websites WHERE id = $1', [websiteId]);
+      if (websiteResult.rows.length > 0) {
+        websiteUrl = websiteResult.rows[0].url;
+        websiteName = websiteResult.rows[0].name;
+      }
+    }
+
+    if (!websiteUrl) {
+      return res.status(400).json({
+        success: false,
+        data: null,
+        message: 'ไม่พบ URL'
+      });
+    }
+
+    // Start scraping asynchronously (don't wait)
+    agentService.scrapeWebsite(websiteId || null, websiteUrl)
+      .then(result => {
+        console.log(`✅ Scraping completed for ${websiteUrl}`);
+        // Update last_scraped if websiteId provided
+        if (websiteId) {
+          pool.query('UPDATE websites SET last_scraped = NOW() WHERE id = $1', [websiteId]);
+        }
+      })
+      .catch(error => {
+        console.error(`❌ Scraping failed for ${websiteUrl}:`, error);
+      });
+
+    res.json({
+      success: true,
+      data: {
+        message: 'เริ่มการ scrape แล้ว',
+        website: websiteName,
+        url: websiteUrl
+      },
+      message: 'กำลัง scrape ข้อมูล...'
+    });
+  } catch (error) {
+    console.error('Error starting scrape:', error);
+    res.status(500).json({
+      success: false,
+      data: null,
+      message: `เกิดข้อผิดพลาดในการ scrape: ${error.message}`
+    });
+  }
+});
+
+// Get scraping jobs (public read, admin can see all)
+app.get('/api/agents/jobs', optionalAdmin, async (req, res) => {
+  try {
+    const { limit = 50, status } = req.query;
+    let query = `
+      SELECT id, website_id, url, status, started_at, completed_at, error_message, created_at
+      FROM scraping_jobs
+    `;
+    const params = [];
+    
+    if (status) {
+      query += ' WHERE status = $1';
+      params.push(status);
+    }
+    
+    query += ' ORDER BY created_at DESC LIMIT $' + (params.length + 1);
+    params.push(parseInt(limit));
+
+    const result = await pool.query(query, params);
+    res.json({
+      success: true,
+      data: result.rows,
+      message: 'ดึงข้อมูล scraping jobs สำเร็จ'
+    });
+  } catch (error) {
+    console.error('Error fetching jobs:', error);
+    res.status(500).json({
+      success: false,
+      data: [],
+      message: 'เกิดข้อผิดพลาดในการดึงข้อมูล scraping jobs'
+    });
+  }
+});
+
+// Get scraping results (public read)
+app.get('/api/agents/results', optionalAdmin, async (req, res) => {
+  try {
+    const { jobId, limit = 100 } = req.query;
+    let query = `
+      SELECT sr.id, sr.job_id, sr.plant_id, sr.supplier_id, sr.plant_name, sr.price, sr.size, sr.confidence, sr.created_at,
+             p.name as plant_name_in_db,
+             s.name as supplier_name
+      FROM scraping_results sr
+      LEFT JOIN plants p ON sr.plant_id = p.id
+      LEFT JOIN suppliers s ON sr.supplier_id = s.id
+    `;
+    const params = [];
+    
+    if (jobId) {
+      query += ' WHERE sr.job_id = $1';
+      params.push(jobId);
+    }
+    
+    query += ' ORDER BY sr.created_at DESC LIMIT $' + (params.length + 1);
+    params.push(parseInt(limit));
+
+    const result = await pool.query(query, params);
+    res.json({
+      success: true,
+      data: result.rows,
+      message: 'ดึงข้อมูล scraping results สำเร็จ'
+    });
+  } catch (error) {
+    console.error('Error fetching results:', error);
+    res.status(500).json({
+      success: false,
+      data: [],
+      message: 'เกิดข้อผิดพลาดในการดึงข้อมูล scraping results'
+    });
+  }
+});
+
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error(err.stack);
@@ -1234,6 +1563,66 @@ async function initializeDatabase() {
     await pool.query('CREATE INDEX IF NOT EXISTS idx_bill_items_bill_id ON bill_items(bill_id)');
     await pool.query('CREATE INDEX IF NOT EXISTS idx_bill_items_plant_id ON bill_items(plant_id)');
     console.log('✅ ตาราง bill_items พร้อมใช้งาน');
+    
+    // 🤖 AI Agent Tables - สร้างตารางสำหรับ AI Agent
+    // ตาราง websites - เก็บเว็บไซต์ที่ต้อง scrape
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS websites (
+        id VARCHAR(255) PRIMARY KEY,
+        name VARCHAR(255) NOT NULL,
+        url TEXT NOT NULL,
+        description TEXT,
+        enabled BOOLEAN DEFAULT true,
+        schedule VARCHAR(100), -- 'daily', 'weekly', 'manual'
+        last_scraped TIMESTAMP,
+        created_at TIMESTAMP DEFAULT NOW(),
+        updated_at TIMESTAMP DEFAULT NOW()
+      )
+    `);
+    await pool.query('CREATE INDEX IF NOT EXISTS idx_websites_enabled ON websites(enabled)');
+    console.log('✅ ตาราง websites พร้อมใช้งาน');
+    
+    // ตาราง scraping_jobs - เก็บประวัติการ scrape
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS scraping_jobs (
+        id VARCHAR(255) PRIMARY KEY,
+        website_id VARCHAR(255),
+        url TEXT NOT NULL,
+        status VARCHAR(50) DEFAULT 'pending', -- 'pending', 'processing', 'completed', 'failed'
+        started_at TIMESTAMP,
+        completed_at TIMESTAMP,
+        result TEXT, -- JSON result
+        error_message TEXT,
+        created_at TIMESTAMP DEFAULT NOW(),
+        FOREIGN KEY (website_id) REFERENCES websites(id) ON DELETE SET NULL
+      )
+    `);
+    await pool.query('CREATE INDEX IF NOT EXISTS idx_scraping_jobs_website_id ON scraping_jobs(website_id)');
+    await pool.query('CREATE INDEX IF NOT EXISTS idx_scraping_jobs_status ON scraping_jobs(status)');
+    console.log('✅ ตาราง scraping_jobs พร้อมใช้งาน');
+    
+    // ตาราง scraping_results - เก็บผลลัพธ์การ scrape
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS scraping_results (
+        id VARCHAR(255) PRIMARY KEY,
+        job_id VARCHAR(255) NOT NULL,
+        plant_id VARCHAR(255),
+        supplier_id VARCHAR(255),
+        plant_name VARCHAR(255) NOT NULL,
+        price DECIMAL(10,2),
+        size VARCHAR(100),
+        raw_data TEXT, -- JSON raw data
+        confidence DECIMAL(3,2), -- 0.00-1.00
+        created_at TIMESTAMP DEFAULT NOW(),
+        FOREIGN KEY (job_id) REFERENCES scraping_jobs(id) ON DELETE CASCADE,
+        FOREIGN KEY (plant_id) REFERENCES plants(id) ON DELETE SET NULL,
+        FOREIGN KEY (supplier_id) REFERENCES suppliers(id) ON DELETE SET NULL
+      )
+    `);
+    await pool.query('CREATE INDEX IF NOT EXISTS idx_scraping_results_job_id ON scraping_results(job_id)');
+    await pool.query('CREATE INDEX IF NOT EXISTS idx_scraping_results_plant_id ON scraping_results(plant_id)');
+    await pool.query('CREATE INDEX IF NOT EXISTS idx_scraping_results_supplier_id ON scraping_results(supplier_id)');
+    console.log('✅ ตาราง scraping_results พร้อมใช้งาน');
     
     // ตรวจสอบจำนวนข้อมูล
     const plantsCount = await pool.query('SELECT COUNT(*) FROM plants');

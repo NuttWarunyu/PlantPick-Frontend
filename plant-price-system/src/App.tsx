@@ -19,6 +19,9 @@ import RouteOptimizationPage from './pages/RouteOptimizationPage';
 import CostAnalysisPage from './pages/CostAnalysisPage';
 import SupplierListPage from './pages/SupplierListPage';
 import DatabaseManagementPage from './pages/DatabaseManagementPage';
+import AdminLoginPage from './pages/AdminLoginPage';
+import AiAgentPage from './pages/AiAgentPage';
+import { AdminProvider } from './contexts/AdminContext';
 import { initializeBasePlants } from './data/basePlants';
 import './utils/testDataManager'; // Load test data manager
 import './App.css';
@@ -33,8 +36,9 @@ function App() {
   }, []);
 
   return (
-    <Router>
-      <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100">
+    <AdminProvider>
+      <Router>
+        <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100">
         {/* Header */}
         <header className="bg-white shadow-sm border-b border-green-200 sticky top-0 z-50">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
@@ -207,6 +211,14 @@ function App() {
                   path="/database" 
                   element={<DatabaseManagementPage />} 
                 />
+                <Route 
+                  path="/admin-login" 
+                  element={<AdminLoginPage />} 
+                />
+                <Route 
+                  path="/ai-agent" 
+                  element={<AiAgentPage />} 
+                />
           </Routes>
         </main>
 
@@ -238,7 +250,8 @@ function App() {
           </div>
         </footer>
       </div>
-    </Router>
+      </Router>
+    </AdminProvider>
   );
 }
 
