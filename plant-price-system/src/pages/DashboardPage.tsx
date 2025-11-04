@@ -13,9 +13,11 @@ import {
   FileText,
   Search,
   Plus,
-  PieChart
+  PieChart,
+  Bot
 } from 'lucide-react';
 import { apiService } from '../services/api';
+import { useAdmin } from '../contexts/AdminContext';
 
 interface QuickAction {
   id: string;
@@ -37,6 +39,7 @@ interface RecentActivity {
 
 const DashboardPage: React.FC = () => {
   const navigate = useNavigate();
+  const { isAdmin } = useAdmin();
   const [statistics, setStatistics] = useState({
     totalPlants: 0,
     totalSuppliers: 0,
@@ -101,7 +104,15 @@ const DashboardPage: React.FC = () => {
       icon: <PieChart className="w-6 h-6" />,
       color: 'bg-indigo-500',
       route: '/cost-analysis'
-    }
+    },
+    ...(isAdmin ? [{
+      id: 'ai-agent',
+      title: 'AI Agent',
+      description: 'จัดการ AI Agent สำหรับเก็บข้อมูล',
+      icon: <Bot className="w-6 h-6" />,
+      color: 'bg-purple-500',
+      route: '/ai-agent'
+    }] : [])
   ];
 
   const recentActivities: RecentActivity[] = [

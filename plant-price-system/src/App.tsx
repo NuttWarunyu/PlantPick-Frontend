@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { Search, FileText, Calculator, History, Store, Link, FolderOpen, Camera, BarChart3, TrendingUp, MapPin, PieChart, Menu, X, Database } from 'lucide-react';
+import { Search, FileText, Calculator, History, Store, Link, FolderOpen, Camera, BarChart3, TrendingUp, MapPin, PieChart, Menu, X, Database, Bot, Lock } from 'lucide-react';
 import SearchPage from './pages/SearchPage';
 import PurchaseOrderPage from './pages/PurchaseOrderPage';
 import OrderSummaryPage from './pages/OrderSummaryPage';
@@ -21,14 +21,15 @@ import SupplierListPage from './pages/SupplierListPage';
 import DatabaseManagementPage from './pages/DatabaseManagementPage';
 import AdminLoginPage from './pages/AdminLoginPage';
 import AiAgentPage from './pages/AiAgentPage';
-import { AdminProvider } from './contexts/AdminContext';
+import { AdminProvider, useAdmin } from './contexts/AdminContext';
 import { initializeBasePlants } from './data/basePlants';
 import './utils/testDataManager'; // Load test data manager
 import './App.css';
 
-function App() {
+function AppContent() {
   const [selectedPlants, setSelectedPlants] = useState<any[]>([]);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const { isAdmin } = useAdmin();
 
   // เริ่มต้นข้อมูลพื้นฐานเมื่อแอปเริ่มทำงาน
   useEffect(() => {
@@ -36,9 +37,8 @@ function App() {
   }, []);
 
   return (
-    <AdminProvider>
-      <Router>
-        <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100">
+    <Router>
+      <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100">
         {/* Header */}
         <header className="bg-white shadow-sm border-b border-green-200 sticky top-0 z-50">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
@@ -84,6 +84,17 @@ function App() {
                   <Camera className="h-4 w-4" />
                   <span>สแกนบิล</span>
                 </a>
+                {isAdmin ? (
+                  <a href="/ai-agent" className="flex items-center space-x-1 px-3 py-2 text-sm text-green-700 hover:text-green-900 hover:bg-green-50 rounded-md transition-colors">
+                    <Bot className="h-4 w-4" />
+                    <span>AI Agent</span>
+                  </a>
+                ) : (
+                  <a href="/admin-login" className="flex items-center space-x-1 px-3 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-md transition-colors">
+                    <Lock className="h-4 w-4" />
+                    <span>Admin</span>
+                  </a>
+                )}
               </nav>
 
               {/* Mobile Menu Button */}
@@ -115,6 +126,17 @@ function App() {
                     <FileText className="h-6 w-6" />
                     <span className="font-medium">รายการบิล</span>
                   </a>
+                  {isAdmin ? (
+                    <a href="/ai-agent" className="flex flex-col items-center justify-center space-y-1 px-4 py-4 text-sm text-green-700 active:text-green-900 active:bg-green-50 rounded-xl transition-colors touch-manipulation" style={{ minHeight: '80px' }}>
+                      <Bot className="h-6 w-6" />
+                      <span className="font-medium">AI Agent</span>
+                    </a>
+                  ) : (
+                    <a href="/admin-login" className="flex flex-col items-center justify-center space-y-1 px-4 py-4 text-sm text-gray-600 active:text-gray-900 active:bg-gray-50 rounded-xl transition-colors touch-manipulation" style={{ minHeight: '80px' }}>
+                      <Lock className="h-6 w-6" />
+                      <span className="font-medium">Admin</span>
+                    </a>
+                  )}
                 </nav>
               </div>
             )}
@@ -251,6 +273,13 @@ function App() {
         </footer>
       </div>
       </Router>
+  );
+}
+
+function App() {
+  return (
+    <AdminProvider>
+      <AppContent />
     </AdminProvider>
   );
 }
