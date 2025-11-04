@@ -36,7 +36,13 @@ interface ScrapingResult {
   price?: number;
   size?: string;
   confidence?: number;
+  status?: 'pending' | 'approved' | 'rejected';
+  image_url?: string;
+  supplier_name?: string;
+  supplier_phone?: string;
+  supplier_location?: string;
   created_at: string;
+  approved_at?: string;
 }
 
 const AiAgentPage: React.FC = () => {
@@ -101,9 +107,14 @@ const AiAgentPage: React.FC = () => {
         }
       }
 
-      // Load results
+      // Load results (admin can see all, filter by status if needed)
       if (activeTab === 'results' || isAdmin) {
-        const resultsRes = await fetch(`${backendUrl}/api/agents/results?limit=100`, {
+        const statusFilter = isAdmin ? undefined : 'approved'; // Admin sees all, others see approved only
+        const resultsUrl = statusFilter 
+          ? `${backendUrl}/api/agents/results?limit=100&status=${statusFilter}`
+          : `${backendUrl}/api/agents/results?limit=100`;
+        
+        const resultsRes = await fetch(resultsUrl, {
           headers: {
             'Authorization': `Bearer ${adminToken}`,
             'x-admin-token': adminToken || ''
@@ -264,6 +275,64 @@ const AiAgentPage: React.FC = () => {
         setScrapingStatus(prev => ({ ...prev, [key]: 'idle' }));
         setScrapingMessage(prev => ({ ...prev, [key]: '' }));
       }, 5000);
+    }
+  };
+
+  const handleApproveResult = async (id: string) => {
+    if (!window.confirm('คุณต้องการ approve ผลลัพธ์นี้หรือไม่? ข้อมูลจะถูกบันทึกลงฐานข้อมูล')) return;
+    
+    try {
+      const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:3002';
+      const backendUrl = apiUrl.replace(/\/api$/, '');
+      
+      const response = await fetch(`${backendUrl}/api/agents/results/${id}/approve`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${adminToken}`,
+          'x-admin-token': adminToken || '',
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      const data = await response.json();
+      if (data.success) {
+        alert('✅ Approve สำเร็จ! ข้อมูลถูกบันทึกลงฐานข้อมูลแล้ว');
+        loadData();
+      } else {
+        alert(data.message || 'เกิดข้อผิดพลาด');
+      }
+    } catch (error) {
+      console.error('Error approving result:', error);
+      alert('เกิดข้อผิดพลาดในการ approve');
+    }
+  };
+
+  const handleRejectResult = async (id: string) => {
+    if (!window.confirm('คุณต้องการ reject ผลลัพธ์นี้หรือไม่?')) return;
+    
+    try {
+      const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:3002';
+      const backendUrl = apiUrl.replace(/\/api$/, '');
+      
+      const response = await fetch(`${backendUrl}/api/agents/results/${id}/reject`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${adminToken}`,
+          'x-admin-token': adminToken || '',
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      const data = await response.json();
+      if (data.success) {
+        alert('✅ Reject สำเร็จ');
+        loadData();
+      } else {
+        alert(data.message || 'เกิดข้อผิดพลาด');
+      }
+    } catch (error) {
+      console.error('Error rejecting result:', error);
+      alert('เกิดข้อผิดพลาดในการ reject');
     }
   };
 
@@ -549,7 +618,19 @@ const AiAgentPage: React.FC = () => {
             {/* Results Tab */}
             {activeTab === 'results' && (
               <div className="space-y-4">
-                <h2 className="text-lg sm:text-xl font-semibold text-gray-900">ผลลัพธ์การ Scrape</h2>
+                <div className="flex justify-between items-center">
+                  <h2 className="text-lg sm:text-xl font-semibold text-gray-900">ผลลัพธ์การ Scrape</h2>
+                  {isAdmin && (
+                    <div className="flex space-x-2">
+                      <button
+                        onClick={() => loadData()}
+                        className="px-3 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors text-sm"
+                      >
+                        รีเฟรช
+                      </button>
+                    </div>
+                  )}
+                </div>
                 {results.length === 0 ? (
                   <div className="bg-white rounded-xl shadow-sm p-8 text-center">
                     <Eye className="w-12 h-12 text-gray-400 mx-auto mb-4" />
@@ -558,17 +639,105 @@ const AiAgentPage: React.FC = () => {
                 ) : (
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     {results.map((result) => (
-                      <div key={result.id} className="bg-white rounded-xl shadow-sm p-4 sm:p-6">
+                      <div 
+                        key={result.id} 
+                        className={`bg-white rounded-xl shadow-sm p-4 sm:p-6 border-2 ${
+                          result.status === 'pending' ? 'border-yellow-300 bg-yellow-50' :
+                          result.status === 'approved' ? 'border-green-300 bg-green-50' :
+                          result.status === 'rejected' ? 'border-red-300 bg-red-50' :
+                          'border-gray-200'
+                        }`}
+                      >
+                        {/* Status Badge */}
+                        {result.status && (
+                          <div className="mb-3">
+                            <span className={`px-2 py-1 text-xs rounded-full ${
+                              result.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
+                              result.status === 'approved' ? 'bg-green-100 text-green-700' :
+                              result.status === 'rejected' ? 'bg-red-100 text-red-700' :
+                              'bg-gray-100 text-gray-700'
+                            }`}>
+                              {result.status === 'pending' ? '⏳ รอ Approve' :
+                               result.status === 'approved' ? '✅ Approve แล้ว' :
+                               result.status === 'rejected' ? '❌ Reject แล้ว' :
+                               'Unknown'}
+                            </span>
+                          </div>
+                        )}
+                        
+                        {/* Plant Image */}
+                        {result.image_url && (
+                          <div className="mb-3">
+                            <img 
+                              src={result.image_url} 
+                              alt={result.plant_name}
+                              className="w-full h-32 object-cover rounded-lg"
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).style.display = 'none';
+                              }}
+                            />
+                          </div>
+                        )}
+                        
+                        {/* Plant Name */}
                         <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-2">{result.plant_name}</h3>
-                        {result.price && (
+                        
+                        {/* Supplier Info */}
+                        {result.supplier_name && (
+                          <div className="mb-2">
+                            <p className="text-sm font-medium text-gray-700">🏪 {result.supplier_name}</p>
+                            {result.supplier_location && (
+                              <p className="text-xs text-gray-500">📍 {result.supplier_location}</p>
+                            )}
+                            {result.supplier_phone && (
+                              <p className="text-xs text-gray-500">📞 {result.supplier_phone}</p>
+                            )}
+                          </div>
+                        )}
+                        
+                        {/* Price */}
+                        {result.price ? (
                           <p className="text-xl font-bold text-green-600 mb-2">฿{result.price.toLocaleString()}</p>
+                        ) : (
+                          <p className="text-sm text-gray-500 mb-2">💰 ไม่มีราคา</p>
                         )}
+                        
+                        {/* Size */}
                         {result.size && (
-                          <p className="text-sm text-gray-600 mb-2">Size: {result.size}</p>
+                          <p className="text-sm text-gray-600 mb-2">📏 Size: {result.size}</p>
                         )}
+                        
+                        {/* Confidence */}
                         {result.confidence && (
-                          <p className="text-xs text-gray-500">
-                            Confidence: {(result.confidence * 100).toFixed(0)}%
+                          <p className="text-xs text-gray-500 mb-3">
+                            🎯 Confidence: {(result.confidence * 100).toFixed(0)}%
+                          </p>
+                        )}
+                        
+                        {/* Admin Actions */}
+                        {isAdmin && result.status === 'pending' && (
+                          <div className="flex space-x-2 mt-4">
+                            <button
+                              onClick={() => handleApproveResult(result.id)}
+                              className="flex-1 flex items-center justify-center space-x-1 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium"
+                            >
+                              <CheckCircle className="w-4 h-4" />
+                              <span>Approve</span>
+                            </button>
+                            <button
+                              onClick={() => handleRejectResult(result.id)}
+                              className="flex-1 flex items-center justify-center space-x-1 px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-medium"
+                            >
+                              <XCircle className="w-4 h-4" />
+                              <span>Reject</span>
+                            </button>
+                          </div>
+                        )}
+                        
+                        {/* Approved Info */}
+                        {result.status === 'approved' && result.approved_at && (
+                          <p className="text-xs text-green-600 mt-2">
+                            ✅ Approve แล้ว: {new Date(result.approved_at).toLocaleString('th-TH')}
                           </p>
                         )}
                       </div>

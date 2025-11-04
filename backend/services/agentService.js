@@ -211,41 +211,19 @@ ${JSON.stringify(extractedData, null, 2)}
         VALUES ($1, $2, $3, $4, NOW())
       `, [jobId, websiteId || null, url, 'processing']);
 
-      // 2. Find or create supplier
-      let supplier = null;
-      if (data.supplier) {
-        supplier = await db.findOrCreateSupplier({
-          name: data.supplier.name || 'ไม่ระบุ',
-          location: data.supplier.location || '',
-          phone: data.supplier.phone || null,
-          phoneNumbers: data.supplier.phone ? [data.supplier.phone] : [],
-          description: `Scraped from ${url}`,
-          website: data.supplier.website || url
-        });
-      }
-
-      // 3. Process each plant
+      // 2. Save scraping results as PENDING (waiting for admin approval)
+      // Don't save to plants/suppliers yet - wait for approval
       const savedPlants = [];
       if (data.plants && Array.isArray(data.plants)) {
         for (const plantData of data.plants) {
           try {
-            // Find or create plant
-            const plant = await db.findOrCreatePlant({
-              name: plantData.name || 'ไม่ระบุชื่อ',
-              category: plantData.category || 'ไม้ประดับ',
-              plantType: plantData.category || 'ไม้ประดับ',
-              measurementType: plantData.size ? 'ขนาดกระถาง' : 'ความสูง',
-              description: plantData.description || null,
-              scientificName: plantData.scientificName || '',
-              imageUrl: plantData.imageUrl || null // เก็บรูปภาพต้นไม้
-            });
-
             // Save scraping result as PENDING (waiting for admin approval)
             const resultId = `result_${Date.now()}_${uuidv4()}`;
             // ถ้ามีราคา ใช้ราคา ถ้าไม่มี ใช้ null (ไม่ใช่ 0)
             const plantPrice = (plantData.price && plantData.price > 0) ? plantData.price : null;
             
             // Store all data for admin review (including supplier info)
+            // Don't create plant/supplier yet - wait for approval
             await pool.query(`
               INSERT INTO scraping_results (
                 id, job_id, plant_id, supplier_id, plant_name, price, size, 
@@ -274,10 +252,12 @@ ${JSON.stringify(extractedData, null, 2)}
             // This will be done in the approval endpoint
 
             savedPlants.push({
-              plantId: plant.id,
-              plantName: plant.name,
-              price: plantData.price,
-              supplierId: supplier?.id
+              resultId,
+              plantName: plantData.name,
+              price: plantPrice,
+              size: plantData.size,
+              imageUrl: plantData.imageUrl,
+              supplierName: data.supplier?.name
             });
           } catch (error) {
             console.error(`Error saving plant ${plantData.name}:`, error);
