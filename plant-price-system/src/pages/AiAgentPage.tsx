@@ -55,6 +55,7 @@ const AiAgentPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'websites' | 'jobs' | 'results'>('websites');
   const [scrapingStatus, setScrapingStatus] = useState<Record<string, 'idle' | 'scraping' | 'success' | 'error'>>({});
   const [scrapingMessage, setScrapingMessage] = useState<Record<string, string>>({});
+  const [logs, setLogs] = useState<string[]>([]);
   
   // Add website modal
   const [showAddModal, setShowAddModal] = useState(false);
@@ -72,6 +73,11 @@ const AiAgentPage: React.FC = () => {
     const interval = setInterval(loadData, 10000);
     return () => clearInterval(interval);
   }, [isAdmin, navigate, activeTab]);
+
+  const addLog = (message: string) => {
+    const timestamp = new Date().toLocaleTimeString('th-TH');
+    setLogs(prev => [...prev.slice(-49), `[${timestamp}] ${message}`]); // Keep last 50 logs
+  };
 
   const loadData = async () => {
     try {
@@ -123,10 +129,14 @@ const AiAgentPage: React.FC = () => {
         const resultsData = await resultsRes.json();
         if (resultsData.success) {
           setResults(resultsData.data || []);
+          addLog(`✅ โหลดผลลัพธ์ ${resultsData.data?.length || 0} รายการ`);
+        } else {
+          addLog(`❌ โหลดผลลัพธ์ล้มเหลว: ${resultsData.message}`);
         }
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error loading data:', error);
+      addLog(`❌ เกิดข้อผิดพลาด: ${error.message || 'ไม่ทราบสาเหตุ'}`);
     } finally {
       setIsLoading(false);
     }
@@ -173,6 +183,7 @@ const AiAgentPage: React.FC = () => {
     const key = websiteId || url || 'manual';
     setScrapingStatus(prev => ({ ...prev, [key]: 'scraping' }));
     setScrapingMessage(prev => ({ ...prev, [key]: 'กำลังเริ่มการ scrape...' }));
+    addLog(`🚀 เริ่มการ scrape: ${url || websiteId || 'manual'}`);
     
     try {
       const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:3002';
@@ -192,6 +203,7 @@ const AiAgentPage: React.FC = () => {
       if (data.success) {
         setScrapingMessage(prev => ({ ...prev, [key]: '✅ เริ่มการ scrape แล้ว กำลังรอผลลัพธ์...' }));
         setScrapingStatus(prev => ({ ...prev, [key]: 'success' }));
+        addLog(`✅ เริ่มการ scrape สำเร็จ: ${data.data?.message || 'กำลังประมวลผล'}`);
         
         // Auto refresh jobs and results
         setTimeout(() => {
@@ -231,13 +243,12 @@ const AiAgentPage: React.FC = () => {
               if (completedJob || pollCount >= maxPolls) {
                 clearInterval(pollInterval);
                 if (completedJob) {
-                  setScrapingMessage(prev => ({ 
-                    ...prev, 
-                    [key]: completedJob.status === 'completed' 
-                      ? '✅ Scraping เสร็จสิ้น! ตรวจสอบผลลัพธ์ในแท็บ Results' 
-                      : `❌ Scraping ล้มเหลว: ${completedJob.error_message || 'ไม่ทราบสาเหตุ'}`
-                  }));
+                  const statusMsg = completedJob.status === 'completed' 
+                    ? '✅ Scraping เสร็จสิ้น! ตรวจสอบผลลัพธ์ในแท็บ Results' 
+                    : `❌ Scraping ล้มเหลว: ${completedJob.error_message || 'ไม่ทราบสาเหตุ'}`;
+                  setScrapingMessage(prev => ({ ...prev, [key]: statusMsg }));
                   setScrapingStatus(prev => ({ ...prev, [key]: completedJob.status === 'completed' ? 'success' : 'error' }));
+                  addLog(statusMsg);
                   
                   // Switch to results tab if completed
                   if (completedJob.status === 'completed') {
@@ -245,6 +256,7 @@ const AiAgentPage: React.FC = () => {
                   }
                 } else {
                   setScrapingMessage(prev => ({ ...prev, [key]: '⏱️ กำลังรอผลลัพธ์...' }));
+                  addLog(`⏱️ กำลังรอผลลัพธ์... (${pollCount}/${maxPolls})`);
                 }
               }
             }
@@ -259,8 +271,10 @@ const AiAgentPage: React.FC = () => {
           setScrapingMessage(prev => ({ ...prev, [key]: '' }));
         }, 10000);
       } else {
-        setScrapingMessage(prev => ({ ...prev, [key]: `❌ ${data.message || 'เกิดข้อผิดพลาด'}` }));
+        const errorMsg = `❌ ${data.message || 'เกิดข้อผิดพลาด'}`;
+        setScrapingMessage(prev => ({ ...prev, [key]: errorMsg }));
         setScrapingStatus(prev => ({ ...prev, [key]: 'error' }));
+        addLog(errorMsg);
         setTimeout(() => {
           setScrapingStatus(prev => ({ ...prev, [key]: 'idle' }));
           setScrapingMessage(prev => ({ ...prev, [key]: '' }));
@@ -271,6 +285,7 @@ const AiAgentPage: React.FC = () => {
       const errorMsg = error.message || 'เกิดข้อผิดพลาดในการ scrape';
       setScrapingMessage(prev => ({ ...prev, [key]: `❌ ${errorMsg}` }));
       setScrapingStatus(prev => ({ ...prev, [key]: 'error' }));
+      addLog(`❌ Error: ${errorMsg}`);
       setTimeout(() => {
         setScrapingStatus(prev => ({ ...prev, [key]: 'idle' }));
         setScrapingMessage(prev => ({ ...prev, [key]: '' }));
@@ -296,13 +311,16 @@ const AiAgentPage: React.FC = () => {
       
       const data = await response.json();
       if (data.success) {
+        addLog(`✅ Approve สำเร็จ: ${data.data?.plantName || id} → บันทึกลงฐานข้อมูลแล้ว`);
         alert('✅ Approve สำเร็จ! ข้อมูลถูกบันทึกลงฐานข้อมูลแล้ว');
         loadData();
       } else {
+        addLog(`❌ Approve ล้มเหลว: ${data.message || 'ไม่ทราบสาเหตุ'}`);
         alert(data.message || 'เกิดข้อผิดพลาด');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error approving result:', error);
+      addLog(`❌ Error approving: ${error.message || 'ไม่ทราบสาเหตุ'}`);
       alert('เกิดข้อผิดพลาดในการ approve');
     }
   };
@@ -325,13 +343,16 @@ const AiAgentPage: React.FC = () => {
       
       const data = await response.json();
       if (data.success) {
+        addLog(`✅ Reject สำเร็จ: ${id}`);
         alert('✅ Reject สำเร็จ');
         loadData();
       } else {
+        addLog(`❌ Reject ล้มเหลว: ${data.message || 'ไม่ทราบสาเหตุ'}`);
         alert(data.message || 'เกิดข้อผิดพลาด');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error rejecting result:', error);
+      addLog(`❌ Error rejecting: ${error.message || 'ไม่ทราบสาเหตุ'}`);
       alert('เกิดข้อผิดพลาดในการ reject');
     }
   };
@@ -435,6 +456,16 @@ const AiAgentPage: React.FC = () => {
               }`}
             >
               📊 ผลลัพธ์ ({results.length})
+            </button>
+            <button
+              onClick={() => setActiveTab('logs')}
+              className={`flex-1 px-4 py-3 sm:py-4 text-center font-medium transition-colors touch-manipulation ${
+                activeTab === 'logs'
+                  ? 'text-green-600 border-b-2 border-green-600 bg-green-50'
+                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+              }`}
+            >
+              📝 Logs ({logs.length})
             </button>
           </div>
         </div>
@@ -742,6 +773,47 @@ const AiAgentPage: React.FC = () => {
                         )}
                       </div>
                     ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Logs Tab */}
+            {activeTab === 'logs' && (
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <h2 className="text-lg sm:text-xl font-semibold text-gray-900">📝 System Logs</h2>
+                  <button
+                    onClick={() => setLogs([])}
+                    className="px-3 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-sm"
+                  >
+                    ล้าง Logs
+                  </button>
+                </div>
+                {logs.length === 0 ? (
+                  <div className="bg-white rounded-xl shadow-sm p-8 text-center">
+                    <AlertCircle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                    <p className="text-gray-600">ยังไม่มี logs</p>
+                    <p className="text-sm text-gray-500 mt-2">Logs จะแสดงเมื่อมีการทำงาน (scrape, approve, reject)</p>
+                  </div>
+                ) : (
+                  <div className="bg-gray-900 rounded-xl shadow-sm p-4 sm:p-6 font-mono text-sm">
+                    <div className="space-y-1 max-h-96 overflow-y-auto">
+                      {logs.map((log, index) => (
+                        <div 
+                          key={index} 
+                          className={`p-2 rounded ${
+                            log.includes('✅') ? 'bg-green-900 text-green-300' :
+                            log.includes('❌') ? 'bg-red-900 text-red-300' :
+                            log.includes('🚀') ? 'bg-blue-900 text-blue-300' :
+                            log.includes('⏱️') ? 'bg-yellow-900 text-yellow-300' :
+                            'bg-gray-800 text-gray-300'
+                          }`}
+                        >
+                          {log}
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>

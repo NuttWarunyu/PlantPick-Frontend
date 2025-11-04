@@ -1770,17 +1770,38 @@ async function initializeDatabase() {
     await pool.query('CREATE INDEX IF NOT EXISTS idx_scraping_results_job_id ON scraping_results(job_id)');
     await pool.query('CREATE INDEX IF NOT EXISTS idx_scraping_results_plant_id ON scraping_results(plant_id)');
     await pool.query('CREATE INDEX IF NOT EXISTS idx_scraping_results_supplier_id ON scraping_results(supplier_id)');
-    await pool.query('CREATE INDEX IF NOT EXISTS idx_scraping_results_status ON scraping_results(status)');
-    // เพิ่มคอลัมน์ใหม่ถ้ายังไม่มี
+    // เพิ่มคอลัมน์ใหม่ถ้ายังไม่มี (ใช้ DO block เพื่อ avoid error ถ้ามีอยู่แล้ว)
     try {
-      await pool.query(`ALTER TABLE scraping_results ADD COLUMN IF NOT EXISTS status VARCHAR(50) DEFAULT 'pending'`);
-      await pool.query(`ALTER TABLE scraping_results ADD COLUMN IF NOT EXISTS approved_by VARCHAR(255)`);
-      await pool.query(`ALTER TABLE scraping_results ADD COLUMN IF NOT EXISTS approved_at TIMESTAMP`);
-      await pool.query(`ALTER TABLE scraping_results ADD COLUMN IF NOT EXISTS image_url TEXT`);
-      await pool.query(`ALTER TABLE scraping_results ADD COLUMN IF NOT EXISTS supplier_name VARCHAR(255)`);
-      await pool.query(`ALTER TABLE scraping_results ADD COLUMN IF NOT EXISTS supplier_phone VARCHAR(50)`);
-      await pool.query(`ALTER TABLE scraping_results ADD COLUMN IF NOT EXISTS supplier_location TEXT`);
-    } catch (e) {}
+      await pool.query(`
+        DO $$ 
+        BEGIN
+          IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='scraping_results' AND column_name='status') THEN
+            ALTER TABLE scraping_results ADD COLUMN status VARCHAR(50) DEFAULT 'pending';
+          END IF;
+          IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='scraping_results' AND column_name='approved_by') THEN
+            ALTER TABLE scraping_results ADD COLUMN approved_by VARCHAR(255);
+          END IF;
+          IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='scraping_results' AND column_name='approved_at') THEN
+            ALTER TABLE scraping_results ADD COLUMN approved_at TIMESTAMP;
+          END IF;
+          IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='scraping_results' AND column_name='image_url') THEN
+            ALTER TABLE scraping_results ADD COLUMN image_url TEXT;
+          END IF;
+          IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='scraping_results' AND column_name='supplier_name') THEN
+            ALTER TABLE scraping_results ADD COLUMN supplier_name VARCHAR(255);
+          END IF;
+          IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='scraping_results' AND column_name='supplier_phone') THEN
+            ALTER TABLE scraping_results ADD COLUMN supplier_phone VARCHAR(50);
+          END IF;
+          IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='scraping_results' AND column_name='supplier_location') THEN
+            ALTER TABLE scraping_results ADD COLUMN supplier_location TEXT;
+          END IF;
+        END $$;
+      `);
+      await pool.query('CREATE INDEX IF NOT EXISTS idx_scraping_results_status ON scraping_results(status)');
+    } catch (e) {
+      console.error('Error adding columns to scraping_results:', e.message);
+    }
     console.log('✅ ตาราง scraping_results พร้อมใช้งาน');
     
     // ตรวจสอบจำนวนข้อมูล
