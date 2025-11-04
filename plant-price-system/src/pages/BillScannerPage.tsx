@@ -150,18 +150,17 @@ const BillScannerPage: React.FC = () => {
                   <input
                     type="file"
                     accept="image/*"
-                    capture="environment"
                     onChange={handleImageUpload}
                     className="hidden"
                     id="bill-upload"
                   />
                   <label htmlFor="bill-upload" className="cursor-pointer block">
                     <div className="text-6xl sm:text-7xl mb-4">📷</div>
-                    <div className="text-lg sm:text-xl font-semibold text-gray-700 mb-2">ถ่ายรูปใบเสร็จ</div>
-                    <div className="text-sm sm:text-base text-gray-500 mb-4">หรือเลือกจากอัลบั้ม</div>
+                    <div className="text-lg sm:text-xl font-semibold text-gray-700 mb-2">เลือกรูปใบเสร็จ</div>
+                    <div className="text-sm sm:text-base text-gray-500 mb-4">ถ่ายรูปใหม่หรือเลือกจากแกลลอรี่</div>
                     <div className="flex items-center justify-center space-x-2 text-green-600 text-base sm:text-lg font-medium">
                       <Camera className="w-6 h-6 sm:w-5 sm:h-5" />
-                      <span>เปิดกล้อง</span>
+                      <span>เลือกรูปภาพ</span>
                     </div>
                   </label>
                 </div>
