@@ -45,11 +45,40 @@ class ScrapingService {
   // Scrape HTML content from URL
   async scrapeHTML(url) {
     try {
-      // Try Puppeteer first (better for dynamic content)
+      // Try Puppeteer first (better for dynamic content like Facebook)
       if (await this.initBrowser()) {
         const page = await this.browser.newPage();
-        await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36');
-        await page.goto(url, { waitUntil: 'networkidle2', timeout: 30000 });
+        
+        // Set realistic browser headers
+        await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
+        await page.setViewport({ width: 1920, height: 1080 });
+        
+        // Check if it's a Facebook URL
+        const isFacebook = url.includes('facebook.com') || url.includes('fb.com');
+        
+        if (isFacebook) {
+          // For Facebook, wait longer and scroll to load content
+          await page.goto(url, { waitUntil: 'networkidle0', timeout: 60000 });
+          
+          // Wait a bit for content to load
+          await page.waitForTimeout(3000);
+          
+          // Scroll to load more content (Facebook uses lazy loading)
+          await page.evaluate(() => {
+            window.scrollTo(0, document.body.scrollHeight);
+          });
+          await page.waitForTimeout(2000);
+          
+          // Scroll back up
+          await page.evaluate(() => {
+            window.scrollTo(0, 0);
+          });
+          await page.waitForTimeout(1000);
+        } else {
+          // For other websites, use normal wait
+          await page.goto(url, { waitUntil: 'networkidle2', timeout: 30000 });
+        }
+        
         const html = await page.content();
         await page.close();
         return { success: true, html, method: 'puppeteer' };

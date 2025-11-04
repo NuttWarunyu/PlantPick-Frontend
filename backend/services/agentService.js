@@ -28,12 +28,18 @@ class AgentService {
       const structuredResult = await scrapingService.extractStructuredData(scrapeResult.html);
       
       // 4. Use AI to analyze and extract plant data
-      const aiPrompt = `คุณเป็น AI Agent ที่ช่วยแกะข้อมูลต้นไม้และราคาจากเว็บไซต์
+      // Check if it's Facebook
+      const isFacebook = url.includes('facebook.com') || url.includes('fb.com');
+      const sourceType = isFacebook ? 'Facebook Group/Page' : 'เว็บไซต์';
+      
+      const aiPrompt = `คุณเป็น AI Agent ที่ช่วยแกะข้อมูลต้นไม้และราคาจาก${sourceType}
 
-ข้อมูลจากเว็บไซต์:
+ข้อมูลจาก${sourceType}:
 URL: ${url}
 Title: ${structuredResult.data?.title || 'N/A'}
-Text Content: ${textResult.text.substring(0, 5000)}... (truncated)
+Text Content: ${textResult.text.substring(0, 8000)}... (truncated)
+
+${isFacebook ? '⚠️ หมายเหตุ: ข้อมูลนี้มาจาก Facebook Group/Page อาจมีรูปแบบที่แตกต่างจากเว็บไซต์ปกติ กรุณาแกะข้อมูลจากโพสต์หรือคอมเมนต์ที่เกี่ยวข้องกับต้นไม้และราคา' : ''}
 
 กรุณาแกะข้อมูลต้นไม้และราคาจากข้อมูลข้างต้น และแปลงเป็น JSON format ตามโครงสร้างนี้:
 
