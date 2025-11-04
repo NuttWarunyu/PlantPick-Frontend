@@ -44,14 +44,14 @@ Title: ${structuredResult.data?.title || 'N/A'}
 Text Content: ${textResult.text.substring(0, 8000)}... (truncated)
 ${imageUrls ? `\nรูปภาพที่พบ: ${imageUrls}` : ''}
 
-${isFacebookProfile ? '⚠️ หมายเหตุ: ข้อมูลนี้มาจาก Facebook Profile ของเจ้าของสวน/ผู้ขาย อาจมี:
+${isFacebookProfile ? `⚠️ หมายเหตุ: ข้อมูลนี้มาจาก Facebook Profile ของเจ้าของสวน/ผู้ขาย อาจมี:
 - ชื่อต้นไม้ (จากโพสต์/รูปภาพ)
 - เบอร์โทรศัพท์ (จากข้อมูลติดต่อ)
 - รูปภาพต้นไม้ (อาจไม่มีราคา)
 - ข้อมูลติดต่อ (ชื่อ เบอร์โทร ที่อยู่)
 
 ⚠️ ราคาอาจไม่มี: ถ้าไม่มีราคา ให้ใส่ price เป็น null หรือ 0
-⚠️ เก็บข้อมูลต้นไม้ทั้งหมดที่พบ: แม้ไม่มีราคาก็เก็บไว้' : ''}
+⚠️ เก็บข้อมูลต้นไม้ทั้งหมดที่พบ: แม้ไม่มีราคาก็เก็บไว้` : ''}
 
 ${isFacebook && !isFacebookProfile ? '⚠️ หมายเหตุ: ข้อมูลนี้มาจาก Facebook Group/Page อาจมีรูปแบบที่แตกต่างจากเว็บไซต์ปกติ กรุณาแกะข้อมูลจากโพสต์หรือคอมเมนต์ที่เกี่ยวข้องกับต้นไม้และราคา' : ''}
 
@@ -176,7 +176,8 @@ ${JSON.stringify(extractedData, null, 2)}
               plantType: plantData.category || 'ไม้ประดับ',
               measurementType: plantData.size ? 'ขนาดกระถาง' : 'ความสูง',
               description: plantData.description || null,
-              scientificName: plantData.scientificName || ''
+              scientificName: plantData.scientificName || '',
+              imageUrl: plantData.imageUrl || null // เก็บรูปภาพต้นไม้
             });
 
             // Save scraping result

@@ -353,14 +353,18 @@ const db = {
     
     if (findResult.rows.length > 0) {
       // ถ้ามีแล้ว ให้อัพเดทราคา (ถ้ามีราคาใหม่) หรือเก็บเป็น catalog (ถ้าไม่มีราคา)
+      // และอัพเดทรูปภาพ (ถ้ามีรูปภาพใหม่)
       const updateQuery = `
         UPDATE plant_suppliers 
-        SET price = COALESCE($1, price), updated_at = NOW()
-        WHERE plant_id = $2 AND supplier_id = $3 AND (size = $4 OR (size IS NULL AND $4 IS NULL))
+        SET price = COALESCE($1, price), 
+            image_url = COALESCE($2, image_url),
+            updated_at = NOW()
+        WHERE plant_id = $3 AND supplier_id = $4 AND (size = $5 OR (size IS NULL AND $5 IS NULL))
         RETURNING *
       `;
       const updateResult = await pool.query(updateQuery, [
         priceData.price, // null ถ้าไม่มีราคา จะไม่ update
+        priceData.imageUrl || null, // null ถ้าไม่มีรูปภาพ จะไม่ update
         plantId,
         supplierId,
         priceData.size || null
@@ -371,8 +375,8 @@ const db = {
       const { v4: uuidv4 } = require('uuid');
       const plantSupplierId = `plant_supplier_${uuidv4()}`;
       const insertQuery = `
-        INSERT INTO plant_suppliers (id, plant_id, supplier_id, price, size, updated_at)
-        VALUES ($1, $2, $3, $4, $5, NOW())
+        INSERT INTO plant_suppliers (id, plant_id, supplier_id, price, size, image_url, updated_at)
+        VALUES ($1, $2, $3, $4, $5, $6, NOW())
         RETURNING *
       `;
       const insertResult = await pool.query(insertQuery, [
@@ -380,7 +384,8 @@ const db = {
         plantId,
         supplierId,
         priceData.price || null, // null ถ้าไม่มีราคา
-        priceData.size || null
+        priceData.size || null,
+        priceData.imageUrl || null // เก็บรูปภาพต้นไม้ที่ supplier ขาย
       ]);
       return insertResult.rows[0];
     }
