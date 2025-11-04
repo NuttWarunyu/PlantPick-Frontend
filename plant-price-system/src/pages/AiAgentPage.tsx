@@ -47,6 +47,8 @@ const AiAgentPage: React.FC = () => {
   const [results, setResults] = useState<ScrapingResult[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'websites' | 'jobs' | 'results'>('websites');
+  const [scrapingStatus, setScrapingStatus] = useState<Record<string, 'idle' | 'scraping' | 'success' | 'error'>>({});
+  const [scrapingMessage, setScrapingMessage] = useState<Record<string, string>>({});
   
   // Add website modal
   const [showAddModal, setShowAddModal] = useState(false);
@@ -157,6 +159,10 @@ const AiAgentPage: React.FC = () => {
   };
 
   const handleScrape = async (websiteId?: string, url?: string) => {
+    const key = websiteId || url || 'manual';
+    setScrapingStatus(prev => ({ ...prev, [key]: 'scraping' }));
+    setScrapingMessage(prev => ({ ...prev, [key]: 'กำลังเริ่มการ scrape...' }));
+    
     try {
       const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:3002';
       const backendUrl = apiUrl.replace(/\/api$/, '');
@@ -173,14 +179,91 @@ const AiAgentPage: React.FC = () => {
 
       const data = await response.json();
       if (data.success) {
-        alert('เริ่มการ scrape แล้ว ตรวจสอบผลลัพธ์ในแท็บ Jobs');
-        loadData();
+        setScrapingMessage(prev => ({ ...prev, [key]: '✅ เริ่มการ scrape แล้ว กำลังรอผลลัพธ์...' }));
+        setScrapingStatus(prev => ({ ...prev, [key]: 'success' }));
+        
+        // Auto refresh jobs and results
+        setTimeout(() => {
+          loadData();
+          // Switch to jobs tab to see progress
+          if (activeTab !== 'jobs') {
+            setActiveTab('jobs');
+          }
+        }, 1000);
+        
+        // Continue polling for results
+        let pollCount = 0;
+        const maxPolls = 30; // 30 polls = 5 minutes (10s interval)
+        const pollInterval = setInterval(async () => {
+          pollCount++;
+          await loadData();
+          
+          // Fetch latest jobs to check status
+          const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:3002';
+          const backendUrl = apiUrl.replace(/\/api$/, '');
+          try {
+            const jobsRes = await fetch(`${backendUrl}/api/agents/jobs?limit=50`, {
+              headers: {
+                'Authorization': `Bearer ${adminToken}`,
+                'x-admin-token': adminToken || ''
+              }
+            });
+            const jobsData = await jobsRes.json();
+            if (jobsData.success) {
+              const latestJobs = jobsData.data || [];
+              // Check if job is completed
+              const completedJob = latestJobs.find((j: ScrapingJob) => 
+                ((websiteId && j.website_id === websiteId) || (url && j.url === url)) &&
+                (j.status === 'completed' || j.status === 'failed')
+              );
+              
+              if (completedJob || pollCount >= maxPolls) {
+                clearInterval(pollInterval);
+                if (completedJob) {
+                  setScrapingMessage(prev => ({ 
+                    ...prev, 
+                    [key]: completedJob.status === 'completed' 
+                      ? '✅ Scraping เสร็จสิ้น! ตรวจสอบผลลัพธ์ในแท็บ Results' 
+                      : `❌ Scraping ล้มเหลว: ${completedJob.error_message || 'ไม่ทราบสาเหตุ'}`
+                  }));
+                  setScrapingStatus(prev => ({ ...prev, [key]: completedJob.status === 'completed' ? 'success' : 'error' }));
+                  
+                  // Switch to results tab if completed
+                  if (completedJob.status === 'completed') {
+                    setTimeout(() => setActiveTab('results'), 2000);
+                  }
+                } else {
+                  setScrapingMessage(prev => ({ ...prev, [key]: '⏱️ กำลังรอผลลัพธ์...' }));
+                }
+              }
+            }
+          } catch (err) {
+            console.error('Error polling jobs:', err);
+          }
+        }, 10000); // Poll every 10 seconds
+        
+        // Clear status after 10 seconds
+        setTimeout(() => {
+          setScrapingStatus(prev => ({ ...prev, [key]: 'idle' }));
+          setScrapingMessage(prev => ({ ...prev, [key]: '' }));
+        }, 10000);
       } else {
-        alert(data.message || 'เกิดข้อผิดพลาด');
+        setScrapingMessage(prev => ({ ...prev, [key]: `❌ ${data.message || 'เกิดข้อผิดพลาด'}` }));
+        setScrapingStatus(prev => ({ ...prev, [key]: 'error' }));
+        setTimeout(() => {
+          setScrapingStatus(prev => ({ ...prev, [key]: 'idle' }));
+          setScrapingMessage(prev => ({ ...prev, [key]: '' }));
+        }, 5000);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error scraping:', error);
-      alert('เกิดข้อผิดพลาดในการ scrape');
+      const errorMsg = error.message || 'เกิดข้อผิดพลาดในการ scrape';
+      setScrapingMessage(prev => ({ ...prev, [key]: `❌ ${errorMsg}` }));
+      setScrapingStatus(prev => ({ ...prev, [key]: 'error' }));
+      setTimeout(() => {
+        setScrapingStatus(prev => ({ ...prev, [key]: 'idle' }));
+        setScrapingMessage(prev => ({ ...prev, [key]: '' }));
+      }, 5000);
     }
   };
 
@@ -354,20 +437,51 @@ const AiAgentPage: React.FC = () => {
                           </p>
                         )}
 
-                        <div className="flex space-x-2">
-                          <button
-                            onClick={() => handleScrape(website.id)}
-                            className="flex-1 flex items-center justify-center space-x-1 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors touch-manipulation text-sm font-medium"
-                          >
-                            <RefreshCw className="w-4 h-4" />
-                            <span>Scrape</span>
-                          </button>
-                          <button
-                            onClick={() => handleDeleteWebsite(website.id)}
-                            className="px-3 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors touch-manipulation"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+                        <div className="flex flex-col space-y-2">
+                          <div className="flex space-x-2">
+                            <button
+                              onClick={() => handleScrape(website.id)}
+                              disabled={scrapingStatus[website.id] === 'scraping'}
+                              className={`flex-1 flex items-center justify-center space-x-1 px-3 py-2 rounded-lg transition-colors touch-manipulation text-sm font-medium ${
+                                scrapingStatus[website.id] === 'scraping'
+                                  ? 'bg-gray-400 text-white cursor-not-allowed'
+                                  : scrapingStatus[website.id] === 'success'
+                                  ? 'bg-green-600 text-white hover:bg-green-700'
+                                  : scrapingStatus[website.id] === 'error'
+                                  ? 'bg-red-600 text-white hover:bg-red-700'
+                                  : 'bg-blue-600 text-white hover:bg-blue-700'
+                              }`}
+                            >
+                              {scrapingStatus[website.id] === 'scraping' ? (
+                                <>
+                                  <Loader className="w-4 h-4 animate-spin" />
+                                  <span>Scraping...</span>
+                                </>
+                              ) : (
+                                <>
+                                  <RefreshCw className="w-4 h-4" />
+                                  <span>Scrape</span>
+                                </>
+                              )}
+                            </button>
+                            <button
+                              onClick={() => handleDeleteWebsite(website.id)}
+                              className="px-3 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors touch-manipulation"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                          {scrapingMessage[website.id] && (
+                            <div className={`text-xs px-2 py-1 rounded ${
+                              scrapingStatus[website.id] === 'success' 
+                                ? 'bg-green-50 text-green-700' 
+                                : scrapingStatus[website.id] === 'error'
+                                ? 'bg-red-50 text-red-700'
+                                : 'bg-blue-50 text-blue-700'
+                            }`}>
+                              {scrapingMessage[website.id]}
+                            </div>
+                          )}
                         </div>
                       </div>
                     ))}
