@@ -150,16 +150,17 @@ const SearchPage: React.FC<SearchPageProps> = ({ selectedPlants, setSelectedPlan
         </div>
       </div>
 
-      {/* Search Section */}
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      {/* Search Section - Mobile Optimized */}
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
         <div className="relative">
-          <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-green-500 h-5 w-5" />
+          <Search className="absolute left-4 sm:left-5 top-1/2 transform -translate-y-1/2 text-green-500 h-5 w-5 sm:h-6 sm:w-6" />
           <input
             type="text"
-            placeholder="ค้นหาต้นไม้ เช่น มอนสเตอร่า, ไทรใบสัก, แคคตัส..."
+            placeholder="ค้นหาต้นไม้ เช่น มอนสเตอร่า..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-12 pr-4 py-4 text-lg border-2 border-green-200 rounded-xl focus:border-green-500 focus:outline-none transition-all duration-300 shadow-sm"
+            className="w-full pl-12 sm:pl-14 pr-4 py-4 sm:py-5 text-base sm:text-lg border-2 border-green-200 rounded-xl focus:border-green-500 focus:outline-none transition-all duration-300 shadow-sm touch-manipulation"
+            style={{ fontSize: '16px' }} // ป้องกัน zoom บน iOS
           />
         </div>
         
@@ -197,22 +198,22 @@ const SearchPage: React.FC<SearchPageProps> = ({ selectedPlants, setSelectedPlan
             </div>
             
             {searchResults.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
                 {searchResults.map((result) => (
                   <div 
                     key={result.plant.id} 
-                    className="group relative bg-gray-50 border border-gray-200 rounded-lg p-4 hover:shadow-md transition-all duration-300 hover:border-green-300"
+                    className="group relative bg-gray-50 border-2 border-gray-200 rounded-xl p-4 sm:p-5 active:border-green-400 hover:shadow-md transition-all duration-300"
                   >
                     {/* Plant Icon */}
                     <div className="text-center mb-3">
-                      <div className="text-4xl mb-2">🌿</div>
+                      <div className="text-4xl sm:text-5xl mb-2">🌿</div>
                     </div>
 
                     {/* Plant Info */}
                     <div className="text-center mb-3">
-                      <h3 className="text-lg font-bold text-gray-900 mb-1">{result.plant.name}</h3>
+                      <h3 className="text-base sm:text-lg font-bold text-gray-900 mb-1 line-clamp-2">{result.plant.name}</h3>
                       {result.plant.scientificName && (
-                        <p className="text-sm text-gray-500 italic mb-2">{result.plant.scientificName}</p>
+                        <p className="text-xs sm:text-sm text-gray-500 italic mb-2 line-clamp-1">{result.plant.scientificName}</p>
                       )}
                       <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
                         {result.plant.category || 'อื่นๆ'}
@@ -222,27 +223,28 @@ const SearchPage: React.FC<SearchPageProps> = ({ selectedPlants, setSelectedPlan
                     {/* Price Info */}
                     {result.plant.suppliers.length > 0 && (
                       <div className="text-center mb-3">
-                        <div className="text-lg font-bold text-green-600">
+                        <div className="text-base sm:text-lg font-bold text-green-600">
                           ฿{getLowestPrice(result.plant).toLocaleString()}
                           {getLowestPrice(result.plant) !== getHighestPrice(result.plant) && (
-                            <span className="text-sm text-gray-500"> - ฿{getHighestPrice(result.plant).toLocaleString()}</span>
+                            <span className="text-xs sm:text-sm text-gray-500"> - ฿{getHighestPrice(result.plant).toLocaleString()}</span>
                           )}
                         </div>
                         <p className="text-xs text-gray-500">ราคาต่อต้น</p>
                       </div>
                     )}
 
-                    {/* Action Button */}
+                    {/* Action Button - Mobile Optimized */}
                     <button
                       onClick={() => togglePlantSelection(result.plant)}
                       disabled={result.isSelected}
-                      className={`w-full flex items-center justify-center px-3 py-2 rounded-lg text-sm font-semibold transition-all duration-300 ${
+                      className={`w-full flex items-center justify-center px-4 py-3 sm:py-2 rounded-xl text-sm sm:text-base font-semibold transition-all duration-300 touch-manipulation ${
                         result.isSelected
                           ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
-                          : 'bg-green-500 text-white hover:bg-green-600'
+                          : 'bg-green-500 text-white active:bg-green-600 hover:bg-green-600'
                       }`}
+                      style={{ minHeight: '48px' }} // Touch target size
                     >
-                      <Plus className="w-4 h-4 mr-2" />
+                      <Plus className="w-5 h-5 sm:w-4 sm:h-4 mr-2" />
                       {result.isSelected ? 'เลือกแล้ว' : 'เพิ่มลงรายการ'}
                     </button>
                   </div>

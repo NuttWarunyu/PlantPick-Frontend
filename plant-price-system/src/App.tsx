@@ -91,69 +91,41 @@ function App() {
               </button>
             </div>
 
-            {/* Mobile Navigation */}
+            {/* Mobile Navigation - Optimized */}
             {isMobileMenuOpen && (
-              <div className="lg:hidden mt-4 pb-4 border-t border-green-200">
-                <nav className="grid grid-cols-2 gap-2 mt-4">
-                  <a href="/dashboard" className="flex items-center space-x-2 px-3 py-2 text-sm text-green-700 hover:text-green-900 hover:bg-green-50 rounded-md transition-colors">
-                    <BarChart3 className="h-4 w-4" />
-                    <span>หน้าหลัก</span>
+              <div className="lg:hidden mt-4 pb-4 border-t border-green-200 max-h-[70vh] overflow-y-auto">
+                <nav className="grid grid-cols-2 gap-3 mt-4 px-2">
+                  <a href="/dashboard" className="flex flex-col items-center justify-center space-y-1 px-4 py-4 text-sm text-green-700 active:text-green-900 active:bg-green-50 rounded-xl transition-colors touch-manipulation" style={{ minHeight: '80px' }}>
+                    <BarChart3 className="h-6 w-6" />
+                    <span className="font-medium">หน้าหลัก</span>
                   </a>
-                  <a href="/" className="flex items-center space-x-2 px-3 py-2 text-sm text-green-700 hover:text-green-900 hover:bg-green-50 rounded-md transition-colors">
-                    <Search className="h-4 w-4" />
-                    <span>ค้นหา</span>
+                  <a href="/" className="flex flex-col items-center justify-center space-y-1 px-4 py-4 text-sm text-green-700 active:text-green-900 active:bg-green-50 rounded-xl transition-colors touch-manipulation" style={{ minHeight: '80px' }}>
+                    <Search className="h-6 w-6" />
+                    <span className="font-medium">ค้นหา</span>
                   </a>
-                  <a href="/project" className="flex items-center space-x-2 px-3 py-2 text-sm text-green-700 hover:text-green-900 hover:bg-green-50 rounded-md transition-colors">
-                    <FolderOpen className="h-4 w-4" />
-                    <span>โปรเจกต์</span>
+                  <a href="/bill-scanner" className="flex flex-col items-center justify-center space-y-1 px-4 py-4 text-sm text-green-700 active:text-green-900 active:bg-green-50 rounded-xl transition-colors touch-manipulation" style={{ minHeight: '80px' }}>
+                    <Camera className="h-6 w-6" />
+                    <span className="font-medium">สแกนบิล</span>
                   </a>
-                  <a href="/add-plant" className="flex items-center space-x-2 px-3 py-2 text-sm text-green-700 hover:text-green-900 hover:bg-green-50 rounded-md transition-colors">
-                    <Calculator className="h-4 w-4" />
-                    <span>เพิ่มต้นไม้</span>
+                  <a href="/suppliers" className="flex flex-col items-center justify-center space-y-1 px-4 py-4 text-sm text-green-700 active:text-green-900 active:bg-green-50 rounded-xl transition-colors touch-manipulation" style={{ minHeight: '80px' }}>
+                    <Store className="h-6 w-6" />
+                    <span className="font-medium">ร้านค้า</span>
                   </a>
-                  <a href="/add-supplier" className="flex items-center space-x-2 px-3 py-2 text-sm text-green-700 hover:text-green-900 hover:bg-green-50 rounded-md transition-colors">
-                    <Store className="h-4 w-4" />
-                    <span>เพิ่มร้านค้า</span>
+                  <a href="/project" className="flex flex-col items-center justify-center space-y-1 px-4 py-4 text-sm text-green-700 active:text-green-900 active:bg-green-50 rounded-xl transition-colors touch-manipulation" style={{ minHeight: '80px' }}>
+                    <FolderOpen className="h-6 w-6" />
+                    <span className="font-medium">โปรเจกต์</span>
                   </a>
-                  <a href="/add-plant-supplier" className="flex items-center space-x-2 px-3 py-2 text-sm text-green-700 hover:text-green-900 hover:bg-green-50 rounded-md transition-colors">
-                    <Link className="h-4 w-4" />
-                    <span>เชื่อมต่อ</span>
+                  <a href="/add-plant" className="flex flex-col items-center justify-center space-y-1 px-4 py-4 text-sm text-green-700 active:text-green-900 active:bg-green-50 rounded-xl transition-colors touch-manipulation" style={{ minHeight: '80px' }}>
+                    <Calculator className="h-6 w-6" />
+                    <span className="font-medium">เพิ่มต้นไม้</span>
                   </a>
-                  <a href="/price-analysis" className="flex items-center space-x-2 px-3 py-2 text-sm text-green-700 hover:text-green-900 hover:bg-green-50 rounded-md transition-colors">
-                    <TrendingUp className="h-4 w-4" />
-                    <span>วิเคราะห์ราคา</span>
+                  <a href="/add-supplier" className="flex flex-col items-center justify-center space-y-1 px-4 py-4 text-sm text-green-700 active:text-green-900 active:bg-green-50 rounded-xl transition-colors touch-manipulation" style={{ minHeight: '80px' }}>
+                    <Store className="h-6 w-6" />
+                    <span className="font-medium">เพิ่มร้านค้า</span>
                   </a>
-                  <a href="/route-optimization" className="flex items-center space-x-2 px-3 py-2 text-sm text-green-700 hover:text-green-900 hover:bg-green-50 rounded-md transition-colors">
-                    <MapPin className="h-4 w-4" />
-                    <span>วางแผนเส้นทาง</span>
-                  </a>
-                  <a href="/cost-analysis" className="flex items-center space-x-2 px-3 py-2 text-sm text-green-700 hover:text-green-900 hover:bg-green-50 rounded-md transition-colors">
-                    <PieChart className="h-4 w-4" />
-                    <span>วิเคราะห์ต้นทุน</span>
-                  </a>
-                  <a href="/bulk-import" className="flex items-center space-x-2 px-3 py-2 text-sm text-green-700 hover:text-green-900 hover:bg-green-50 rounded-md transition-colors">
-                    <FileText className="h-4 w-4" />
-                    <span>นำเข้าข้อมูล</span>
-                  </a>
-                  <a href="/bill-scanner" className="flex items-center space-x-2 px-3 py-2 text-sm text-green-700 hover:text-green-900 hover:bg-green-50 rounded-md transition-colors">
-                    <Camera className="h-4 w-4" />
-                    <span>สแกนใบเสร็จ</span>
-                  </a>
-                  <a href="/bill-processing" className="flex items-center space-x-2 px-3 py-2 text-sm text-green-700 hover:text-green-900 hover:bg-green-50 rounded-md transition-colors">
-                    <FileText className="h-4 w-4" />
-                    <span>ประมวลผลบิล</span>
-                  </a>
-                  <a href="/order-history" className="flex items-center space-x-2 px-3 py-2 text-sm text-green-700 hover:text-green-900 hover:bg-green-50 rounded-md transition-colors">
-                    <History className="h-4 w-4" />
-                    <span>ประวัติคำสั่งซื้อ</span>
-                  </a>
-                  <a href="/bill-list" className="flex items-center space-x-2 px-3 py-2 text-sm text-green-700 hover:text-green-900 hover:bg-green-50 rounded-md transition-colors">
-                    <FileText className="h-4 w-4" />
-                    <span>รายการบิล</span>
-                  </a>
-                  <a href="/database" className="flex items-center space-x-2 px-3 py-2 text-sm text-green-700 hover:text-green-900 hover:bg-green-50 rounded-md transition-colors">
-                    <Database className="h-4 w-4" />
-                    <span>จัดการฐานข้อมูล</span>
+                  <a href="/price-analysis" className="flex flex-col items-center justify-center space-y-1 px-4 py-4 text-sm text-green-700 active:text-green-900 active:bg-green-50 rounded-xl transition-colors touch-manipulation" style={{ minHeight: '80px' }}>
+                    <TrendingUp className="h-6 w-6" />
+                    <span className="font-medium">วิเคราะห์ราคา</span>
                   </a>
                 </nav>
               </div>
@@ -254,8 +226,37 @@ function App() {
           </Routes>
         </main>
 
-        {/* Footer */}
-        <footer className="bg-white border-t border-green-200 mt-auto">
+        {/* Bottom Navigation - Mobile Only */}
+        <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-green-200 shadow-lg z-50">
+          <div className="grid grid-cols-5 h-16">
+            <a href="/dashboard" className="flex flex-col items-center justify-center space-y-1 text-green-700 active:text-green-900 active:bg-green-50 transition-colors touch-manipulation">
+              <BarChart3 className="h-5 w-5" />
+              <span className="text-xs font-medium">หน้าหลัก</span>
+            </a>
+            <a href="/" className="flex flex-col items-center justify-center space-y-1 text-green-700 active:text-green-900 active:bg-green-50 transition-colors touch-manipulation">
+              <Search className="h-5 w-5" />
+              <span className="text-xs font-medium">ค้นหา</span>
+            </a>
+            <a href="/bill-scanner" className="flex flex-col items-center justify-center space-y-1 text-green-700 active:text-green-900 active:bg-green-50 transition-colors touch-manipulation">
+              <Camera className="h-6 w-6" />
+              <span className="text-xs font-medium">สแกนบิล</span>
+            </a>
+            <a href="/suppliers" className="flex flex-col items-center justify-center space-y-1 text-green-700 active:text-green-900 active:bg-green-50 transition-colors touch-manipulation">
+              <Store className="h-5 w-5" />
+              <span className="text-xs font-medium">ร้านค้า</span>
+            </a>
+            <button
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              className="flex flex-col items-center justify-center space-y-1 text-green-700 active:text-green-900 active:bg-green-50 transition-colors touch-manipulation"
+            >
+              <Menu className="h-5 w-5" />
+              <span className="text-xs font-medium">เมนู</span>
+            </button>
+          </div>
+        </nav>
+
+        {/* Footer - Hidden on Mobile */}
+        <footer className="hidden lg:block bg-white border-t border-green-200 mt-auto">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
             <div className="text-center text-sm text-green-600">
               <p>© 2024 Plant Price Management System - สวนธุรกิจไทย</p>

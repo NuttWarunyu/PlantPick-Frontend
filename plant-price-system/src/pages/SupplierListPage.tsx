@@ -193,11 +193,11 @@ const SupplierListPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Suppliers Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {/* Suppliers Grid - Mobile First */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           {filteredSuppliers.map(supplier => (
-            <div key={supplier.id} className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow">
-              <div className="p-6">
+            <div key={supplier.id} className="bg-white rounded-xl shadow-sm active:shadow-md hover:shadow-md transition-shadow">
+              <div className="p-4 sm:p-6">
                 {/* Header */}
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-center space-x-3">
@@ -290,17 +290,19 @@ const SupplierListPage: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Actions */}
-                <div className="flex space-x-2">
+                {/* Actions - Mobile Optimized */}
+                <div className="flex flex-col sm:flex-row gap-2 sm:gap-2">
                   <button
                     onClick={() => navigate(`/supplier/${supplier.id}`)}
-                    className="flex-1 bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 transition-colors text-sm font-medium"
+                    className="flex-1 bg-green-600 text-white py-3 sm:py-2 px-4 rounded-xl active:bg-green-700 hover:bg-green-700 transition-colors text-sm sm:text-base font-semibold touch-manipulation"
+                    style={{ minHeight: '48px' }}
                   >
                     ดูรายละเอียด
                   </button>
                   <button
                     onClick={() => navigate(`/add-plant-supplier?supplierId=${supplier.id}`)}
-                    className="px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors text-sm font-medium"
+                    className="px-4 py-3 sm:py-2 bg-blue-100 text-blue-700 rounded-xl active:bg-blue-200 hover:bg-blue-200 transition-colors text-sm sm:text-base font-medium touch-manipulation"
+                    style={{ minHeight: '48px' }}
                   >
                     เชื่อมต่อ
                   </button>

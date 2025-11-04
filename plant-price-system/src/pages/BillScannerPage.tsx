@@ -121,31 +121,32 @@ const BillScannerPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-4xl mx-auto px-4 py-8">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">📸 สแกนใบเสร็จอัตโนมัติ</h1>
-            <p className="text-gray-600 mt-2">ใช้ AI อ่านใบเสร็จและอัปเดตราคาล่าสุด</p>
+    <div className="min-h-screen bg-gray-50 pb-20">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-4 sm:py-8">
+        {/* Header - Mobile Optimized */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 sm:mb-8">
+          <div className="mb-4 sm:mb-0">
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">📸 สแกนใบเสร็จอัตโนมัติ</h1>
+            <p className="text-sm sm:text-base text-gray-600 mt-1 sm:mt-2">ใช้ AI อ่านใบเสร็จและอัปเดตราคาล่าสุด</p>
           </div>
           <button
             onClick={() => navigate('/')}
-            className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+            className="w-full sm:w-auto inline-flex items-center justify-center px-4 py-3 sm:py-2 border-2 border-gray-300 rounded-xl shadow-sm text-sm sm:text-base font-medium text-gray-700 bg-white active:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 touch-manipulation"
+            style={{ minHeight: '48px' }}
           >
             <ArrowLeft className="h-5 w-5 mr-2" />
             กลับหน้าหลัก
           </button>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
           {/* Upload Section */}
           <div className="space-y-6">
             <div className="bg-white rounded-lg shadow-sm p-6">
               <h2 className="text-xl font-semibold text-gray-900 mb-4">📷 อัปโหลดใบเสร็จ</h2>
               
               {!imagePreview ? (
-                <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-green-400 transition-colors">
+                <div className="border-2 border-dashed border-gray-300 rounded-xl p-8 sm:p-12 text-center active:border-green-400 transition-colors touch-manipulation">
                   <input
                     type="file"
                     accept="image/*"
@@ -154,12 +155,12 @@ const BillScannerPage: React.FC = () => {
                     className="hidden"
                     id="bill-upload"
                   />
-                  <label htmlFor="bill-upload" className="cursor-pointer">
-                    <div className="text-6xl mb-4">📷</div>
-                    <div className="text-xl font-medium text-gray-700 mb-2">ถ่ายรูปใบเสร็จ</div>
-                    <div className="text-gray-500 mb-4">หรือเลือกจากอัลบั้ม</div>
-                    <div className="flex items-center justify-center space-x-2 text-green-600">
-                      <Camera className="w-5 h-5" />
+                  <label htmlFor="bill-upload" className="cursor-pointer block">
+                    <div className="text-6xl sm:text-7xl mb-4">📷</div>
+                    <div className="text-lg sm:text-xl font-semibold text-gray-700 mb-2">ถ่ายรูปใบเสร็จ</div>
+                    <div className="text-sm sm:text-base text-gray-500 mb-4">หรือเลือกจากอัลบั้ม</div>
+                    <div className="flex items-center justify-center space-x-2 text-green-600 text-base sm:text-lg font-medium">
+                      <Camera className="w-6 h-6 sm:w-5 sm:h-5" />
                       <span>เปิดกล้อง</span>
                     </div>
                   </label>
@@ -169,29 +170,31 @@ const BillScannerPage: React.FC = () => {
                   <img 
                     src={imagePreview} 
                     alt="ใบเสร็จ" 
-                    className="w-full rounded-lg shadow-sm"
+                    className="w-full rounded-xl shadow-sm"
                   />
-                  <div className="flex space-x-3">
+                  <div className="flex flex-col sm:flex-row gap-3">
                     <button
                       onClick={handleScan}
                       disabled={isScanning}
-                      className="flex-1 flex items-center justify-center space-x-2 bg-blue-500 text-white py-3 px-4 rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="flex-1 flex items-center justify-center space-x-2 bg-blue-500 text-white py-4 sm:py-3 px-4 rounded-xl active:bg-blue-600 hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation text-base sm:text-sm font-semibold"
+                      style={{ minHeight: '52px' }}
                     >
                       {isScanning ? (
                         <>
-                          <RefreshCw className="w-5 h-5 animate-spin" />
+                          <RefreshCw className="w-6 h-6 sm:w-5 sm:h-5 animate-spin" />
                           <span>AI กำลังอ่านใบเสร็จ...</span>
                         </>
                       ) : (
                         <>
-                          <CheckCircle className="w-5 h-5" />
+                          <CheckCircle className="w-6 h-6 sm:w-5 sm:h-5" />
                           <span>✨ สแกนด้วย AI</span>
                         </>
                       )}
                     </button>
                     <button
                       onClick={resetScanner}
-                      className="px-4 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"
+                      className="px-6 sm:px-4 py-4 sm:py-3 bg-gray-200 text-gray-700 rounded-xl active:bg-gray-300 hover:bg-gray-300 touch-manipulation text-base sm:text-sm font-medium"
+                      style={{ minHeight: '52px' }}
                     >
                       เปลี่ยนรูป
                     </button>
@@ -315,16 +318,17 @@ const BillScannerPage: React.FC = () => {
                   </div>
                 )}
 
-                {/* Actions */}
-                <div className="flex space-x-3 mt-6">
+                {/* Actions - Mobile Optimized */}
+                <div className="flex flex-col sm:flex-row gap-3 mt-6">
                   <button
                     onClick={handleSaveToDatabase}
                     disabled={isSaving || !!saveResult}
-                    className="flex-1 bg-green-600 text-white py-3 px-4 rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="flex-1 bg-green-600 text-white py-4 sm:py-3 px-4 rounded-xl active:bg-green-700 hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation text-base sm:text-sm font-semibold"
+                    style={{ minHeight: '52px' }}
                   >
                     {isSaving ? (
                       <>
-                        <RefreshCw className="w-4 h-4 inline animate-spin mr-2" />
+                        <RefreshCw className="w-5 h-5 sm:w-4 sm:h-4 inline animate-spin mr-2" />
                         กำลังบันทึก...
                       </>
                     ) : (
@@ -335,7 +339,8 @@ const BillScannerPage: React.FC = () => {
                   </button>
                   <button
                     onClick={() => navigate('/bill-list')}
-                    className="px-4 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+                    className="px-6 sm:px-4 py-4 sm:py-3 bg-gray-200 text-gray-700 rounded-xl active:bg-gray-300 hover:bg-gray-300 transition-colors touch-manipulation text-base sm:text-sm font-medium"
+                    style={{ minHeight: '52px' }}
                   >
                     ดูรายการบิล
                   </button>
