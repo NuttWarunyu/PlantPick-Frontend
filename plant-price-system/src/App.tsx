@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Search, FileText, Calculator, History, Store, Link, FolderOpen, Camera, BarChart3, TrendingUp, MapPin, PieChart, Menu, X, Database, Bot, Lock } from 'lucide-react';
 import SearchPage from './pages/SearchPage';
 import PurchaseOrderPage from './pages/PurchaseOrderPage';
@@ -60,7 +60,7 @@ function AppContent() {
                   <BarChart3 className="h-4 w-4" />
                   <span>หน้าหลัก</span>
                 </a>
-                <a href="/" className="flex items-center space-x-1 px-3 py-2 text-sm text-green-700 hover:text-green-900 hover:bg-green-50 rounded-md transition-colors">
+                <a href="/search" className="flex items-center space-x-1 px-3 py-2 text-sm text-green-700 hover:text-green-900 hover:bg-green-50 rounded-md transition-colors">
                   <Search className="h-4 w-4" />
                   <span>ค้นหา</span>
                 </a>
@@ -114,7 +114,7 @@ function AppContent() {
                     <BarChart3 className="h-6 w-6" />
                     <span className="font-medium">หน้าหลัก</span>
                   </a>
-                  <a href="/" className="flex flex-col items-center justify-center space-y-1 px-4 py-4 text-sm text-green-700 active:text-green-900 active:bg-green-50 rounded-xl transition-colors touch-manipulation" style={{ minHeight: '80px' }}>
+                  <a href="/search" className="flex flex-col items-center justify-center space-y-1 px-4 py-4 text-sm text-green-700 active:text-green-900 active:bg-green-50 rounded-xl transition-colors touch-manipulation" style={{ minHeight: '80px' }}>
                     <Search className="h-6 w-6" />
                     <span className="font-medium">ค้นหา</span>
                   </a>
@@ -148,6 +148,10 @@ function AppContent() {
           <Routes>
             <Route 
               path="/" 
+              element={<Navigate to="/dashboard" replace />}
+            />
+            <Route 
+              path="/search" 
               element={
                 <SearchPage 
                   selectedPlants={selectedPlants}
@@ -251,7 +255,7 @@ function AppContent() {
               <BarChart3 className="h-5 w-5" />
               <span className="text-xs font-medium">หน้าหลัก</span>
             </a>
-            <a href="/" className="flex flex-col items-center justify-center space-y-1 text-green-700 active:text-green-900 active:bg-green-50 transition-colors touch-manipulation">
+            <a href="/search" className="flex flex-col items-center justify-center space-y-1 text-green-700 active:text-green-900 active:bg-green-50 transition-colors touch-manipulation">
               <Search className="h-5 w-5" />
               <span className="text-xs font-medium">ค้นหา</span>
             </a>

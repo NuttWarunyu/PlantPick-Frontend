@@ -24,13 +24,17 @@ class AgentService {
         throw new Error(`Failed to extract text: ${textResult.error}`);
       }
 
-      // 3. Extract structured data (basic)
+      // 3. Extract structured data (basic) - รวมรูปภาพด้วย
       const structuredResult = await scrapingService.extractStructuredData(scrapeResult.html);
+      
+      // เก็บ URL รูปภาพสำหรับส่งให้ AI
+      const imageUrls = structuredResult.data?.images?.slice(0, 10).map(img => img.src).filter(src => src && !src.startsWith('data:')).join(', ') || '';
       
       // 4. Use AI to analyze and extract plant data
       // Check if it's Facebook
       const isFacebook = url.includes('facebook.com') || url.includes('fb.com');
-      const sourceType = isFacebook ? 'Facebook Group/Page' : 'เว็บไซต์';
+      const isFacebookProfile = url.includes('/user/') || url.includes('/profile.php');
+      const sourceType = isFacebookProfile ? 'Facebook Profile (เจ้าของสวน)' : (isFacebook ? 'Facebook Group/Page' : 'เว็บไซต์');
       
       const aiPrompt = `คุณเป็น AI Agent ที่ช่วยแกะข้อมูลต้นไม้และราคาจาก${sourceType}
 
@@ -38,31 +42,45 @@ class AgentService {
 URL: ${url}
 Title: ${structuredResult.data?.title || 'N/A'}
 Text Content: ${textResult.text.substring(0, 8000)}... (truncated)
+${imageUrls ? `\nรูปภาพที่พบ: ${imageUrls}` : ''}
 
-${isFacebook ? '⚠️ หมายเหตุ: ข้อมูลนี้มาจาก Facebook Group/Page อาจมีรูปแบบที่แตกต่างจากเว็บไซต์ปกติ กรุณาแกะข้อมูลจากโพสต์หรือคอมเมนต์ที่เกี่ยวข้องกับต้นไม้และราคา' : ''}
+${isFacebookProfile ? '⚠️ หมายเหตุ: ข้อมูลนี้มาจาก Facebook Profile ของเจ้าของสวน/ผู้ขาย อาจมี:
+- ชื่อต้นไม้ (จากโพสต์/รูปภาพ)
+- เบอร์โทรศัพท์ (จากข้อมูลติดต่อ)
+- รูปภาพต้นไม้ (อาจไม่มีราคา)
+- ข้อมูลติดต่อ (ชื่อ เบอร์โทร ที่อยู่)
+
+⚠️ ราคาอาจไม่มี: ถ้าไม่มีราคา ให้ใส่ price เป็น null หรือ 0
+⚠️ เก็บข้อมูลต้นไม้ทั้งหมดที่พบ: แม้ไม่มีราคาก็เก็บไว้' : ''}
+
+${isFacebook && !isFacebookProfile ? '⚠️ หมายเหตุ: ข้อมูลนี้มาจาก Facebook Group/Page อาจมีรูปแบบที่แตกต่างจากเว็บไซต์ปกติ กรุณาแกะข้อมูลจากโพสต์หรือคอมเมนต์ที่เกี่ยวข้องกับต้นไม้และราคา' : ''}
 
 กรุณาแกะข้อมูลต้นไม้และราคาจากข้อมูลข้างต้น และแปลงเป็น JSON format ตามโครงสร้างนี้:
 
 {
   "supplier": {
-    "name": "ชื่อร้านค้า",
-    "location": "ที่อยู่",
-    "phone": "เบอร์โทร",
+    "name": "ชื่อร้านค้า/เจ้าของสวน",
+    "location": "ที่อยู่ (ถ้ามี)",
+    "phone": "เบอร์โทร (ถ้ามี)",
     "website": "${url}"
   },
-  "plants": [
+      "plants": [
     {
       "name": "ชื่อต้นไม้",
       "scientificName": "ชื่อวิทยาศาสตร์ (ถ้ามี)",
       "category": "หมวดหมู่ (ไม้ประดับ, ไม้ล้อม, ไม้ดอก, ไม้ใบ, แคคตัส, บอนไซ, กล้วยไม้)",
-      "price": ราคา (ตัวเลข),
+      "price": ราคา (ตัวเลข หรือ null ถ้าไม่มีราคา),
       "size": "ขนาด (ถ้ามี)",
       "description": "คำอธิบาย (ถ้ามี)",
+      "imageUrl": "URL รูปภาพต้นไม้ (ถ้ามี)",
       "stockAvailable": true/false (ถ้าตรวจสอบได้)
     }
   ],
   "confidence": 0.0-1.0 (ความมั่นใจในการแกะข้อมูล)
 }
+
+⚠️ สำคัญ: ถ้าไม่มีราคา ให้ใส่ price เป็น null หรือ 0 (ห้ามใส่ราคาแบบสุ่ม)
+⚠️ เก็บข้อมูลต้นไม้ทั้งหมดที่พบ แม้ไม่มีราคาก็เก็บไว้
 
 ตอบเป็น JSON ล้วนๆ เท่านั้น ห้ามใส่โค้ดบล็อก (เช่น code fences) หรือคำอธิบายอื่นๆ`;
 
@@ -163,6 +181,9 @@ ${JSON.stringify(extractedData, null, 2)}
 
             // Save scraping result
             const resultId = `result_${Date.now()}_${uuidv4()}`;
+            // ถ้ามีราคา ใช้ราคา ถ้าไม่มี ใช้ null (ไม่ใช่ 0)
+            const plantPrice = (plantData.price && plantData.price > 0) ? plantData.price : null;
+            
             await pool.query(`
               INSERT INTO scraping_results (id, job_id, plant_id, supplier_id, plant_name, price, size, raw_data)
               VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
@@ -172,16 +193,17 @@ ${JSON.stringify(extractedData, null, 2)}
               plant.id,
               supplier?.id || null,
               plantData.name,
-              plantData.price || 0,
+              plantPrice,
               plantData.size || null,
               JSON.stringify(plantData)
             ]);
 
-            // Update plant-supplier relationship if price exists
-            if (supplier && plantData.price) {
+            // Update plant-supplier relationship (even without price - for catalog)
+            if (supplier) {
               await db.upsertPlantSupplier(plant.id, supplier.id, {
-                price: plantData.price,
-                size: plantData.size || null
+                price: plantPrice, // null if no price
+                size: plantData.size || null,
+                imageUrl: plantData.imageUrl || null // เก็บรูปภาพต้นไม้ที่ supplier ขาย
               });
             }
 

@@ -302,18 +302,26 @@ const db = {
   // Find or create plant by name
   async findOrCreatePlant(plantData) {
     // ค้นหาต้นไม้ที่มีชื่อเหมือนกัน
-    const findQuery = `SELECT id FROM plants WHERE LOWER(name) = LOWER($1) LIMIT 1`;
+    const findQuery = `SELECT id, image_url FROM plants WHERE LOWER(name) = LOWER($1) LIMIT 1`;
     const findResult = await pool.query(findQuery, [plantData.name]);
     
     if (findResult.rows.length > 0) {
-      return findResult.rows[0];
+      const existingPlant = findResult.rows[0];
+      // ถ้ามีรูปภาพใหม่ แต่ plant ไม่มีรูปภาพ ให้อัพเดท
+      if (plantData.imageUrl && !existingPlant.image_url) {
+        await pool.query(`
+          UPDATE plants SET image_url = $1, updated_at = NOW() WHERE id = $2
+        `, [plantData.imageUrl, existingPlant.id]);
+        existingPlant.image_url = plantData.imageUrl;
+      }
+      return existingPlant;
     } else {
       // ถ้าไม่มี ให้เพิ่มใหม่
       const { v4: uuidv4 } = require('uuid');
       const plantId = `plant_${uuidv4()}`;
       const insertQuery = `
-        INSERT INTO plants (id, name, scientific_name, category, plant_type, measurement_type, description)
-        VALUES ($1, $2, $3, $4, $5, $6, $7)
+        INSERT INTO plants (id, name, scientific_name, category, plant_type, measurement_type, description, image_url)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
         RETURNING *
       `;
       const insertResult = await pool.query(insertQuery, [
@@ -323,7 +331,8 @@ const db = {
         plantData.category || 'อื่นๆ',
         plantData.plantType || 'อื่นๆ',
         plantData.measurementType || 'ต้น',
-        plantData.description || null
+        plantData.description || null,
+        plantData.imageUrl || null
       ]);
       return insertResult.rows[0];
     }
@@ -343,22 +352,22 @@ const db = {
     ]);
     
     if (findResult.rows.length > 0) {
-      // ถ้ามีแล้ว ให้อัพเดทราคา
+      // ถ้ามีแล้ว ให้อัพเดทราคา (ถ้ามีราคาใหม่) หรือเก็บเป็น catalog (ถ้าไม่มีราคา)
       const updateQuery = `
         UPDATE plant_suppliers 
-        SET price = $1, updated_at = NOW()
+        SET price = COALESCE($1, price), updated_at = NOW()
         WHERE plant_id = $2 AND supplier_id = $3 AND (size = $4 OR (size IS NULL AND $4 IS NULL))
         RETURNING *
       `;
       const updateResult = await pool.query(updateQuery, [
-        priceData.price,
+        priceData.price, // null ถ้าไม่มีราคา จะไม่ update
         plantId,
         supplierId,
         priceData.size || null
       ]);
       return updateResult.rows[0];
     } else {
-      // ถ้าไม่มี ให้เพิ่มใหม่
+      // ถ้าไม่มี ให้เพิ่มใหม่ (แม้ไม่มีราคาก็เก็บไว้เป็น catalog)
       const { v4: uuidv4 } = require('uuid');
       const plantSupplierId = `plant_supplier_${uuidv4()}`;
       const insertQuery = `
@@ -370,7 +379,7 @@ const db = {
         plantSupplierId,
         plantId,
         supplierId,
-        priceData.price,
+        priceData.price || null, // null ถ้าไม่มีราคา
         priceData.size || null
       ]);
       return insertResult.rows[0];

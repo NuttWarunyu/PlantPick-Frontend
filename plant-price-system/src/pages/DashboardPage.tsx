@@ -71,7 +71,7 @@ const DashboardPage: React.FC = () => {
       description: 'ค้นหาและเปรียบเทียบราคา',
       icon: <Search className="w-6 h-6" />,
       color: 'bg-purple-500',
-      route: '/'
+      route: '/search'
     },
     {
       id: 'add-plant',

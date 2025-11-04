@@ -1457,12 +1457,17 @@ async function initializeDatabase() {
         plant_type VARCHAR(100),
         measurement_type VARCHAR(100),
         description TEXT,
+        image_url TEXT, -- รูปภาพต้นไม้ (URL จาก Facebook หรือแหล่งอื่น)
         created_at TIMESTAMP DEFAULT NOW(),
         updated_at TIMESTAMP DEFAULT NOW()
       )
     `);
     await pool.query('CREATE INDEX IF NOT EXISTS idx_plants_name ON plants(name)');
     await pool.query('CREATE INDEX IF NOT EXISTS idx_plants_category ON plants(category)');
+    // เพิ่มคอลัมน์ image_url ถ้ายังไม่มี
+    try {
+      await pool.query(`ALTER TABLE plants ADD COLUMN IF NOT EXISTS image_url TEXT`);
+    } catch (e) {}
     console.log('✅ ตาราง plants พร้อมใช้งาน');
     
     // สร้างตาราง suppliers ถ้ายังไม่มี
@@ -1499,8 +1504,9 @@ async function initializeDatabase() {
         id VARCHAR(255) PRIMARY KEY,
         plant_id VARCHAR(255) NOT NULL,
         supplier_id VARCHAR(255) NOT NULL,
-        price DECIMAL(10,2) NOT NULL,
+        price DECIMAL(10,2),
         size VARCHAR(100),
+        image_url TEXT, -- รูปภาพต้นไม้ที่ supplier ขาย (URL จาก Facebook)
         stock_quantity INTEGER DEFAULT 0,
         min_order_quantity INTEGER DEFAULT 1,
         delivery_available BOOLEAN DEFAULT false,
@@ -1516,6 +1522,12 @@ async function initializeDatabase() {
     `);
     await pool.query('CREATE INDEX IF NOT EXISTS idx_plant_suppliers_plant_id ON plant_suppliers(plant_id)');
     await pool.query('CREATE INDEX IF NOT EXISTS idx_plant_suppliers_supplier_id ON plant_suppliers(supplier_id)');
+    // เพิ่มคอลัมน์ image_url ถ้ายังไม่มี
+    try {
+      await pool.query(`ALTER TABLE plant_suppliers ADD COLUMN IF NOT EXISTS image_url TEXT`);
+      // แก้ price ให้เป็น NULL ได้ (สำหรับ catalog ที่ไม่มีราคา)
+      await pool.query(`ALTER TABLE plant_suppliers ALTER COLUMN price DROP NOT NULL`);
+    } catch (e) {}
     console.log('✅ ตาราง plant_suppliers พร้อมใช้งาน');
     
     // สร้างตาราง bills ถ้ายังไม่มี
