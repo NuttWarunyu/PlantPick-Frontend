@@ -91,7 +91,7 @@ function App() {
               </button>
             </div>
 
-            {/* Mobile Navigation - Optimized */}
+            {/* Mobile Navigation - Simplified (Hide complex features) */}
             {isMobileMenuOpen && (
               <div className="lg:hidden mt-4 pb-4 border-t border-green-200 max-h-[70vh] overflow-y-auto">
                 <nav className="grid grid-cols-2 gap-3 mt-4 px-2">
@@ -107,25 +107,9 @@ function App() {
                     <Camera className="h-6 w-6" />
                     <span className="font-medium">สแกนบิล</span>
                   </a>
-                  <a href="/suppliers" className="flex flex-col items-center justify-center space-y-1 px-4 py-4 text-sm text-green-700 active:text-green-900 active:bg-green-50 rounded-xl transition-colors touch-manipulation" style={{ minHeight: '80px' }}>
-                    <Store className="h-6 w-6" />
-                    <span className="font-medium">ร้านค้า</span>
-                  </a>
-                  <a href="/project" className="flex flex-col items-center justify-center space-y-1 px-4 py-4 text-sm text-green-700 active:text-green-900 active:bg-green-50 rounded-xl transition-colors touch-manipulation" style={{ minHeight: '80px' }}>
-                    <FolderOpen className="h-6 w-6" />
-                    <span className="font-medium">โปรเจกต์</span>
-                  </a>
-                  <a href="/add-plant" className="flex flex-col items-center justify-center space-y-1 px-4 py-4 text-sm text-green-700 active:text-green-900 active:bg-green-50 rounded-xl transition-colors touch-manipulation" style={{ minHeight: '80px' }}>
-                    <Calculator className="h-6 w-6" />
-                    <span className="font-medium">เพิ่มต้นไม้</span>
-                  </a>
-                  <a href="/add-supplier" className="flex flex-col items-center justify-center space-y-1 px-4 py-4 text-sm text-green-700 active:text-green-900 active:bg-green-50 rounded-xl transition-colors touch-manipulation" style={{ minHeight: '80px' }}>
-                    <Store className="h-6 w-6" />
-                    <span className="font-medium">เพิ่มร้านค้า</span>
-                  </a>
-                  <a href="/price-analysis" className="flex flex-col items-center justify-center space-y-1 px-4 py-4 text-sm text-green-700 active:text-green-900 active:bg-green-50 rounded-xl transition-colors touch-manipulation" style={{ minHeight: '80px' }}>
-                    <TrendingUp className="h-6 w-6" />
-                    <span className="font-medium">วิเคราะห์ราคา</span>
+                  <a href="/bill-list" className="flex flex-col items-center justify-center space-y-1 px-4 py-4 text-sm text-green-700 active:text-green-900 active:bg-green-50 rounded-xl transition-colors touch-manipulation" style={{ minHeight: '80px' }}>
+                    <FileText className="h-6 w-6" />
+                    <span className="font-medium">รายการบิล</span>
                   </a>
                 </nav>
               </div>
@@ -226,9 +210,9 @@ function App() {
           </Routes>
         </main>
 
-        {/* Bottom Navigation - Mobile Only */}
+        {/* Bottom Navigation - Mobile Only (Simplified) */}
         <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-green-200 shadow-lg z-50">
-          <div className="grid grid-cols-5 h-16">
+          <div className="grid grid-cols-3 h-16">
             <a href="/dashboard" className="flex flex-col items-center justify-center space-y-1 text-green-700 active:text-green-900 active:bg-green-50 transition-colors touch-manipulation">
               <BarChart3 className="h-5 w-5" />
               <span className="text-xs font-medium">หน้าหลัก</span>
@@ -241,17 +225,6 @@ function App() {
               <Camera className="h-6 w-6" />
               <span className="text-xs font-medium">สแกนบิล</span>
             </a>
-            <a href="/suppliers" className="flex flex-col items-center justify-center space-y-1 text-green-700 active:text-green-900 active:bg-green-50 transition-colors touch-manipulation">
-              <Store className="h-5 w-5" />
-              <span className="text-xs font-medium">ร้านค้า</span>
-            </a>
-            <button
-              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="flex flex-col items-center justify-center space-y-1 text-green-700 active:text-green-900 active:bg-green-50 transition-colors touch-manipulation"
-            >
-              <Menu className="h-5 w-5" />
-              <span className="text-xs font-medium">เมนู</span>
-            </button>
           </div>
         </nav>
 
