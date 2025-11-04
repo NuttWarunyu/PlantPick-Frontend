@@ -52,7 +52,7 @@ const AiAgentPage: React.FC = () => {
   const [jobs, setJobs] = useState<ScrapingJob[]>([]);
   const [results, setResults] = useState<ScrapingResult[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'websites' | 'jobs' | 'results'>('websites');
+  const [activeTab, setActiveTab] = useState<'websites' | 'jobs' | 'results' | 'logs'>('websites');
   const [scrapingStatus, setScrapingStatus] = useState<Record<string, 'idle' | 'scraping' | 'success' | 'error'>>({});
   const [scrapingMessage, setScrapingMessage] = useState<Record<string, string>>({});
   const [logs, setLogs] = useState<string[]>([]);
