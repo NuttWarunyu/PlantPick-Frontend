@@ -185,7 +185,7 @@ const AiAgentPage: React.FC = () => {
   };
 
   const handleDeleteWebsite = async (id: string) => {
-    if (!confirm('คุณต้องการลบเว็บไซต์นี้หรือไม่?')) return;
+    if (!window.confirm('คุณต้องการลบเว็บไซต์นี้หรือไม่?')) return;
 
     try {
       const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:3002';
