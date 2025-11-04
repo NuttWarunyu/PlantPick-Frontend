@@ -1385,23 +1385,41 @@ app.get('/api/agents/jobs', optionalAdmin, async (req, res) => {
   }
 });
 
-// Get scraping results (public read)
+// Get scraping results (public read, admin can see all, others see approved only)
 app.get('/api/agents/results', optionalAdmin, async (req, res) => {
   try {
-    const { jobId, limit = 100 } = req.query;
+    const { jobId, limit = 100, status } = req.query;
+    const isAdmin = req.admin || false;
+    
     let query = `
-      SELECT sr.id, sr.job_id, sr.plant_id, sr.supplier_id, sr.plant_name, sr.price, sr.size, sr.confidence, sr.created_at,
+      SELECT sr.id, sr.job_id, sr.plant_id, sr.supplier_id, sr.plant_name, sr.price, sr.size, 
+             sr.confidence, sr.status, sr.created_at, sr.image_url,
+             sr.supplier_name, sr.supplier_phone, sr.supplier_location,
+             sr.approved_by, sr.approved_at,
              p.name as plant_name_in_db,
-             s.name as supplier_name
+             s.name as supplier_name_in_db
       FROM scraping_results sr
       LEFT JOIN plants p ON sr.plant_id = p.id
       LEFT JOIN suppliers s ON sr.supplier_id = s.id
     `;
     const params = [];
+    const conditions = [];
     
     if (jobId) {
-      query += ' WHERE sr.job_id = $1';
+      conditions.push(`sr.job_id = $${params.length + 1}`);
       params.push(jobId);
+    }
+    
+    if (status) {
+      conditions.push(`sr.status = $${params.length + 1}`);
+      params.push(status);
+    } else if (!isAdmin) {
+      // Non-admin users only see approved results
+      conditions.push(`sr.status = 'approved'`);
+    }
+    
+    if (conditions.length > 0) {
+      query += ' WHERE ' + conditions.join(' AND ');
     }
     
     query += ' ORDER BY sr.created_at DESC LIMIT $' + (params.length + 1);
@@ -1419,6 +1437,117 @@ app.get('/api/agents/results', optionalAdmin, async (req, res) => {
       success: false,
       data: [],
       message: 'เกิดข้อผิดพลาดในการดึงข้อมูล scraping results'
+    });
+  }
+});
+
+// Approve scraping result (admin only) - Save to plants/suppliers
+app.post('/api/agents/results/:id/approve', requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const adminId = req.admin?.id || 'admin';
+    
+    // Get scraping result
+    const resultQuery = await pool.query(`
+      SELECT * FROM scraping_results WHERE id = $1 AND status = 'pending'
+    `, [id]);
+    
+    if (resultQuery.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'ไม่พบผลลัพธ์ที่ต้องการ approve หรือ approve แล้ว'
+      });
+    }
+    
+    const result = resultQuery.rows[0];
+    const rawData = JSON.parse(result.raw_data || '{}');
+    
+    // 1. Find or create supplier
+    let supplier = null;
+    if (result.supplier_name || result.supplier_phone || result.supplier_location) {
+      supplier = await db.findOrCreateSupplier({
+        name: result.supplier_name || 'ไม่ระบุ',
+        location: result.supplier_location || '',
+        phone: result.supplier_phone || null,
+        phoneNumbers: result.supplier_phone ? [result.supplier_phone] : [],
+        description: `Approved from scraping result ${id}`,
+        website: rawData.supplier?.website || null
+      });
+    }
+    
+    // 2. Find or create plant
+    const plant = await db.findOrCreatePlant({
+      name: result.plant_name || 'ไม่ระบุชื่อ',
+      category: rawData.category || 'ไม้ประดับ',
+      plantType: rawData.category || 'ไม้ประดับ',
+      measurementType: result.size ? 'ขนาดกระถาง' : 'ความสูง',
+      description: rawData.description || null,
+      scientificName: rawData.scientificName || '',
+      imageUrl: result.image_url || null
+    });
+    
+    // 3. Create plant-supplier relationship
+    if (supplier) {
+      await db.upsertPlantSupplier(plant.id, supplier.id, {
+        price: result.price,
+        size: result.size || null,
+        imageUrl: result.image_url || null
+      });
+    }
+    
+    // 4. Update scraping result status
+    await pool.query(`
+      UPDATE scraping_results 
+      SET status = 'approved', 
+          plant_id = $1, 
+          supplier_id = $2,
+          approved_by = $3,
+          approved_at = NOW()
+      WHERE id = $4
+    `, [plant.id, supplier?.id || null, adminId, id]);
+    
+    res.json({
+      success: true,
+      message: 'Approve สำเร็จ ข้อมูลถูกบันทึกลงฐานข้อมูลแล้ว',
+      data: {
+        plantId: plant.id,
+        supplierId: supplier?.id,
+        plantName: plant.name,
+        supplierName: supplier?.name
+      }
+    });
+  } catch (error) {
+    console.error('Error approving result:', error);
+    res.status(500).json({
+      success: false,
+      message: 'เกิดข้อผิดพลาดในการ approve'
+    });
+  }
+});
+
+// Reject scraping result (admin only)
+app.post('/api/agents/results/:id/reject', requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const adminId = req.admin?.id || 'admin';
+    
+    await pool.query(`
+      UPDATE scraping_results 
+      SET status = 'rejected', 
+          approved_by = $1,
+          approved_at = NOW()
+      WHERE id = $2 AND status = 'pending'
+    `, [adminId, id]);
+    
+    res.json({
+      success: true,
+      message: 'Reject สำเร็จ'
+    });
+  } catch (error) {
+    console.error('Error rejecting result:', error);
+    res.status(500).json({
+      success: false,
+      message: 'เกิดข้อผิดพลาดในการ reject'
     });
   }
 });
@@ -1625,6 +1754,13 @@ async function initializeDatabase() {
         size VARCHAR(100),
         raw_data TEXT, -- JSON raw data
         confidence DECIMAL(3,2), -- 0.00-1.00
+        status VARCHAR(50) DEFAULT 'pending', -- 'pending', 'approved', 'rejected'
+        approved_by VARCHAR(255), -- admin user ID
+        approved_at TIMESTAMP,
+        image_url TEXT, -- รูปภาพต้นไม้
+        supplier_name VARCHAR(255), -- ชื่อร้าน
+        supplier_phone VARCHAR(50), -- เบอร์โทร
+        supplier_location TEXT, -- ที่อยู่
         created_at TIMESTAMP DEFAULT NOW(),
         FOREIGN KEY (job_id) REFERENCES scraping_jobs(id) ON DELETE CASCADE,
         FOREIGN KEY (plant_id) REFERENCES plants(id) ON DELETE SET NULL,
@@ -1634,6 +1770,17 @@ async function initializeDatabase() {
     await pool.query('CREATE INDEX IF NOT EXISTS idx_scraping_results_job_id ON scraping_results(job_id)');
     await pool.query('CREATE INDEX IF NOT EXISTS idx_scraping_results_plant_id ON scraping_results(plant_id)');
     await pool.query('CREATE INDEX IF NOT EXISTS idx_scraping_results_supplier_id ON scraping_results(supplier_id)');
+    await pool.query('CREATE INDEX IF NOT EXISTS idx_scraping_results_status ON scraping_results(status)');
+    // เพิ่มคอลัมน์ใหม่ถ้ายังไม่มี
+    try {
+      await pool.query(`ALTER TABLE scraping_results ADD COLUMN IF NOT EXISTS status VARCHAR(50) DEFAULT 'pending'`);
+      await pool.query(`ALTER TABLE scraping_results ADD COLUMN IF NOT EXISTS approved_by VARCHAR(255)`);
+      await pool.query(`ALTER TABLE scraping_results ADD COLUMN IF NOT EXISTS approved_at TIMESTAMP`);
+      await pool.query(`ALTER TABLE scraping_results ADD COLUMN IF NOT EXISTS image_url TEXT`);
+      await pool.query(`ALTER TABLE scraping_results ADD COLUMN IF NOT EXISTS supplier_name VARCHAR(255)`);
+      await pool.query(`ALTER TABLE scraping_results ADD COLUMN IF NOT EXISTS supplier_phone VARCHAR(50)`);
+      await pool.query(`ALTER TABLE scraping_results ADD COLUMN IF NOT EXISTS supplier_location TEXT`);
+    } catch (e) {}
     console.log('✅ ตาราง scraping_results พร้อมใช้งาน');
     
     // ตรวจสอบจำนวนข้อมูล

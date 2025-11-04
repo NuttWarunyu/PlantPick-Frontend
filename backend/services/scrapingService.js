@@ -63,13 +63,16 @@ class ScrapingService {
           // Wait a bit for content to load
           await page.waitForTimeout(3000);
           
-          // Scroll to load more content (Facebook uses lazy loading)
-          await page.evaluate(() => {
-            window.scrollTo(0, document.body.scrollHeight);
-          });
-          await page.waitForTimeout(2000);
+          // Scroll down gradually to load recent posts first (Facebook loads newest first)
+          // Only scroll enough to load posts from last 30 days
+          for (let i = 0; i < 3; i++) {
+            await page.evaluate(() => {
+              window.scrollBy(0, window.innerHeight * 2);
+            });
+            await page.waitForTimeout(1500);
+          }
           
-          // Scroll back up
+          // Scroll back to top to ensure we have the latest posts
           await page.evaluate(() => {
             window.scrollTo(0, 0);
           });
