@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { 
   Bot, Plus, RefreshCw, Trash2, 
   Globe, Clock, CheckCircle, XCircle, AlertCircle,
-  LogOut, Eye, ExternalLink, Loader, FileText, Send
+  LogOut, Eye, ExternalLink, Loader, FileText, Send, Edit2, MapPin
 } from 'lucide-react';
 import { useAdmin } from '../contexts/AdminContext';
 
@@ -66,6 +66,10 @@ const AiAgentPage: React.FC = () => {
   const [pastedText, setPastedText] = useState('');
   const [sourceUrl, setSourceUrl] = useState('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  
+  // Edit location state
+  const [editingLocation, setEditingLocation] = useState<string | null>(null);
+  const [locationValue, setLocationValue] = useState('');
 
   useEffect(() => {
     if (!isAdmin) {
@@ -366,6 +370,13 @@ const AiAgentPage: React.FC = () => {
   };
 
   const handleApproveResult = async (id: string) => {
+    // Check if result has location
+    const result = results.find(r => r.id === id);
+    if (result && !result.supplier_location) {
+      alert('⚠️ ไม่สามารถ Approve ได้: กรุณาเพิ่มตำแหน่งที่ตั้ง (Location) ของ Supplier ก่อน\n\nตำแหน่งที่ตั้งจำเป็นสำหรับการคำนวณเส้นทาง');
+      return;
+    }
+    
     if (!window.confirm('คุณต้องการ approve ผลลัพธ์นี้หรือไม่? ข้อมูลจะถูกบันทึกลงฐานข้อมูล')) return;
     
     try {
@@ -394,6 +405,109 @@ const AiAgentPage: React.FC = () => {
       console.error('Error approving result:', error);
       addLog(`❌ Error approving: ${error.message || 'ไม่ทราบสาเหตุ'}`);
       alert('เกิดข้อผิดพลาดในการ approve');
+    }
+  };
+
+  const handleApproveAll = async () => {
+    const pendingResults = results.filter(r => r.status === 'pending');
+    
+    if (pendingResults.length === 0) {
+      alert('ไม่มีผลลัพธ์ที่รอ Approve');
+      return;
+    }
+    
+    // Check if all results have location
+    const resultsWithoutLocation = pendingResults.filter(r => !r.supplier_location);
+    if (resultsWithoutLocation.length > 0) {
+      alert(`⚠️ ไม่สามารถ Approve ทั้งหมดได้: มี ${resultsWithoutLocation.length} รายการที่ไม่มีตำแหน่งที่ตั้ง (Location)\n\nกรุณาเพิ่มตำแหน่งที่ตั้งให้ครบก่อน Approve\n\nตำแหน่งที่ตั้งจำเป็นสำหรับการคำนวณเส้นทาง`);
+      return;
+    }
+    
+    if (!window.confirm(`คุณต้องการ approve ทั้งหมด ${pendingResults.length} รายการหรือไม่? ข้อมูลจะถูกบันทึกลงฐานข้อมูล`)) return;
+    
+    setIsAnalyzing(true);
+    addLog(`🚀 เริ่ม Approve ทั้งหมด ${pendingResults.length} รายการ...`);
+    
+    try {
+      const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:3002';
+      const backendUrl = apiUrl.replace(/\/api$/, '');
+      
+      let successCount = 0;
+      let failCount = 0;
+      
+      // Approve all results sequentially
+      for (const result of pendingResults) {
+        try {
+          const response = await fetch(`${backendUrl}/api/agents/results/${result.id}/approve`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${adminToken}`,
+              'x-admin-token': adminToken || '',
+              'Content-Type': 'application/json'
+            }
+          });
+          
+          const data = await response.json();
+          if (data.success) {
+            successCount++;
+            addLog(`✅ Approve สำเร็จ: ${data.data?.plantName || result.id}`);
+          } else {
+            failCount++;
+            addLog(`❌ Approve ล้มเหลว: ${result.plant_name} - ${data.message || 'ไม่ทราบสาเหตุ'}`);
+          }
+        } catch (error: any) {
+          failCount++;
+          addLog(`❌ Error approving ${result.plant_name}: ${error.message || 'ไม่ทราบสาเหตุ'}`);
+        }
+      }
+      
+      addLog(`✅ Approve ทั้งหมดเสร็จสิ้น: สำเร็จ ${successCount} รายการ, ล้มเหลว ${failCount} รายการ`);
+      alert(`✅ Approve ทั้งหมดเสร็จสิ้น!\n\nสำเร็จ: ${successCount} รายการ\nล้มเหลว: ${failCount} รายการ`);
+      
+      loadData();
+    } catch (error: any) {
+      console.error('Error approving all results:', error);
+      addLog(`❌ Error approving all: ${error.message || 'ไม่ทราบสาเหตุ'}`);
+      alert('เกิดข้อผิดพลาดในการ approve ทั้งหมด');
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
+  const handleUpdateLocation = async (id: string) => {
+    if (!locationValue.trim()) {
+      alert('กรุณากรอกตำแหน่งที่ตั้ง');
+      return;
+    }
+    
+    try {
+      const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:3002';
+      const backendUrl = apiUrl.replace(/\/api$/, '');
+      
+      const response = await fetch(`${backendUrl}/api/agents/results/${id}/location`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${adminToken}`,
+          'x-admin-token': adminToken || '',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ location: locationValue.trim() })
+      });
+      
+      const data = await response.json();
+      if (data.success) {
+        addLog(`✅ อัพเดทตำแหน่งที่ตั้งสำเร็จ: ${locationValue.trim()}`);
+        setEditingLocation(null);
+        setLocationValue('');
+        loadData();
+      } else {
+        addLog(`❌ อัพเดทตำแหน่งที่ตั้งล้มเหลว: ${data.message || 'ไม่ทราบสาเหตุ'}`);
+        alert(data.message || 'เกิดข้อผิดพลาด');
+      }
+    } catch (error: any) {
+      console.error('Error updating location:', error);
+      addLog(`❌ Error updating location: ${error.message || 'ไม่ทราบสาเหตุ'}`);
+      alert('เกิดข้อผิดพลาดในการอัพเดทตำแหน่งที่ตั้ง');
     }
   };
 
@@ -828,6 +942,15 @@ const AiAgentPage: React.FC = () => {
                   <h2 className="text-lg sm:text-xl font-semibold text-gray-900">ผลลัพธ์การ Scrape</h2>
                   {isAdmin && (
                     <div className="flex space-x-2">
+                      {results.filter(r => r.status === 'pending').length > 0 && (
+                        <button
+                          onClick={handleApproveAll}
+                          className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium flex items-center space-x-2"
+                        >
+                          <CheckCircle className="w-4 h-4" />
+                          <span>Approve ทั้งหมด ({results.filter(r => r.status === 'pending').length})</span>
+                        </button>
+                      )}
                       <button
                         onClick={() => loadData()}
                         className="px-3 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors text-sm"
@@ -892,8 +1015,52 @@ const AiAgentPage: React.FC = () => {
                         {result.supplier_name && (
                           <div className="mb-2">
                             <p className="text-sm font-medium text-gray-700">🏪 {result.supplier_name}</p>
-                            {result.supplier_location && (
-                              <p className="text-xs text-gray-500">📍 {result.supplier_location}</p>
+                            {editingLocation === result.id ? (
+                              <div className="mt-2 flex items-center space-x-2">
+                                <input
+                                  type="text"
+                                  value={locationValue}
+                                  onChange={(e) => setLocationValue(e.target.value)}
+                                  className="flex-1 px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:border-green-500"
+                                  placeholder="กรอกตำแหน่งที่ตั้ง..."
+                                  autoFocus
+                                />
+                                <button
+                                  onClick={() => handleUpdateLocation(result.id)}
+                                  className="px-2 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-700"
+                                >
+                                  บันทึก
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    setEditingLocation(null);
+                                    setLocationValue('');
+                                  }}
+                                  className="px-2 py-1 bg-gray-200 text-gray-700 rounded text-xs hover:bg-gray-300"
+                                >
+                                  ยกเลิก
+                                </button>
+                              </div>
+                            ) : (
+                              <div className="flex items-center space-x-1">
+                                {result.supplier_location ? (
+                                  <p className="text-xs text-gray-500">📍 {result.supplier_location}</p>
+                                ) : (
+                                  <p className="text-xs text-red-500">⚠️ ไม่มีตำแหน่งที่ตั้ง</p>
+                                )}
+                                {isAdmin && result.status === 'pending' && (
+                                  <button
+                                    onClick={() => {
+                                      setEditingLocation(result.id);
+                                      setLocationValue(result.supplier_location || '');
+                                    }}
+                                    className="ml-1 text-blue-600 hover:text-blue-800"
+                                    title="แก้ไขตำแหน่งที่ตั้ง"
+                                  >
+                                    <Edit2 className="w-3 h-3" />
+                                  </button>
+                                )}
+                              </div>
                             )}
                             {result.supplier_phone && (
                               <p className="text-xs text-gray-500">📞 {result.supplier_phone}</p>

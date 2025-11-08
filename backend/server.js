@@ -1503,6 +1503,14 @@ app.post('/api/agents/results/:id/approve', requireAdmin, async (req, res) => {
     const rawData = JSON.parse(result.raw_data || '{}');
     
     // 1. Find or create supplier
+    // Validate: location is required for route calculation
+    if (!result.supplier_location || result.supplier_location.trim() === '') {
+      return res.status(400).json({
+        success: false,
+        message: 'ไม่สามารถ Approve ได้: กรุณาเพิ่มตำแหน่งที่ตั้ง (Location) ของ Supplier ก่อน\n\nตำแหน่งที่ตั้งจำเป็นสำหรับการคำนวณเส้นทาง'
+      });
+    }
+    
     let supplier = null;
     if (result.supplier_name || result.supplier_phone || result.supplier_location) {
       supplier = await db.findOrCreateSupplier({
@@ -1561,6 +1569,38 @@ app.post('/api/agents/results/:id/approve', requireAdmin, async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'เกิดข้อผิดพลาดในการ approve'
+    });
+  }
+});
+
+// Update scraping result location (admin only)
+app.put('/api/agents/results/:id/location', requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { location } = req.body;
+    
+    if (!location || location.trim() === '') {
+      return res.status(400).json({
+        success: false,
+        message: 'กรุณาระบุตำแหน่งที่ตั้ง'
+      });
+    }
+    
+    await pool.query(`
+      UPDATE scraping_results 
+      SET supplier_location = $1
+      WHERE id = $2 AND status = 'pending'
+    `, [location.trim(), id]);
+    
+    res.json({
+      success: true,
+      message: 'อัพเดทตำแหน่งที่ตั้งสำเร็จ'
+    });
+  } catch (error) {
+    console.error('Error updating location:', error);
+    res.status(500).json({
+      success: false,
+      message: 'เกิดข้อผิดพลาดในการอัพเดทตำแหน่งที่ตั้ง'
     });
   }
 });
