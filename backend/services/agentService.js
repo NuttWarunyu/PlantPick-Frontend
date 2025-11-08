@@ -59,8 +59,19 @@ class AgentService {
       // 1. Scrape HTML content
       const scrapeResult = await scrapingService.scrapeHTML(url);
       if (!scrapeResult.success) {
-        throw new Error(`Failed to scrape: ${scrapeResult.error}`);
+        const errorMsg = scrapeResult.error || 'Unknown error';
+        console.error(`❌ Scraping failed: ${errorMsg}`);
+        
+        // Check if it's a Facebook URL and provide helpful error message
+        const isFacebook = url.includes('facebook.com') || url.includes('fb.com');
+        if (isFacebook) {
+          throw new Error(`ไม่สามารถ scrape Facebook ได้: ${errorMsg}\n\n💡 หมายเหตุ: Facebook มีระบบป้องกัน bot ที่แข็งแกร่ง อาจต้อง:\n- ใช้ Puppeteer (ต้องติดตั้ง Chromium)\n- ใช้ Facebook Graph API (ต้องมี Access Token)\n- หรือลองใช้ URL อื่น`);
+        }
+        
+        throw new Error(`Failed to scrape: ${errorMsg}`);
       }
+      
+      console.log(`✅ Scraping successful: ${scrapeResult.method}, HTML length: ${scrapeResult.html.length}`);
 
       // 2. Extract text content
       const textResult = await scrapingService.extractText(scrapeResult.html);

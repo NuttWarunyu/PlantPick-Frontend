@@ -2,7 +2,7 @@
 # Tell Nixpacks to skip root install and go directly to backend
 
 [phases.setup]
-nixPkgs = ["nodejs_22", "npm-9_x"]
+nixPkgs = ["nodejs_22", "npm-9_x", "chromium"]
 
 [phases.install]
 cmds = [
