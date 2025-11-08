@@ -530,6 +530,16 @@ const AiAgentPage: React.FC = () => {
               📊 ผลลัพธ์ ({results.length})
             </button>
             <button
+              onClick={() => setActiveTab('paste')}
+              className={`flex-1 px-4 py-3 sm:py-4 text-center font-medium transition-colors touch-manipulation ${
+                activeTab === 'paste'
+                  ? 'text-green-600 border-b-2 border-green-600 bg-green-50'
+                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+              }`}
+            >
+              📋 Paste Text
+            </button>
+            <button
               onClick={() => setActiveTab('logs')}
               className={`flex-1 px-4 py-3 sm:py-4 text-center font-medium transition-colors touch-manipulation ${
                 activeTab === 'logs'
