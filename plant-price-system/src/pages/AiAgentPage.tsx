@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
-  Bot, Plus, RefreshCw, Trash2, Edit2, 
+  Bot, Plus, RefreshCw, Trash2, 
   Globe, Clock, CheckCircle, XCircle, AlertCircle,
-  LogOut, Eye, ExternalLink, Loader
+  LogOut, Eye, ExternalLink, Loader, FileText, Send
 } from 'lucide-react';
 import { useAdmin } from '../contexts/AdminContext';
 
@@ -52,7 +52,7 @@ const AiAgentPage: React.FC = () => {
   const [jobs, setJobs] = useState<ScrapingJob[]>([]);
   const [results, setResults] = useState<ScrapingResult[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'websites' | 'jobs' | 'results' | 'logs'>('websites');
+  const [activeTab, setActiveTab] = useState<'websites' | 'jobs' | 'results' | 'logs' | 'paste'>('websites');
   const [scrapingStatus, setScrapingStatus] = useState<Record<string, 'idle' | 'scraping' | 'success' | 'error'>>({});
   const [scrapingMessage, setScrapingMessage] = useState<Record<string, string>>({});
   const [logs, setLogs] = useState<string[]>([]);
@@ -61,6 +61,11 @@ const AiAgentPage: React.FC = () => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [newWebsite, setNewWebsite] = useState({ name: '', url: '', description: '', schedule: 'manual' });
   const [isAdding, setIsAdding] = useState(false);
+  
+  // Paste text state
+  const [pastedText, setPastedText] = useState('');
+  const [sourceUrl, setSourceUrl] = useState('');
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   useEffect(() => {
     if (!isAdmin) {
@@ -72,6 +77,7 @@ const AiAgentPage: React.FC = () => {
     // Auto refresh every 10 seconds
     const interval = setInterval(loadData, 10000);
     return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAdmin, navigate, activeTab]);
 
   const addLog = (message: string) => {
@@ -176,6 +182,72 @@ const AiAgentPage: React.FC = () => {
       alert('เกิดข้อผิดพลาดในการเพิ่มเว็บไซต์');
     } finally {
       setIsAdding(false);
+    }
+  };
+
+  const handleAnalyzeText = async () => {
+    if (!pastedText.trim()) {
+      alert('กรุณา paste ข้อความที่ต้องการวิเคราะห์');
+      return;
+    }
+    
+    setIsAnalyzing(true);
+    addLog(`🚀 เริ่มการวิเคราะห์ข้อความ (ความยาว: ${pastedText.length} ตัวอักษร)`);
+    
+    try {
+      const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:3002';
+      const backendUrl = apiUrl.replace(/\/api$/, '');
+
+      const response = await fetch(`${backendUrl}/api/agents/analyze-text`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${adminToken}`,
+          'x-admin-token': adminToken || '',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ 
+          text: pastedText,
+          sourceUrl: sourceUrl || null
+        })
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        addLog(`✅ เริ่มการวิเคราะห์ข้อความสำเร็จ: ${data.data?.message || 'กำลังประมวลผล'}`);
+        
+        // Clear form
+        setPastedText('');
+        setSourceUrl('');
+        
+        // Auto refresh results and switch to results tab
+        setTimeout(() => {
+          loadData();
+          setActiveTab('results');
+        }, 1000);
+        
+        // Continue polling for results
+        let pollCount = 0;
+        const maxPolls = 30;
+        const pollInterval = setInterval(async () => {
+          pollCount++;
+          await loadData();
+          
+          if (pollCount >= maxPolls) {
+            clearInterval(pollInterval);
+            addLog(`⏱️ หยุด polling หลังจาก ${maxPolls} ครั้ง`);
+          }
+        }, 10000);
+        
+        alert('✅ เริ่มการวิเคราะห์ข้อความแล้ว กำลังรอผลลัพธ์...');
+      } else {
+        throw new Error(data.message || 'เกิดข้อผิดพลาด');
+      }
+    } catch (error: any) {
+      console.error('Error analyzing text:', error);
+      addLog(`❌ เกิดข้อผิดพลาดในการวิเคราะห์ข้อความ: ${error.message}`);
+      alert(`เกิดข้อผิดพลาด: ${error.message}`);
+    } finally {
+      setIsAnalyzing(false);
     }
   };
 
@@ -643,6 +715,99 @@ const AiAgentPage: React.FC = () => {
                     </div>
                   </div>
                 )}
+              </div>
+            )}
+
+            {/* Paste Text Tab */}
+            {activeTab === 'paste' && (
+              <div className="space-y-4">
+                <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6">
+                  <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-4 flex items-center space-x-2">
+                    <FileText className="w-5 h-5" />
+                    <span>Paste Text จาก Facebook</span>
+                  </h2>
+                  
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        URL ต้นฉบับ (ไม่บังคับ)
+                      </label>
+                      <input
+                        type="url"
+                        value={sourceUrl}
+                        onChange={(e) => setSourceUrl(e.target.value)}
+                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-green-500 focus:outline-none"
+                        placeholder="https://www.facebook.com/..."
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        ข้อความจาก Facebook Post
+                        <span className="text-xs text-gray-500 ml-2">
+                          (Copy-paste ข้อความทั้งหมดจากโพสต์)
+                        </span>
+                      </label>
+                      <textarea
+                        value={pastedText}
+                        onChange={(e) => setPastedText(e.target.value)}
+                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-green-500 focus:outline-none font-mono text-sm"
+                        rows={15}
+                        placeholder="ตัวอย่าง:
+💥จำหน่ายย ไทรเกาหลีไม้ฟอกอากาศยอดฮิต  ไทรเกาหลีไม้ทำแนวรั้วยอดนิยม💥 
+
+‼️ฟรอมสวยขายหน้าร้าน 
+ฟรอมรั้วราคาประหยัด‼️
+
+✅ ไทรเกาหลี 80 เซน - 3 เมตร
+
+✅ มีบริการปลูก - ส่งทั่วไทย 
+
+✅ มีบริการเก็บเงินปลายทาง
+
+📱สอบถามได้ค่ะยินดีให้คำแนะนำ
+
+☎️0927494962 นุช
+
+🆔 https://line.me/ti/p/EmnLpyhTGY"
+                      />
+                      <p className="text-xs text-gray-500 mt-2">
+                        ความยาว: {pastedText.length} ตัวอักษร
+                      </p>
+                    </div>
+                    
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                      <p className="text-sm text-blue-800">
+                        <strong>💡 วิธีใช้:</strong>
+                      </p>
+                      <ul className="text-sm text-blue-700 mt-2 space-y-1 list-disc list-inside">
+                        <li>Copy ข้อความทั้งหมดจาก Facebook Post</li>
+                        <li>Paste ลงในช่องด้านบน</li>
+                        <li>คลิก "วิเคราะห์ด้วย AI"</li>
+                        <li>AI จะแกะข้อมูลต้นไม้ ราคา และข้อมูลติดต่อ</li>
+                        <li>ผลลัพธ์จะแสดงในแท็บ "ผลลัพธ์" และรอ Approve</li>
+                      </ul>
+                    </div>
+                    
+                    <button
+                      onClick={handleAnalyzeText}
+                      disabled={isAnalyzing || !pastedText.trim()}
+                      className="w-full flex items-center justify-center space-x-2 px-6 py-4 bg-green-600 text-white rounded-xl hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors touch-manipulation font-medium text-base"
+                    >
+                      {isAnalyzing ? (
+                        <>
+                          <Loader className="w-5 h-5 animate-spin" />
+                          <span>กำลังวิเคราะห์...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Send className="w-5 h-5" />
+                          <span>วิเคราะห์ด้วย AI</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
               </div>
             )}
 

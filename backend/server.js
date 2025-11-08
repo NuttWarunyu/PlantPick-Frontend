@@ -1287,6 +1287,46 @@ app.delete('/api/agents/websites/:id', requireAdmin, async (req, res) => {
   }
 });
 
+// Analyze pasted text from Facebook (admin only)
+app.post('/api/agents/analyze-text', requireAdmin, async (req, res) => {
+  try {
+    const { text, sourceUrl } = req.body;
+
+    if (!text || text.trim().length === 0) {
+      return res.status(400).json({
+        success: false,
+        data: null,
+        message: 'กรุณาระบุข้อความที่ต้องการวิเคราะห์'
+      });
+    }
+
+    // Start analysis asynchronously (don't wait)
+    agentService.analyzePastedText(text, sourceUrl || null)
+      .then(result => {
+        console.log(`✅ Text analysis completed`);
+      })
+      .catch(error => {
+        console.error(`❌ Text analysis failed:`, error);
+      });
+
+    res.json({
+      success: true,
+      data: {
+        message: 'เริ่มการวิเคราะห์ข้อความแล้ว',
+        textLength: text.length
+      },
+      message: 'กำลังวิเคราะห์ข้อความด้วย AI...'
+    });
+  } catch (error) {
+    console.error('Error starting text analysis:', error);
+    res.status(500).json({
+      success: false,
+      data: null,
+      message: `เกิดข้อผิดพลาดในการวิเคราะห์: ${error.message}`
+    });
+  }
+});
+
 // Trigger scraping (admin only)
 app.post('/api/agents/scrape', requireAdmin, async (req, res) => {
   try {
