@@ -8,8 +8,6 @@ import {
   Download, 
   Trash2, 
   RefreshCw, 
-  Search, 
-  Filter,
   AlertTriangle,
   CheckCircle,
   XCircle,

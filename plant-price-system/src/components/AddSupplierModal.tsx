@@ -1,6 +1,6 @@
 // Modal สำหรับเพิ่มข้อมูลผู้จัดจำหน่าย
 import React, { useState } from 'react';
-import { X, Plus, MapPin, Phone, DollarSign, Package } from 'lucide-react';
+import { X, Plus } from 'lucide-react';
 import { syncService } from '../services/syncService';
 
 interface AddSupplierModalProps {

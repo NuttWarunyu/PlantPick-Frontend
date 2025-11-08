@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Calculator, PieChart, BarChart3, TrendingUp, DollarSign, AlertTriangle, CheckCircle } from 'lucide-react';
+import { ArrowLeft, Calculator, AlertTriangle, CheckCircle } from 'lucide-react';
 
 interface CostBreakdown {
   category: string;
@@ -112,16 +112,16 @@ const CostAnalysisPage: React.FC = () => {
     }
   };
 
-  const getColorClass = (color: string) => {
-    const colorMap: { [key: string]: string } = {
-      'bg-green-500': 'text-green-600 bg-green-100',
-      'bg-yellow-500': 'text-yellow-600 bg-yellow-100',
-      'bg-blue-500': 'text-blue-600 bg-blue-100',
-      'bg-purple-500': 'text-purple-600 bg-purple-100',
-      'bg-gray-500': 'text-gray-600 bg-gray-100'
-    };
-    return colorMap[color] || 'text-gray-600 bg-gray-100';
-  };
+  // const getColorClass = (color: string) => {
+  //   const colorMap: { [key: string]: string } = {
+  //     'bg-green-500': 'text-green-600 bg-green-100',
+  //     'bg-yellow-500': 'text-yellow-600 bg-yellow-100',
+  //     'bg-blue-500': 'text-blue-600 bg-blue-100',
+  //     'bg-purple-500': 'text-purple-600 bg-purple-100',
+  //     'bg-gray-500': 'text-gray-600 bg-gray-100'
+  //   };
+  //   return colorMap[color] || 'text-gray-600 bg-gray-100';
+  // };
 
   return (
     <div className="min-h-screen bg-gray-50">

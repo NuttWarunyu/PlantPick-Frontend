@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, TrendingUp, TrendingDown, Minus, BarChart3, AlertCircle } from 'lucide-react';
 import { aiService, PriceAnalysis } from '../services/aiService';

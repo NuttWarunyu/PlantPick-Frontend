@@ -42,8 +42,8 @@ const AddPlantSupplierPage: React.FC = () => {
     notes: ''
   });
 
-  const [selectedPlant, setSelectedPlant] = useState<Plant | null>(null);
-  const [selectedSupplier, setSelectedSupplier] = useState<Supplier | null>(null);
+  const [selectedPlant] = useState<Plant | null>(null);
+  const [selectedSupplier] = useState<Supplier | null>(null);
 
   useEffect(() => {
     loadPlants();

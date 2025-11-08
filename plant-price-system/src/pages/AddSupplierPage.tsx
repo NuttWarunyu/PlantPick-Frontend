@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Save, Store, MapPin, Phone, DollarSign, Package } from 'lucide-react';
+import { ArrowLeft, Save, Store } from 'lucide-react';
 import { apiService } from '../services/api';
 
 const AddSupplierPage: React.FC = () => {

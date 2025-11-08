@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { Search, FileText, Calculator, History, Store, Link, FolderOpen, Camera, BarChart3, TrendingUp, MapPin, PieChart, Menu, X, Database, Bot, Lock } from 'lucide-react';
+import { Search, FileText, Calculator, Store, FolderOpen, Camera, BarChart3, TrendingUp, Menu, X, Bot, Lock } from 'lucide-react';
 import SearchPage from './pages/SearchPage';
 import PurchaseOrderPage from './pages/PurchaseOrderPage';
 import OrderSummaryPage from './pages/OrderSummaryPage';

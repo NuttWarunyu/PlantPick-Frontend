@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FileText, Eye, Edit, Trash2, Plus, Calendar, Package, DollarSign } from 'lucide-react';
+import { FileText, Eye, Trash2, Plus, Calendar, Package, DollarSign } from 'lucide-react';
 import { BillData } from '../types';
 
 const BillListPage: React.FC = () => {

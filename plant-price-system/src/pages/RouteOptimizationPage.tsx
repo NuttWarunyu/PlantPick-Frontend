@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, MapPin, Clock, DollarSign, Navigation, Car, Route } from 'lucide-react';
+import { ArrowLeft, Clock, DollarSign, Navigation, Route } from 'lucide-react';
 import { aiService, RouteOptimization } from '../services/aiService';
 
 const RouteOptimizationPage: React.FC = () => {

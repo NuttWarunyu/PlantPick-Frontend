@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Plus, Eye, Trash2, AlertCircle, CheckSquare, Square, ShoppingCart, X, Camera, RefreshCw, CheckCircle } from 'lucide-react';
+import { Search, Plus, Eye, Trash2, AlertCircle, Camera, RefreshCw, CheckCircle } from 'lucide-react';
 import { Plant, SearchResult, BillData } from '../types';
 import { syncService } from '../services/syncService';
 import { initializeBasePlants } from '../data/basePlants';
@@ -18,7 +18,6 @@ const SearchPage: React.FC<SearchPageProps> = ({ selectedPlants, setSelectedPlan
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [showResults, setShowResults] = useState(false);
   const [bills, setBills] = useState<BillData[]>([]);
-  const [showBills, setShowBills] = useState(false);
   const [plants, setPlants] = useState<Plant[]>([]);
   const [, setIsLoading] = useState(true);
   const [showAddSupplierModal, setShowAddSupplierModal] = useState(false);
@@ -166,17 +165,17 @@ const SearchPage: React.FC<SearchPageProps> = ({ selectedPlants, setSelectedPlan
     }
   };
 
-  const deleteBill = (index: number) => {
-    if (window.confirm('คุณต้องการลบบิลนี้หรือไม่?')) {
-      const newBills = bills.filter((_, i) => i !== index);
-      setBills(newBills);
-      localStorage.setItem('plantBills', JSON.stringify(newBills));
-    }
-  };
+  // const deleteBill = (index: number) => {
+  //   if (window.confirm('คุณต้องการลบบิลนี้หรือไม่?')) {
+  //     const newBills = bills.filter((_, i) => i !== index);
+  //     setBills(newBills);
+  //     localStorage.setItem('plantBills', JSON.stringify(newBills));
+  //   }
+  // };
 
-  const getTotalItems = (bill: BillData) => {
-    return bill.items.reduce((total, item) => total + item.quantity, 0);
-  };
+  // const getTotalItems = (bill: BillData) => {
+  //   return bill.items.reduce((total, item) => total + item.quantity, 0);
+  // };
 
   const getTotalPriceRange = () => {
     if (selectedPlants.length === 0) return { min: 0, max: 0 };
