@@ -41,6 +41,7 @@ interface ScrapingResult {
   supplier_name?: string;
   supplier_phone?: string;
   supplier_location?: string;
+  supplier_location_in_db?: string; // Location from suppliers table
   created_at: string;
   approved_at?: string;
 }
@@ -370,11 +371,13 @@ const AiAgentPage: React.FC = () => {
   };
 
   const handleApproveResult = async (id: string) => {
-    // Check if result has location
+    // Check if result has location or supplier already has location
     const result = results.find(r => r.id === id);
-    if (result && !result.supplier_location) {
-      alert('⚠️ ไม่สามารถ Approve ได้: กรุณาเพิ่มตำแหน่งที่ตั้ง (Location) ของ Supplier ก่อน\n\nตำแหน่งที่ตั้งจำเป็นสำหรับการคำนวณเส้นทาง');
-      return;
+    if (result && !result.supplier_location && !result.supplier_location_in_db) {
+      // Check if supplier already exists with location (will be checked on backend)
+      // Just show warning but let backend handle the validation
+      const proceed = window.confirm('⚠️ ผลลัพธ์นี้ไม่มีตำแหน่งที่ตั้ง\n\nถ้า Supplier นี้มี Location อยู่แล้วในระบบ จะใช้ Location เดิม\n\nถ้ายังไม่มี Location จะต้องเพิ่มก่อน\n\nต้องการดำเนินการต่อหรือไม่?');
+      if (!proceed) return;
     }
     
     if (!window.confirm('คุณต้องการ approve ผลลัพธ์นี้หรือไม่? ข้อมูลจะถูกบันทึกลงฐานข้อมูล')) return;
@@ -416,10 +419,31 @@ const AiAgentPage: React.FC = () => {
       return;
     }
     
-    // Check if all results have location
-    const resultsWithoutLocation = pendingResults.filter(r => !r.supplier_location);
-    if (resultsWithoutLocation.length > 0) {
-      alert(`⚠️ ไม่สามารถ Approve ทั้งหมดได้: มี ${resultsWithoutLocation.length} รายการที่ไม่มีตำแหน่งที่ตั้ง (Location)\n\nกรุณาเพิ่มตำแหน่งที่ตั้งให้ครบก่อน Approve\n\nตำแหน่งที่ตั้งจำเป็นสำหรับการคำนวณเส้นทาง`);
+    // Group by supplier name to check if supplier has location
+    const supplierGroups = new Map<string, typeof pendingResults>();
+    pendingResults.forEach(r => {
+      const supplierName = r.supplier_name || 'ไม่ระบุ';
+      if (!supplierGroups.has(supplierName)) {
+        supplierGroups.set(supplierName, []);
+      }
+      supplierGroups.get(supplierName)!.push(r);
+    });
+    
+    // Check if any supplier group has no location at all
+    // Check both result location and supplier location in DB
+    const suppliersWithoutLocation: string[] = [];
+    supplierGroups.forEach((results, supplierName) => {
+      const hasAnyLocation = results.some(r => 
+        (r.supplier_location && r.supplier_location.trim() !== '') ||
+        (r.supplier_location_in_db && r.supplier_location_in_db.trim() !== '')
+      );
+      if (!hasAnyLocation) {
+        suppliersWithoutLocation.push(supplierName);
+      }
+    });
+    
+    if (suppliersWithoutLocation.length > 0) {
+      alert(`⚠️ ไม่สามารถ Approve ทั้งหมดได้: มี Supplier ${suppliersWithoutLocation.length} รายการที่ไม่มีตำแหน่งที่ตั้ง (Location)\n\nSupplier ที่ไม่มี Location:\n${suppliersWithoutLocation.slice(0, 5).join('\n')}${suppliersWithoutLocation.length > 5 ? '\n...' : ''}\n\nกรุณาเพิ่มตำแหน่งที่ตั้งให้ Supplier เหล่านี้ก่อน Approve\n\n💡 เพิ่ม Location ครั้งเดียวสำหรับ Supplier เดียวกัน แล้ว Approve อื่นๆ จะใช้ Location เดิมได้`);
       return;
     }
     
@@ -1043,8 +1067,13 @@ const AiAgentPage: React.FC = () => {
                               </div>
                             ) : (
                               <div className="flex items-center space-x-1">
-                                {result.supplier_location ? (
-                                  <p className="text-xs text-gray-500">📍 {result.supplier_location}</p>
+                                {result.supplier_location || result.supplier_location_in_db ? (
+                                  <p className="text-xs text-gray-500">
+                                    📍 {result.supplier_location || result.supplier_location_in_db}
+                                    {!result.supplier_location && result.supplier_location_in_db && (
+                                      <span className="text-gray-400 ml-1">(จาก Supplier)</span>
+                                    )}
+                                  </p>
                                 ) : (
                                   <p className="text-xs text-red-500">⚠️ ไม่มีตำแหน่งที่ตั้ง</p>
                                 )}
@@ -1052,10 +1081,10 @@ const AiAgentPage: React.FC = () => {
                                   <button
                                     onClick={() => {
                                       setEditingLocation(result.id);
-                                      setLocationValue(result.supplier_location || '');
+                                      setLocationValue(result.supplier_location || result.supplier_location_in_db || '');
                                     }}
                                     className="ml-1 text-blue-600 hover:text-blue-800"
-                                    title="แก้ไขตำแหน่งที่ตั้ง"
+                                    title="แก้ไขตำแหน่งที่ตั้ง (จะใช้ร่วมกันกับ Supplier เดียวกัน)"
                                   >
                                     <Edit2 className="w-3 h-3" />
                                   </button>

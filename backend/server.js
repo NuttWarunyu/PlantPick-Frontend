@@ -1437,13 +1437,17 @@ app.get('/api/agents/results', optionalAdmin, async (req, res) => {
              sr.supplier_name, sr.supplier_phone, sr.supplier_location,
              sr.approved_by, sr.approved_at,
              p.name as plant_name_in_db,
-             s.name as supplier_name_in_db
+             s.name as supplier_name_in_db,
+             s.location as supplier_location_in_db
       FROM scraping_results sr
       LEFT JOIN plants p ON sr.plant_id = p.id
-      LEFT JOIN suppliers s ON sr.supplier_id = s.id
+      LEFT JOIN suppliers s ON sr.supplier_id = s.id OR (sr.supplier_name IS NOT NULL AND LOWER(s.name) = LOWER(sr.supplier_name))
     `;
     const params = [];
     const conditions = [];
+    
+    // Always filter out rejected results
+    conditions.push(`sr.status != 'rejected'`);
     
     if (jobId) {
       conditions.push(`sr.job_id = $${params.length + 1}`);
@@ -1466,9 +1470,16 @@ app.get('/api/agents/results', optionalAdmin, async (req, res) => {
     params.push(parseInt(limit));
 
     const result = await pool.query(query, params);
+    
+    // Merge location: use supplier location if result doesn't have one
+    const processedRows = result.rows.map(row => ({
+      ...row,
+      supplier_location: row.supplier_location || row.supplier_location_in_db || null
+    }));
+    
     res.json({
       success: true,
-      data: result.rows,
+      data: processedRows,
       message: 'ดึงข้อมูล scraping results สำเร็จ'
     });
   } catch (error) {
@@ -1503,19 +1514,32 @@ app.post('/api/agents/results/:id/approve', requireAdmin, async (req, res) => {
     const rawData = JSON.parse(result.raw_data || '{}');
     
     // 1. Find or create supplier
+    // First, check if supplier already exists with location
+    let existingSupplier = null;
+    if (result.supplier_name) {
+      const findSupplierQuery = `SELECT id, location FROM suppliers WHERE LOWER(name) = LOWER($1) LIMIT 1`;
+      const findSupplierResult = await pool.query(findSupplierQuery, [result.supplier_name]);
+      if (findSupplierResult.rows.length > 0) {
+        existingSupplier = findSupplierResult.rows[0];
+      }
+    }
+    
+    // Use location from result, or existing supplier, or empty
+    const locationToUse = result.supplier_location?.trim() || existingSupplier?.location || '';
+    
     // Validate: location is required for route calculation
-    if (!result.supplier_location || result.supplier_location.trim() === '') {
+    if (!locationToUse || locationToUse.trim() === '') {
       return res.status(400).json({
         success: false,
-        message: 'ไม่สามารถ Approve ได้: กรุณาเพิ่มตำแหน่งที่ตั้ง (Location) ของ Supplier ก่อน\n\nตำแหน่งที่ตั้งจำเป็นสำหรับการคำนวณเส้นทาง'
+        message: 'ไม่สามารถ Approve ได้: กรุณาเพิ่มตำแหน่งที่ตั้ง (Location) ของ Supplier ก่อน\n\nตำแหน่งที่ตั้งจำเป็นสำหรับการคำนวณเส้นทาง\n\n💡 ถ้า Supplier นี้มีอยู่แล้ว ให้เพิ่ม Location ที่ Supplier ครั้งเดียว แล้ว Approve อื่นๆ จะใช้ Location เดิมได้'
       });
     }
     
     let supplier = null;
-    if (result.supplier_name || result.supplier_phone || result.supplier_location) {
+    if (result.supplier_name || result.supplier_phone || locationToUse) {
       supplier = await db.findOrCreateSupplier({
         name: result.supplier_name || 'ไม่ระบุ',
-        location: result.supplier_location || '',
+        location: locationToUse, // Use location from result or existing supplier
         phone: result.supplier_phone || null,
         phoneNumbers: result.supplier_phone ? [result.supplier_phone] : [],
         description: `Approved from scraping result ${id}`,
@@ -1574,6 +1598,7 @@ app.post('/api/agents/results/:id/approve', requireAdmin, async (req, res) => {
 });
 
 // Update scraping result location (admin only)
+// This will update the supplier location so all results from the same supplier can use it
 app.put('/api/agents/results/:id/location', requireAdmin, async (req, res) => {
   try {
     const { id } = req.params;
@@ -1586,15 +1611,49 @@ app.put('/api/agents/results/:id/location', requireAdmin, async (req, res) => {
       });
     }
     
-    await pool.query(`
-      UPDATE scraping_results 
-      SET supplier_location = $1
-      WHERE id = $2 AND status = 'pending'
-    `, [location.trim(), id]);
+    // Get the result to find supplier name
+    const resultQuery = await pool.query(`
+      SELECT supplier_name FROM scraping_results WHERE id = $1 AND status = 'pending'
+    `, [id]);
+    
+    if (resultQuery.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'ไม่พบผลลัพธ์ที่ต้องการอัพเดท'
+      });
+    }
+    
+    const supplierName = resultQuery.rows[0].supplier_name;
+    
+    // Update supplier location (if supplier exists) and all pending results with same supplier name
+    if (supplierName) {
+      // Update supplier location (find or create supplier)
+      const supplier = await db.findOrCreateSupplier({
+        name: supplierName,
+        location: location.trim(),
+        phone: null,
+        phoneNumbers: [],
+        description: `Location updated from scraping result ${id}`
+      });
+      
+      // Update all pending results with same supplier name
+      await pool.query(`
+        UPDATE scraping_results 
+        SET supplier_location = $1
+        WHERE supplier_name = $2 AND status = 'pending'
+      `, [location.trim(), supplierName]);
+    } else {
+      // If no supplier name, just update this result
+      await pool.query(`
+        UPDATE scraping_results 
+        SET supplier_location = $1
+        WHERE id = $2 AND status = 'pending'
+      `, [location.trim(), id]);
+    }
     
     res.json({
       success: true,
-      message: 'อัพเดทตำแหน่งที่ตั้งสำเร็จ'
+      message: `อัพเดทตำแหน่งที่ตั้งสำเร็จ${supplierName ? ` (อัพเดท Supplier "${supplierName}" และผลลัพธ์ทั้งหมดที่เกี่ยวข้อง)` : ''}`
     });
   } catch (error) {
     console.error('Error updating location:', error);
