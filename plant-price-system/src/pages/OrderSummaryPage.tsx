@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Download, Printer, FileText, MapPin, Phone, Package, CheckCircle, Calendar, History } from 'lucide-react';
+import { ArrowLeft, Download, Printer, FileText, MapPin, Phone, Package, CheckCircle, Calendar, History, Route, Navigation, Clock, DollarSign, Truck, ExternalLink } from 'lucide-react';
 import { Plant, QuoteItem } from '../types';
+import { aiService } from '../services/aiService';
 
 interface OrderSummaryPageProps {
   selectedPlants: Plant[];
@@ -19,6 +20,14 @@ const OrderSummaryPage: React.FC<OrderSummaryPageProps> = ({ selectedPlants, set
   const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
   const [orderNumber, setOrderNumber] = useState<string>('');
   const [isSaved, setIsSaved] = useState(false);
+  
+  // Route Optimization states
+  const [destination, setDestination] = useState<string>('');
+  const [isOptimizing, setIsOptimizing] = useState(false);
+  const [routeResult, setRouteResult] = useState<any>(null);
+  const [routeError, setRouteError] = useState<string | null>(null);
+  const [routeAnalysis, setRouteAnalysis] = useState<any>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   // สร้างหมายเลขคำสั่งซื้อ
   useEffect(() => {
@@ -65,6 +74,106 @@ const OrderSummaryPage: React.FC<OrderSummaryPageProps> = ({ selectedPlants, set
   };
 
   const locationGroups = getLocationGroups();
+
+  // Calculate route optimization
+  const handleOptimizeRoute = async () => {
+    if (!destination.trim()) {
+      setRouteError('กรุณากรอกปลายทาง');
+      return;
+    }
+
+    const locations = Object.keys(locationGroups);
+    if (locations.length === 0) {
+      setRouteError('ไม่มีที่ตั้งที่ต้องไป');
+      return;
+    }
+
+    setIsOptimizing(true);
+    setRouteError(null);
+
+    try {
+      // สร้าง suppliers array สำหรับ route optimization
+      const suppliers = locations.map(location => {
+        const items = locationGroups[location];
+        const totalValue = items.reduce((sum, item) => 
+          sum + ((item.selectedSupplier?.price || 0) * item.quantity), 0
+        );
+        
+        return {
+          name: location,
+          location: location,
+          items: items.map(item => ({
+            plantName: item.plant.name,
+            quantity: item.quantity
+          })),
+          totalValue: totalValue
+        };
+      });
+
+      const result = await aiService.optimizeRoute(suppliers, destination);
+      setRouteResult(result);
+      
+      // เรียก AI Analysis หลังจากได้ route result
+      await handleAnalyzeRoute(result);
+    } catch (error: any) {
+      setRouteError(error.message || 'เกิดข้อผิดพลาดในการคำนวณเส้นทาง');
+      console.error('Route optimization error:', error);
+    } finally {
+      setIsOptimizing(false);
+    }
+  };
+
+  // AI Analysis for route
+  const handleAnalyzeRoute = async (routeData: any) => {
+    setIsAnalyzing(true);
+    try {
+      const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:3002';
+      const backendUrl = apiUrl.replace(/\/api$/, '');
+
+      const orderData = {
+        totalPrice: getTotalPrice(),
+        items: orderItems,
+        locationGroups: locationGroups
+      };
+
+      const response = await fetch(`${backendUrl}/api/route/analyze`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          routeData,
+          orderData
+        })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.data) {
+          setRouteAnalysis(data.data);
+        }
+      }
+    } catch (error: any) {
+      console.error('Route analysis error:', error);
+      // ไม่แสดง error เพราะเป็น optional feature
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
+  // Calculate number of trucks needed
+  const calculateTrucksNeeded = () => {
+    if (!routeResult) return null;
+    
+    // สมมติว่า 1 คันขนได้ 100 ต้น หรือ 50,000 บาท
+    const totalQuantity = orderItems.reduce((sum, item) => sum + item.quantity, 0);
+    const totalValue = getTotalPrice();
+    
+    const trucksByQuantity = Math.ceil(totalQuantity / 100);
+    const trucksByValue = Math.ceil(totalValue / 50000);
+    
+    return Math.max(trucksByQuantity, trucksByValue, 1); // อย่างน้อย 1 คัน
+  };
 
   const handlePrint = () => {
     window.print();
@@ -306,6 +415,220 @@ const OrderSummaryPage: React.FC<OrderSummaryPageProps> = ({ selectedPlants, set
             </div>
           </div>
         ))}
+      </div>
+
+      {/* Route Optimization Section */}
+      <div className="bg-white rounded-xl shadow-sm border border-blue-200 p-6 mt-8">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+            <Route className="h-6 w-6 text-blue-600" />
+          </div>
+          <div>
+            <h3 className="text-xl font-semibold text-blue-800">
+              🗺️ วางแผนการเดินทาง
+            </h3>
+            <p className="text-blue-600 text-sm">
+              คำนวณเส้นทางที่เหมาะสมสำหรับการไปรับของ
+            </p>
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          {/* Destination Input */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              ปลายทาง (Destination):
+            </label>
+            <div className="flex gap-3">
+              <input
+                type="text"
+                value={destination}
+                onChange={(e) => setDestination(e.target.value)}
+                placeholder="เช่น กรุงเทพมหานคร, นครปฐม"
+                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none"
+              />
+              <button
+                onClick={handleOptimizeRoute}
+                disabled={isOptimizing || !destination.trim()}
+                className="px-6 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                {isOptimizing ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    <span>กำลังคำนวณ...</span>
+                  </>
+                ) : (
+                  <>
+                    <Navigation className="h-4 w-4" />
+                    <span>คำนวณเส้นทาง</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+
+          {/* Route Result */}
+          {routeError && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+              <div className="text-red-700">{routeError}</div>
+            </div>
+          )}
+
+          {routeResult && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="bg-white rounded-lg p-4 text-center">
+                  <Navigation className="h-6 w-6 text-blue-500 mx-auto mb-2" />
+                  <div className="text-2xl font-bold text-blue-900">
+                    {routeResult.totalDistance.toFixed(1)} กม.
+                  </div>
+                  <div className="text-sm text-blue-700">ระยะทางรวม</div>
+                </div>
+                
+                <div className="bg-white rounded-lg p-4 text-center">
+                  <Clock className="h-6 w-6 text-green-500 mx-auto mb-2" />
+                  <div className="text-2xl font-bold text-green-900">
+                    {routeResult.totalTime} ชม.
+                  </div>
+                  <div className="text-sm text-green-700">เวลาโดยประมาณ</div>
+                </div>
+                
+                <div className="bg-white rounded-lg p-4 text-center">
+                  <DollarSign className="h-6 w-6 text-purple-500 mx-auto mb-2" />
+                  <div className="text-2xl font-bold text-purple-900">
+                    ฿{routeResult.totalCost.toLocaleString()}
+                  </div>
+                  <div className="text-sm text-purple-700">ค่าน้ำมัน</div>
+                </div>
+                
+                <div className="bg-white rounded-lg p-4 text-center">
+                  <Truck className="h-6 w-6 text-orange-500 mx-auto mb-2" />
+                  <div className="text-2xl font-bold text-orange-900">
+                    {calculateTrucksNeeded() || 1} คัน
+                  </div>
+                  <div className="text-sm text-orange-700">จำนวนรถที่ต้องใช้</div>
+                </div>
+              </div>
+
+              {/* Route Steps */}
+              <div>
+                <h4 className="font-semibold text-gray-700 mb-3">🗺️ เส้นทางที่แนะนำ:</h4>
+                <div className="space-y-3">
+                  <div className="bg-white rounded-lg p-3 border border-gray-200">
+                    <div className="flex items-center gap-2">
+                      <div className="w-6 h-6 bg-green-500 text-white rounded-full flex items-center justify-center text-xs font-bold">
+                        0
+                      </div>
+                      <span className="font-medium text-gray-800">เริ่มต้น: {destination}</span>
+                    </div>
+                  </div>
+                  
+                  {routeResult.optimizedRoute && routeResult.optimizedRoute.length > 0 ? (
+                    routeResult.optimizedRoute.map((step: any, index: number) => {
+                      // หา supplier ที่ตรงกับ location
+                      const location = step.supplierName || step.location || step.address;
+                      const supplierItems = locationGroups[location] || [];
+                      const firstSupplier = supplierItems[0]?.selectedSupplier;
+                      
+                      return (
+                        <div key={index} className="bg-white rounded-lg p-3 border border-gray-200">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <div className="w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center text-xs font-bold">
+                                {index + 1}
+                              </div>
+                              <div>
+                                <div className="font-medium text-gray-800">{location}</div>
+                                {firstSupplier && (
+                                  <>
+                                    <div className="text-sm text-gray-600">{firstSupplier.name}</div>
+                                    {firstSupplier.phone && (
+                                      <div className="text-xs text-gray-500">📞 {firstSupplier.phone}</div>
+                                    )}
+                                  </>
+                                )}
+                                <div className="text-xs text-green-600 mt-1">
+                                  {supplierItems.length} รายการ | ฿{supplierItems.reduce((sum: number, item: OrderItem) => 
+                                    sum + ((item.selectedSupplier?.price || 0) * item.quantity), 0
+                                  ).toLocaleString()}
+                                </div>
+                              </div>
+                            </div>
+                            {step.distance_to_next !== undefined && step.distance_to_next > 0 && (
+                              <div className="text-sm text-gray-600">
+                                → {step.distance_to_next.toFixed(1)} กม.
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <div className="text-center py-4 text-gray-500">
+                      ไม่พบข้อมูลเส้นทาง
+                    </div>
+                  )}
+                  
+                  <div className="bg-white rounded-lg p-3 border border-gray-200">
+                    <div className="flex items-center gap-2">
+                      <div className="w-6 h-6 bg-green-500 text-white rounded-full flex items-center justify-center text-xs font-bold">
+                        ✓
+                      </div>
+                      <span className="font-medium text-gray-800">กลับไปที่: {destination}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Google Maps Link */}
+              {routeResult.mapUrl && (
+                <div>
+                  <a
+                    href={routeResult.mapUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 px-6 py-3 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-colors"
+                  >
+                    <MapPin className="h-4 w-4" />
+                    <span>เปิดใน Google Maps</span>
+                    <ExternalLink className="h-4 w-4" />
+                  </a>
+                </div>
+              )}
+
+              {/* Summary */}
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                <h4 className="font-semibold text-yellow-900 mb-2">📊 สรุปค่าใช้จ่ายการขนส่ง:</h4>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <span className="text-yellow-700">ค่าน้ำมัน:</span>
+                    <span className="ml-2 font-semibold text-yellow-900">
+                      ฿{routeResult.totalCost.toLocaleString()}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-yellow-700">จำนวนรถ:</span>
+                    <span className="ml-2 font-semibold text-yellow-900">
+                      {calculateTrucksNeeded() || 1} คัน
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-yellow-700">ระยะทางรวม:</span>
+                    <span className="ml-2 font-semibold text-yellow-900">
+                      {routeResult.totalDistance.toFixed(1)} กม.
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-yellow-700">เวลาโดยประมาณ:</span>
+                    <span className="ml-2 font-semibold text-yellow-900">
+                      {routeResult.totalTime} ชั่วโมง
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Final Summary */}

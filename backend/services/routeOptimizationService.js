@@ -323,5 +323,182 @@ Return JSON:
   }
 }
 
+  // AI Analysis for Route Optimization - วิเคราะห์และให้คำแนะนำด้วย AI
+  async analyzeRouteWithAI(routeData, orderData) {
+    const { route, totalDistance, estimatedTime, fuelCost, suppliers, projectLocation } = routeData;
+    const { totalPrice, items, locationGroups } = orderData;
+
+    const prompt = `คุณเป็น AI Consultant ผู้เชี่ยวชาญด้านการวางแผนการขนส่งต้นไม้และจัดสวน
+
+ข้อมูลคำสั่งซื้อ:
+- ปลายทาง: ${projectLocation}
+- ราคาสินค้ารวม: ฿${totalPrice.toLocaleString()}
+- จำนวนรายการ: ${items.length} รายการ
+- จำนวนที่ตั้งที่ต้องไป: ${Object.keys(locationGroups).length} แห่ง
+
+ข้อมูลเส้นทาง:
+- ระยะทางรวม: ${totalDistance.toFixed(1)} กม.
+- เวลาโดยประมาณ: ${estimatedTime} ชั่วโมง
+- ค่าน้ำมัน: ฿${fuelCost.toLocaleString()}
+
+รายละเอียดที่ตั้งที่ต้องไป:
+${Object.entries(locationGroups).map(([location, items]) => `
+- ${location}: ${items.length} รายการ, ราคารวม ฿${items.reduce((sum, item) => sum + ((item.selectedSupplier?.price || 0) * item.quantity), 0).toLocaleString()}
+`).join('')}
+
+เส้นทางที่แนะนำ:
+${route.map((step, index) => `${index + 1}. ${step.location}${step.distance_to_next ? ` → ${step.distance_to_next.toFixed(1)} กม.` : ''}`).join('\n')}
+
+TASK: วิเคราะห์และให้คำแนะนำที่ครอบคลุมสำหรับการวางแผนการขนส่ง
+
+กรุณาวิเคราะห์และให้คำแนะนำในหัวข้อต่อไปนี้:
+
+1. **การวิเคราะห์ต้นทุนรวม**
+   - ต้นทุนสินค้า: ฿${totalPrice.toLocaleString()}
+   - ค่าขนส่ง (น้ำมัน): ฿${fuelCost.toLocaleString()}
+   - ค่าแรง (ประมาณ): คำนวณจากเวลา ${estimatedTime} ชม.
+   - ต้นทุนรวมทั้งหมด
+   - สัดส่วนค่าขนส่งต่อราคาสินค้า (%)
+
+2. **การวิเคราะห์จำนวนรถที่เหมาะสม**
+   - จำนวนรายการทั้งหมด: ${items.reduce((sum, item) => sum + item.quantity, 0)} ต้น
+   - มูลค่ารวม: ฿${totalPrice.toLocaleString()}
+   - แนะนำจำนวนรถที่ควรใช้ (พิจารณาจากขนาดต้นไม้, ปริมาณ, ระยะทาง)
+   - เปรียบเทียบ: ใช้ 1 คัน vs หลายคัน (ข้อดี-ข้อเสีย)
+
+3. **การวิเคราะห์ความเสี่ยง**
+   - ความเสี่ยงจากระยะทางไกล (ต้นไม้ตาย, เสียหาย)
+   - ความเสี่ยงจากเวลาขนส่งนาน
+   - ความเสี่ยงจากสภาพอากาศ/การจราจร
+   - ระดับความเสี่ยงโดยรวม (ต่ำ/ปานกลาง/สูง)
+
+4. **คำแนะนำการจัดซื้อ**
+   - ควรซื้อจากที่ไหนก่อน (ลำดับความสำคัญ)
+   - ควรใช้เวลาเท่าไหร่ต่อจุด
+   - ควรไปวันไหน (ถ้ามีข้อมูล)
+   - คำแนะนำการจัดเรียงสินค้าในรถ
+
+5. **การวิเคราะห์ ROI และความคุ้มค่า**
+   - คุ้มค่าหรือไม่ (เปรียบเทียบต้นทุนขนส่งกับราคาสินค้า)
+   - ควรดำเนินการหรือไม่
+   - ทางเลือกอื่นที่ควรพิจารณา
+
+6. **คำแนะนำการประหยัดต้นทุน**
+   - วิธีลดค่าขนส่ง
+   - วิธีลดความเสี่ยง
+   - วิธีเพิ่มประสิทธิภาพ
+
+7. **คำแนะนำการวางแผน**
+   - ควรเริ่มต้นเวลาเท่าไหร่
+   - ควรใช้เวลาต่อจุดเท่าไหร่
+   - ควรมี buffer time เท่าไหร่
+   - คำแนะนำเพิ่มเติม
+
+Return JSON:
+{
+  "costAnalysis": {
+    "productCost": ${totalPrice},
+    "transportCost": ${fuelCost},
+    "laborCost": 0, // คำนวณจากเวลา
+    "totalCost": 0,
+    "transportPercentage": 0, // % ของค่าขนส่งต่อราคาสินค้า
+    "isCostEffective": true/false,
+    "reasoning": "..."
+  },
+  "truckRecommendation": {
+    "recommendedTrucks": 1,
+    "trucksByQuantity": 0, // คำนวณจากจำนวนต้นไม้
+    "trucksByValue": 0, // คำนวณจากมูลค่า
+    "singleTruckPros": ["..."],
+    "singleTruckCons": ["..."],
+    "multipleTrucksPros": ["..."],
+    "multipleTrucksCons": ["..."],
+    "recommendation": "ใช้ 1 คัน" หรือ "ใช้หลายคัน",
+    "reasoning": "..."
+  },
+  "riskAnalysis": {
+    "distanceRisk": "low/medium/high",
+    "timeRisk": "low/medium/high",
+    "weatherRisk": "low/medium/high",
+    "overallRisk": "low/medium/high",
+    "riskFactors": ["..."],
+    "mitigation": ["..."] // วิธีลดความเสี่ยง
+  },
+  "purchaseRecommendation": {
+    "priorityOrder": ["ที่ตั้ง 1", "ที่ตั้ง 2", ...],
+    "timePerLocation": {"ที่ตั้ง 1": 30, ...}, // นาที
+    "loadingOrder": ["ต้นไม้ขนาดใหญ่", "ต้นไม้ขนาดเล็ก", ...],
+    "reasoning": "..."
+  },
+  "roiAnalysis": {
+    "isWorthIt": true/false,
+    "transportToProductRatio": 0, // % ค่าขนส่งต่อราคาสินค้า
+    "recommendation": "ควรดำเนินการ" หรือ "ควรพิจารณาใหม่",
+    "alternatives": ["..."],
+    "reasoning": "..."
+  },
+  "costSavingTips": [
+    "คำแนะนำ 1",
+    "คำแนะนำ 2",
+    ...
+  ],
+  "planningRecommendation": {
+    "startTime": "06:00",
+    "timePerLocation": 30, // นาที
+    "bufferTime": 60, // นาที
+    "totalTimeNeeded": 0, // นาที
+    "tips": ["..."]
+  },
+  "overallRecommendation": "สรุปคำแนะนำโดยรวม",
+  "confidence": 85 // 0-100
+}
+
+ตอบเป็น JSON ล้วนๆ เท่านั้น ห้ามใส่โค้ดบล็อก`;
+
+    try {
+      const response = await aiService.analyzeText(prompt);
+      return response;
+    } catch (error) {
+      console.error('AI Route Analysis Error:', error);
+      // Return basic analysis if AI fails
+      return this.getBasicRouteAnalysis(routeData, orderData);
+    }
+  }
+
+  // Basic analysis fallback
+  getBasicRouteAnalysis(routeData, orderData) {
+    const { totalDistance, estimatedTime, fuelCost } = routeData;
+    const { totalPrice } = orderData;
+    
+    const transportPercentage = (fuelCost / totalPrice) * 100;
+    const laborCost = estimatedTime * 500; // 500 บาท/ชม.
+    const totalCost = totalPrice + fuelCost + laborCost;
+    
+    return {
+      costAnalysis: {
+        productCost: totalPrice,
+        transportCost: fuelCost,
+        laborCost,
+        totalCost,
+        transportPercentage: parseFloat(transportPercentage.toFixed(2)),
+        isCostEffective: transportPercentage < 10,
+        reasoning: transportPercentage < 10 
+          ? 'ค่าขนส่งต่ำกว่า 10% ของราคาสินค้า ถือว่าคุ้มค่า'
+          : 'ค่าขนส่งสูงกว่า 10% ของราคาสินค้า ควรพิจารณาเพิ่มเติม'
+      },
+      truckRecommendation: {
+        recommendedTrucks: 1,
+        reasoning: 'แนะนำใช้ 1 คันสำหรับการขนส่งนี้'
+      },
+      riskAnalysis: {
+        overallRisk: totalDistance > 200 ? 'high' : totalDistance > 100 ? 'medium' : 'low',
+        reasoning: `ระยะทาง ${totalDistance.toFixed(1)} กม. ${totalDistance > 200 ? 'มีความเสี่ยงสูง' : totalDistance > 100 ? 'มีความเสี่ยงปานกลาง' : 'มีความเสี่ยงต่ำ'}`
+      },
+      overallRecommendation: 'ควรดำเนินการตามแผนที่วางไว้',
+      confidence: 70
+    };
+  }
+}
+
 module.exports = new RouteOptimizationService();
 

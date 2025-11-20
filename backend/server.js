@@ -1813,6 +1813,36 @@ app.post('/api/suppliers/validate-location', async (req, res) => {
   }
 });
 
+// AI Route Analysis - วิเคราะห์เส้นทางและให้คำแนะนำด้วย AI
+app.post('/api/route/analyze', async (req, res) => {
+  try {
+    const { routeData, orderData } = req.body;
+    
+    if (!routeData || !orderData) {
+      return res.status(400).json({
+        success: false,
+        message: 'Missing required fields: routeData and orderData'
+      });
+    }
+
+    const routeOptimizationService = require('./services/routeOptimizationService');
+    const analysis = await routeOptimizationService.analyzeRouteWithAI(routeData, orderData);
+    
+    res.json({
+      success: true,
+      data: analysis,
+      message: 'วิเคราะห์เส้นทางสำเร็จ'
+    });
+  } catch (error) {
+    console.error('Route analysis error:', error);
+    res.status(500).json({
+      success: false,
+      data: null,
+      message: `เกิดข้อผิดพลาดในการวิเคราะห์เส้นทาง: ${error.message}`
+    });
+  }
+});
+
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error(err.stack);
