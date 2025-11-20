@@ -39,6 +39,7 @@ export interface RouteOptimization {
     time: number;
     cost: number;
   };
+  mapUrl?: string | null;
 }
 
 export interface RouteStep {
@@ -169,14 +170,107 @@ class AIService {
     */
   }
 
-  // วางแผนเส้นทางด้วย AI (ใช้ Mock Data ชั่วคราว - สามารถปรับให้เรียกผ่าน Backend ทีหลัง)
+  // วางแผนเส้นทางด้วย AI (เรียกผ่าน Backend API)
   async optimizeRoute(selectedSuppliers: any[], projectLocation: string): Promise<RouteOptimization> {
-    // TODO: ปรับให้เรียกผ่าน Backend API `/api/ai/optimize-route` เพื่อความปลอดภัย
-    return this.getMockRouteOptimization(selectedSuppliers);
+    try {
+      const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:3002';
+      const backendUrl = apiUrl.replace(/\/api$/, ''); // ลบ /api ถ้ามี
+      
+      // แปลง suppliers เป็น format ที่ backend ต้องการ
+      const suppliersForApi = selectedSuppliers.map(supplier => ({
+        name: supplier.name,
+        location: supplier.location,
+        items: supplier.plants?.map((plant: string) => ({ plantName: plant, quantity: 1 })) || [],
+        totalValue: 0
+      }));
 
-    /* Legacy code - เรียก OpenAI โดยตรง (ไม่ปลอดภัย)
-    // ... removed for security ...
-    */
+      const response = await fetch(`${backendUrl}/api/route/optimize`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          projectLocation,
+          selectedSuppliers: suppliersForApi
+        })
+      });
+
+      if (!response.ok) {
+        let errorMessage = `เกิดข้อผิดพลาด: ${response.status}`;
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.message || errorMessage;
+        } catch (e) {
+          errorMessage = `เกิดข้อผิดพลาดจาก Backend (Status: ${response.status})`;
+        }
+        throw new Error(errorMessage);
+      }
+
+      const data = await response.json();
+      
+      if (data.success && data.data) {
+        // แปลง response จาก backend ให้ตรงกับ RouteOptimization interface
+        const backendData = data.data;
+        
+        // แปลง route array เป็น RouteStep[]
+        const optimizedRoute: RouteStep[] = backendData.route
+          .filter((step: any) => step.location !== projectLocation) // กรอง project location ออก
+          .map((step: any, index: number) => {
+            // หา supplier ที่ตรงกับ location
+            const supplier = selectedSuppliers.find(s => 
+              s.name === step.location || s.location === step.location
+            );
+            
+            return {
+              supplierId: supplier?.id || `supplier_${index}`,
+              supplierName: step.location || supplier?.name || 'ไม่ระบุ',
+              address: supplier?.location || step.location || 'ไม่ระบุที่อยู่',
+              phone: supplier?.phone || 'ไม่ระบุเบอร์โทร',
+              plants: supplier?.plants || [],
+              estimatedCost: step.distance_to_next ? Math.round(step.distance_to_next * 0.75) : 0,
+              estimatedTime: step.distance_to_next ? Math.round(step.distance_to_next / 50 * 60) : 0,
+              coordinates: {
+                lat: 0, // จะต้องหา supplier coords จาก backendData.suppliers
+                lng: 0
+              }
+            };
+          });
+
+        // อัพเดท coordinates จาก suppliers data
+        backendData.suppliers?.forEach((supplier: any, index: number) => {
+          if (optimizedRoute[index] && supplier.coords) {
+            optimizedRoute[index].coordinates = {
+              lat: supplier.coords.lat,
+              lng: supplier.coords.lng
+            };
+          }
+        });
+
+        // คำนวณ savings (เปรียบเทียบกับ route แบบไม่ optimize)
+        const totalDistance = backendData.totalDistance || 0;
+        const estimatedSavings = totalDistance * 0.1; // ประมาณ 10% ประหยัด
+
+        return {
+          totalDistance: backendData.totalDistance || 0,
+          totalTime: backendData.estimatedTime || 0,
+          totalCost: backendData.fuelCost || 0,
+          optimizedRoute,
+          savings: {
+            distance: estimatedSavings,
+            time: Math.round(estimatedSavings / 50 * 60), // แปลงเป็นนาที
+            cost: Math.round(estimatedSavings * 0.75)
+          },
+          mapUrl: backendData.mapUrl || null
+        };
+      } else {
+        throw new Error(data.message || 'ไม่สามารถวางแผนเส้นทางได้');
+      }
+    } catch (error: any) {
+      console.error('Error optimizing route:', error);
+      // Fallback to mock data if API fails
+      console.warn('Falling back to mock data');
+      return this.getMockRouteOptimization(selectedSuppliers);
+    }
   }
 
   // ข้อมูลจำลองสำหรับการทดสอบ

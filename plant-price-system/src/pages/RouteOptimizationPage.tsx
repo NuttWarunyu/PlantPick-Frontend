@@ -1,7 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Clock, DollarSign, Navigation, Route } from 'lucide-react';
+import { ArrowLeft, Clock, DollarSign, Navigation, Route, MapPin, ExternalLink } from 'lucide-react';
 import { aiService, RouteOptimization } from '../services/aiService';
+import { apiService } from '../services/api';
+
+interface Supplier {
+  id: string;
+  name: string;
+  location: string;
+  phone?: string;
+  plants?: string[];
+}
 
 const RouteOptimizationPage: React.FC = () => {
   const navigate = useNavigate();
@@ -10,15 +19,52 @@ const RouteOptimizationPage: React.FC = () => {
   const [isOptimizing, setIsOptimizing] = useState(false);
   const [optimizationResult, setOptimizationResult] = useState<RouteOptimization | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+  const [isLoadingSuppliers, setIsLoadingSuppliers] = useState(true);
+  const [mapUrl, setMapUrl] = useState<string | null>(null);
 
-  // ข้อมูลร้านค้าตัวอย่าง
-  const sampleSuppliers = [
-    { id: '1', name: 'สวนไม้ประดับ ณัฐพล', location: 'นครปฐม', phone: '081-234-5678', plants: ['มอนสเตอร่า', 'ยางอินเดีย'] },
-    { id: '2', name: 'ร้านต้นไม้สวยงาม', location: 'เชียงใหม่', phone: '089-876-5432', plants: ['ไม้ล้อม', 'ไม้ไผ่'] },
-    { id: '3', name: 'สวนแคคตัส', location: 'กรุงเทพฯ', phone: '082-345-6789', plants: ['แคคตัส', 'บอนไซ'] },
-    { id: '4', name: 'สวนกล้วยไม้', location: 'ภูเก็ต', phone: '083-456-7890', plants: ['กล้วยไม้', 'ไม้ดอก'] },
-    { id: '5', name: 'สวนไม้ใบ', location: 'ขอนแก่น', phone: '084-567-8901', plants: ['ฟิโลเดนดรอน', 'ไม้ใบ'] }
-  ];
+  // ดึงข้อมูล suppliers จาก API
+  useEffect(() => {
+    const loadSuppliers = async () => {
+      try {
+        setIsLoadingSuppliers(true);
+        const response = await apiService.getSuppliers();
+        if (response.success && response.data) {
+          const suppliersData = response.data.map((s: any, index: number) => ({
+            id: s.id || `supplier_${index}`,
+            name: s.name,
+            location: s.location,
+            phone: s.phone,
+            plants: [] // TODO: ดึง plants จาก plant_suppliers
+          }));
+          setSuppliers(suppliersData);
+        } else {
+          // Fallback to sample data
+          setSuppliers([
+            { id: '1', name: 'สวนไม้ประดับ ณัฐพล', location: 'นครปฐม', phone: '081-234-5678', plants: ['มอนสเตอร่า', 'ยางอินเดีย'] },
+            { id: '2', name: 'ร้านต้นไม้สวยงาม', location: 'เชียงใหม่', phone: '089-876-5432', plants: ['ไม้ล้อม', 'ไม้ไผ่'] },
+            { id: '3', name: 'สวนแคคตัส', location: 'กรุงเทพฯ', phone: '082-345-6789', plants: ['แคคตัส', 'บอนไซ'] },
+            { id: '4', name: 'สวนกล้วยไม้', location: 'ภูเก็ต', phone: '083-456-7890', plants: ['กล้วยไม้', 'ไม้ดอก'] },
+            { id: '5', name: 'สวนไม้ใบ', location: 'ขอนแก่น', phone: '084-567-8901', plants: ['ฟิโลเดนดรอน', 'ไม้ใบ'] }
+          ]);
+        }
+      } catch (err) {
+        console.error('Error loading suppliers:', err);
+        // Fallback to sample data
+        setSuppliers([
+          { id: '1', name: 'สวนไม้ประดับ ณัฐพล', location: 'นครปฐม', phone: '081-234-5678', plants: ['มอนสเตอร่า', 'ยางอินเดีย'] },
+          { id: '2', name: 'ร้านต้นไม้สวยงาม', location: 'เชียงใหม่', phone: '089-876-5432', plants: ['ไม้ล้อม', 'ไม้ไผ่'] },
+          { id: '3', name: 'สวนแคคตัส', location: 'กรุงเทพฯ', phone: '082-345-6789', plants: ['แคคตัส', 'บอนไซ'] },
+          { id: '4', name: 'สวนกล้วยไม้', location: 'ภูเก็ต', phone: '083-456-7890', plants: ['กล้วยไม้', 'ไม้ดอก'] },
+          { id: '5', name: 'สวนไม้ใบ', location: 'ขอนแก่น', phone: '084-567-8901', plants: ['ฟิโลเดนดรอน', 'ไม้ใบ'] }
+        ]);
+      } finally {
+        setIsLoadingSuppliers(false);
+      }
+    };
+
+    loadSuppliers();
+  }, []);
 
   const handleSupplierToggle = (supplierId: string) => {
     setSelectedSuppliers(prev => 
@@ -43,11 +89,12 @@ const RouteOptimizationPage: React.FC = () => {
     setError(null);
 
     try {
-      const suppliers = sampleSuppliers.filter(s => selectedSuppliers.includes(s.id));
-      const result = await aiService.optimizeRoute(suppliers, projectLocation);
+      const selectedSuppliersData = suppliers.filter(s => selectedSuppliers.includes(s.id));
+      const result = await aiService.optimizeRoute(selectedSuppliersData, projectLocation);
       setOptimizationResult(result);
-    } catch (err) {
-      setError('เกิดข้อผิดพลาดในการวางแผนเส้นทาง');
+      setMapUrl(result.mapUrl || null);
+    } catch (err: any) {
+      setError(err.message || 'เกิดข้อผิดพลาดในการวางแผนเส้นทาง');
       console.error('Route optimization error:', err);
     } finally {
       setIsOptimizing(false);
@@ -105,8 +152,18 @@ const RouteOptimizationPage: React.FC = () => {
             {/* Supplier Selection */}
             <div className="bg-white rounded-lg shadow-sm p-6">
               <h2 className="text-xl font-semibold text-gray-900 mb-4">🏪 เลือกร้านค้า</h2>
-              <div className="space-y-3">
-                {sampleSuppliers.map(supplier => (
+              {isLoadingSuppliers ? (
+                <div className="text-center py-8 text-gray-500">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-500 mx-auto"></div>
+                  <p className="mt-2">กำลังโหลดข้อมูลร้านค้า...</p>
+                </div>
+              ) : suppliers.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                  <p>ไม่พบข้อมูลร้านค้า</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {suppliers.map(supplier => (
                   <div
                     key={supplier.id}
                     className={`p-4 border rounded-lg cursor-pointer transition-colors ${
@@ -121,10 +178,12 @@ const RouteOptimizationPage: React.FC = () => {
                         <h3 className="font-medium text-gray-900">{supplier.name}</h3>
                         <p className="text-sm text-gray-600">{supplier.location}</p>
                         <p className="text-sm text-gray-500">{supplier.phone}</p>
-                        <div className="mt-1">
-                          <span className="text-xs text-gray-500">ต้นไม้: </span>
-                          <span className="text-xs text-green-600">{supplier.plants.join(', ')}</span>
-                        </div>
+                        {supplier.plants && supplier.plants.length > 0 && (
+                          <div className="mt-1">
+                            <span className="text-xs text-gray-500">ต้นไม้: </span>
+                            <span className="text-xs text-green-600">{supplier.plants.join(', ')}</span>
+                          </div>
+                        )}
                       </div>
                       <div className={`w-5 h-5 rounded border-2 flex items-center justify-center ${
                         selectedSuppliers.includes(supplier.id)
@@ -138,7 +197,8 @@ const RouteOptimizationPage: React.FC = () => {
                     </div>
                   </div>
                 ))}
-              </div>
+                </div>
+              )}
 
               <button
                 onClick={handleOptimize}
@@ -203,29 +263,47 @@ const RouteOptimizationPage: React.FC = () => {
                   </div>
 
                   {/* Savings */}
-                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                    <h3 className="font-semibold text-yellow-900 mb-2">💰 ประหยัดได้</h3>
-                    <div className="grid grid-cols-3 gap-4 text-sm">
-                      <div>
-                        <span className="text-yellow-700">ระยะทาง:</span>
-                        <span className="ml-2 font-semibold text-yellow-900">
-                          -{formatDistance(optimizationResult.savings.distance)}
-                        </span>
-                      </div>
-                      <div>
-                        <span className="text-yellow-700">เวลา:</span>
-                        <span className="ml-2 font-semibold text-yellow-900">
-                          -{formatTime(optimizationResult.savings.time)}
-                        </span>
-                      </div>
-                      <div>
-                        <span className="text-yellow-700">ค่าใช้จ่าย:</span>
-                        <span className="ml-2 font-semibold text-yellow-900">
-                          -฿{optimizationResult.savings.cost.toLocaleString()}
-                        </span>
+                  {optimizationResult.savings && (
+                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                      <h3 className="font-semibold text-yellow-900 mb-2">💰 ประหยัดได้</h3>
+                      <div className="grid grid-cols-3 gap-4 text-sm">
+                        <div>
+                          <span className="text-yellow-700">ระยะทาง:</span>
+                          <span className="ml-2 font-semibold text-yellow-900">
+                            -{formatDistance(optimizationResult.savings.distance)}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-yellow-700">เวลา:</span>
+                          <span className="ml-2 font-semibold text-yellow-900">
+                            -{formatTime(optimizationResult.savings.time)}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-yellow-700">ค่าใช้จ่าย:</span>
+                          <span className="ml-2 font-semibold text-yellow-900">
+                            -฿{optimizationResult.savings.cost.toLocaleString()}
+                          </span>
+                        </div>
                       </div>
                     </div>
-                  </div>
+                  )}
+
+                  {/* Google Maps Link */}
+                  {mapUrl && (
+                    <div className="mt-4">
+                      <a
+                        href={mapUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center space-x-2 bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600"
+                      >
+                        <MapPin className="w-4 h-4" />
+                        <span>เปิดใน Google Maps</span>
+                        <ExternalLink className="w-4 h-4" />
+                      </a>
+                    </div>
+                  )}
                 </div>
 
                 {/* Route Steps */}

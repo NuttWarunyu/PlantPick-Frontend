@@ -1691,6 +1691,128 @@ app.post('/api/agents/results/:id/reject', requireAdmin, async (req, res) => {
   }
 });
 
+// 🗺️ Route Optimization Endpoints
+
+// Optimize route for project
+app.post('/api/route/optimize', async (req, res) => {
+  try {
+    const { projectLocation, selectedSuppliers } = req.body;
+    
+    if (!projectLocation || !selectedSuppliers || selectedSuppliers.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Missing required fields: projectLocation and selectedSuppliers (array)'
+      });
+    }
+
+    const routeOptimizationService = require('./services/routeOptimizationService');
+    const result = await routeOptimizationService.optimizeRoute(projectLocation, selectedSuppliers);
+    
+    res.json({
+      success: true,
+      data: result,
+      message: 'คำนวณเส้นทางสำเร็จ'
+    });
+  } catch (error) {
+    console.error('Route optimization error:', error);
+    res.status(500).json({
+      success: false,
+      data: null,
+      message: `เกิดข้อผิดพลาดในการคำนวณเส้นทาง: ${error.message}`
+    });
+  }
+});
+
+// Geocode address
+app.post('/api/route/geocode', async (req, res) => {
+  try {
+    const { address } = req.body;
+    
+    if (!address) {
+      return res.status(400).json({
+        success: false,
+        message: 'Missing required field: address'
+      });
+    }
+
+    const routeOptimizationService = require('./services/routeOptimizationService');
+    const result = await routeOptimizationService.geocodeAddress(address);
+    
+    res.json({
+      success: true,
+      data: result,
+      message: 'Geocode สำเร็จ'
+    });
+  } catch (error) {
+    console.error('Geocoding error:', error);
+    res.status(500).json({
+      success: false,
+      data: null,
+      message: `เกิดข้อผิดพลาดในการ geocode: ${error.message}`
+    });
+  }
+});
+
+// Batch geocode addresses
+app.post('/api/route/geocode-batch', async (req, res) => {
+  try {
+    const { addresses } = req.body;
+    
+    if (!addresses || !Array.isArray(addresses) || addresses.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Missing required field: addresses (array)'
+      });
+    }
+
+    const routeOptimizationService = require('./services/routeOptimizationService');
+    const results = await routeOptimizationService.geocodeAddresses(addresses);
+    
+    res.json({
+      success: true,
+      data: results,
+      message: `Geocode สำเร็จ ${results.filter(r => r.success).length}/${results.length} ที่อยู่`
+    });
+  } catch (error) {
+    console.error('Batch geocoding error:', error);
+    res.status(500).json({
+      success: false,
+      data: null,
+      message: `เกิดข้อผิดพลาดในการ geocode: ${error.message}`
+    });
+  }
+});
+
+// Validate supplier location
+app.post('/api/suppliers/validate-location', async (req, res) => {
+  try {
+    const { location } = req.body;
+    
+    if (!location) {
+      return res.status(400).json({
+        success: false,
+        message: 'Missing required field: location'
+      });
+    }
+
+    const supplierValidationService = require('./services/supplierValidationService');
+    const result = await supplierValidationService.validateSupplierLocation(location);
+    
+    res.json({
+      success: result.isValid,
+      data: result,
+      message: result.isValid ? 'ที่อยู่ถูกต้อง' : result.error
+    });
+  } catch (error) {
+    console.error('Location validation error:', error);
+    res.status(500).json({
+      success: false,
+      data: null,
+      message: `เกิดข้อผิดพลาดในการตรวจสอบที่อยู่: ${error.message}`
+    });
+  }
+});
+
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error(err.stack);
@@ -1765,6 +1887,16 @@ async function initializeDatabase() {
     try {
       await pool.query(`ALTER TABLE suppliers ADD COLUMN IF NOT EXISTS phone_numbers TEXT DEFAULT '[]'`);
     } catch (e) {}
+    // เพิ่มคอลัมน์สำหรับ geocoding (latitude, longitude, formatted_address)
+    try {
+      await pool.query(`ALTER TABLE suppliers ADD COLUMN IF NOT EXISTS latitude DECIMAL(10, 8)`);
+      await pool.query(`ALTER TABLE suppliers ADD COLUMN IF NOT EXISTS longitude DECIMAL(11, 8)`);
+      await pool.query(`ALTER TABLE suppliers ADD COLUMN IF NOT EXISTS formatted_address TEXT`);
+      await pool.query(`CREATE INDEX IF NOT EXISTS idx_suppliers_coords ON suppliers(latitude, longitude)`);
+      console.log('✅ เพิ่มคอลัมน์ geocoding (latitude, longitude, formatted_address)');
+    } catch (e) {
+      console.error('Error adding geocoding columns:', e.message);
+    }
     
     // สร้างตาราง plant_suppliers ถ้ายังไม่มี
     await pool.query(`

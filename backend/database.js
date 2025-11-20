@@ -267,14 +267,20 @@ const db = {
         SET location = COALESCE($1, location),
             phone = COALESCE($2, phone),
             phone_numbers = $3,
+            latitude = COALESCE($4, latitude),
+            longitude = COALESCE($5, longitude),
+            formatted_address = COALESCE($6, formatted_address),
             updated_at = NOW()
-        WHERE id = $4
+        WHERE id = $7
         RETURNING *
       `;
       const updateResult = await pool.query(updateQuery, [
         supplierData.location,
         normalizedPhone,
         JSON.stringify(mergedPhones),
+        supplierData.latitude || null,
+        supplierData.longitude || null,
+        supplierData.formatted_address || null,
         supplierId
       ]);
       return updateResult.rows[0];
@@ -283,8 +289,8 @@ const db = {
       const { v4: uuidv4 } = require('uuid');
       const supplierId = `supplier_${uuidv4()}`;
       const insertQuery = `
-        INSERT INTO suppliers (id, name, location, phone, phone_numbers, description)
-        VALUES ($1, $2, $3, $4, $5, $6)
+        INSERT INTO suppliers (id, name, location, phone, phone_numbers, description, latitude, longitude, formatted_address)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
         RETURNING *
       `;
       const insertResult = await pool.query(insertQuery, [
@@ -293,7 +299,10 @@ const db = {
         supplierData.location || '',
         normalizedPhone,
         phoneNumbersJson,
-        supplierData.description || null
+        supplierData.description || null,
+        supplierData.latitude || null,
+        supplierData.longitude || null,
+        supplierData.formatted_address || null
       ]);
       return insertResult.rows[0];
     }

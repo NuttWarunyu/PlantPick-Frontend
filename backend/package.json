@@ -16,7 +16,8 @@
     "add-real-suppliers": "node scripts/add-real-suppliers.js",
     "create-suppliers-table": "node scripts/create-suppliers-table.js",
     "create-plant-suppliers-table": "node scripts/create-plant-suppliers-table.js",
-    "add-mock-suppliers": "node scripts/add-mock-suppliers.js"
+    "add-mock-suppliers": "node scripts/add-mock-suppliers.js",
+    "geocode-suppliers": "node scripts/geocode-suppliers.js"
   },
   "dependencies": {
     "express": "^4.18.2",
