@@ -22,22 +22,43 @@ const PurchaseOrderPage: React.FC<PurchaseOrderPageProps> = ({ selectedPlants, s
 
   // อัปเดต purchaseItems เมื่อ selectedPlants เปลี่ยน
   useEffect(() => {
-    setPurchaseItems(
-      selectedPlants.map(plant => ({
-        plant,
-        quantity: 1,
-        selectedSupplier: plant.suppliers && plant.suppliers.length > 0 ? plant.suppliers[0] : null,
-        confirmed: false,
-        notes: '',
-        actualPrice: plant.suppliers && plant.suppliers.length > 0 ? plant.suppliers[0].price : 0 // เริ่มต้นด้วยราคาจากฐานข้อมูล
-      }))
-    );
+    setPurchaseItems(prevItems => {
+      // เก็บ confirmed status และ notes ของรายการเดิม
+      const existingItemsMap = new Map(prevItems.map(item => [item.plant.id, item]));
+      
+      // สร้าง purchaseItems ใหม่จาก selectedPlants
+      const newItems = selectedPlants.map(plant => {
+        const existingItem = existingItemsMap.get(plant.id);
+        // ถ้ามีรายการเดิมอยู่แล้ว ให้เก็บข้อมูลเดิม (confirmed, notes, actualPrice, quantity)
+        if (existingItem) {
+          return {
+            ...existingItem,
+            plant, // อัพเดท plant data (อาจมีการเปลี่ยนแปลงราคา, suppliers)
+            selectedSupplier: plant.suppliers && plant.suppliers.length > 0 
+              ? plant.suppliers.find(s => s.id === existingItem.selectedSupplier?.id) || plant.suppliers[0]
+              : null
+          };
+        }
+        // ถ้าเป็นรายการใหม่ ให้สร้างใหม่
+        return {
+          plant,
+          quantity: 1,
+          selectedSupplier: plant.suppliers && plant.suppliers.length > 0 ? plant.suppliers[0] : null,
+          confirmed: false,
+          notes: '',
+          actualPrice: plant.suppliers && plant.suppliers.length > 0 ? plant.suppliers[0].price : 0
+        };
+      });
+      
+      return newItems;
+    });
   }, [selectedPlants]);
 
   // ตรวจสอบว่าทุกรายการได้รับการยืนยันแล้วหรือไม่
   useEffect(() => {
-    const confirmed = purchaseItems.every(item => item.confirmed);
-    setAllConfirmed(confirmed && purchaseItems.length > 0);
+    // ตรวจสอบว่ามีรายการและทุกรายการยืนยันแล้ว
+    const confirmed = purchaseItems.length > 0 && purchaseItems.every(item => item.confirmed);
+    setAllConfirmed(confirmed);
   }, [purchaseItems]);
 
   const updateQuantity = (plantId: string, quantity: number) => {
@@ -113,8 +134,10 @@ const PurchaseOrderPage: React.FC<PurchaseOrderPageProps> = ({ selectedPlants, s
   };
 
   const removePlant = (plantId: string) => {
-    setPurchaseItems(prev => prev.filter(item => item.plant.id !== plantId));
-    setSelectedPlants(selectedPlants.filter(plant => plant.id !== plantId));
+    // ลบจากทั้งสอง state พร้อมกัน
+    const newSelectedPlants = selectedPlants.filter(plant => plant.id !== plantId);
+    setSelectedPlants(newSelectedPlants);
+    // purchaseItems จะ sync อัตโนมัติผ่าน useEffect
   };
 
   const getTotalPrice = () => {
@@ -390,9 +413,58 @@ const PurchaseOrderPage: React.FC<PurchaseOrderPageProps> = ({ selectedPlants, s
         ))}
       </div>
 
-      {/* Final Summary */}
+      {/* Action Buttons - แสดงเสมอ (ถ้ามีรายการ) */}
+      {purchaseItems.length > 0 && (
+        <div className="bg-white rounded-xl shadow-sm border border-green-200 p-6 mt-8">
+          <div className="flex items-center justify-between flex-wrap gap-4">
+            <div>
+              <div className="text-lg font-medium text-gray-700">
+                ราคารวมทั้งหมด: ฿{getTotalPrice().toLocaleString()}
+              </div>
+              <div className="text-sm text-gray-500 mt-1">
+                ยืนยันแล้ว {purchaseItems.filter(item => item.confirmed).length} / {purchaseItems.length} รายการ
+              </div>
+            </div>
+            
+            <div className="flex items-center gap-3 flex-wrap">
+              {allConfirmed ? (
+                <>
+                  <div className="flex items-center gap-2 text-green-600">
+                    <CheckCircle className="h-5 w-5" />
+                    <span className="font-medium">พร้อมจัดส่ง!</span>
+                  </div>
+                  <button 
+                    onClick={() => navigate('/order-summary')}
+                    className="px-6 py-3 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-colors flex items-center gap-2"
+                  >
+                    <FileText className="h-4 w-4" />
+                    สร้างสรุปคำสั่งซื้อ
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button 
+                    onClick={() => navigate('/order-summary')}
+                    className="px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors flex items-center gap-2"
+                  >
+                    <FileText className="h-4 w-4" />
+                    สร้างสรุปคำสั่งซื้อ{purchaseItems.filter(item => item.confirmed).length > 0 ? ' (บางรายการ)' : ''}
+                  </button>
+                  {purchaseItems.filter(item => !item.confirmed).length > 0 && (
+                    <div className="text-sm text-orange-600">
+                      ⚠️ ยังมี {purchaseItems.filter(item => !item.confirmed).length} รายการที่ยังไม่ยืนยัน
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Final Summary - แสดงเมื่อยืนยันครบทุกรายการ */}
       {allConfirmed && (
-        <div className="bg-green-50 border border-green-200 rounded-xl p-6 mt-8">
+        <div className="bg-green-50 border border-green-200 rounded-xl p-6 mt-6">
           <div className="flex items-center gap-3 mb-4">
             <CheckCircle className="h-6 w-6 text-green-600" />
             <h3 className="text-xl font-semibold text-green-800">
@@ -407,7 +479,7 @@ const PurchaseOrderPage: React.FC<PurchaseOrderPageProps> = ({ selectedPlants, s
                 {purchaseItems.map((item) => (
                   <div key={item.plant.id} className="flex justify-between text-sm">
                     <span>{item.plant.name} x{item.quantity}</span>
-                    <span>฿{((item.selectedSupplier?.price || 0) * item.quantity).toLocaleString()}</span>
+                    <span>฿{(item.actualPrice * item.quantity).toLocaleString()}</span>
                   </div>
                 ))}
               </div>
@@ -423,21 +495,6 @@ const PurchaseOrderPage: React.FC<PurchaseOrderPageProps> = ({ selectedPlants, s
                   </div>
                 ))}
               </div>
-            </div>
-          </div>
-          
-          <div className="border-t border-green-200 pt-4 mt-4">
-            <div className="flex items-center justify-between">
-              <div className="text-lg font-medium text-gray-700">
-                ราคารวมทั้งหมด: ฿{getTotalPrice().toLocaleString()}
-              </div>
-              <button 
-                onClick={() => navigate('/order-summary')}
-                className="px-6 py-3 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-colors"
-              >
-                <FileText className="h-4 w-4 inline mr-2" />
-                สร้างสรุปคำสั่งซื้อ
-              </button>
             </div>
           </div>
         </div>
