@@ -50,6 +50,7 @@ export interface RouteStep {
   plants: string[];
   estimatedCost: number;
   estimatedTime: number;
+  distance_to_next?: number;
   coordinates: {
     lat: number;
     lng: number;
@@ -229,6 +230,7 @@ class AIService {
               plants: supplier?.plants || [],
               estimatedCost: step.distance_to_next ? Math.round(step.distance_to_next * 0.75) : 0,
               estimatedTime: step.distance_to_next ? Math.round(step.distance_to_next / 50 * 60) : 0,
+              distance_to_next: step.distance_to_next || 0,
               coordinates: {
                 lat: 0, // จะต้องหา supplier coords จาก backendData.suppliers
                 lng: 0
