@@ -94,13 +94,17 @@ const SearchPage: React.FC<SearchPageProps> = ({ selectedPlants, setSelectedPlan
   };
 
   const getLowestPrice = (plant: Plant) => {
-    if (plant.suppliers.length === 0) return 0;
-    return Math.min(...plant.suppliers.map(s => s.price));
+    if (plant.suppliers.length === 0) return null;
+    const prices = plant.suppliers.map(s => s.price).filter(p => p != null && !isNaN(p));
+    if (prices.length === 0) return null;
+    return Math.min(...prices);
   };
 
   const getHighestPrice = (plant: Plant) => {
-    if (plant.suppliers.length === 0) return 0;
-    return Math.max(...plant.suppliers.map(s => s.price));
+    if (plant.suppliers.length === 0) return null;
+    const prices = plant.suppliers.map(s => s.price).filter(p => p != null && !isNaN(p));
+    if (prices.length === 0) return null;
+    return Math.max(...prices);
   };
 
   const handleAddSupplier = (plant: Plant) => {
@@ -395,9 +399,15 @@ const SearchPage: React.FC<SearchPageProps> = ({ selectedPlants, setSelectedPlan
                     {result.plant.suppliers.length > 0 && (
                       <div className="text-center mb-3">
                         <div className="text-base sm:text-lg font-bold text-green-600">
-                          ฿{getLowestPrice(result.plant).toLocaleString()}
-                          {getLowestPrice(result.plant) !== getHighestPrice(result.plant) && (
-                            <span className="text-xs sm:text-sm text-gray-500"> - ฿{getHighestPrice(result.plant).toLocaleString()}</span>
+                          {getLowestPrice(result.plant) != null ? (
+                            <>
+                              ฿{getLowestPrice(result.plant)!.toLocaleString()}
+                              {getHighestPrice(result.plant) != null && getLowestPrice(result.plant) !== getHighestPrice(result.plant) && (
+                                <span className="text-xs sm:text-sm text-gray-500"> - ฿{getHighestPrice(result.plant)!.toLocaleString()}</span>
+                              )}
+                            </>
+                          ) : (
+                            <span className="text-gray-400 text-sm">ไม่ระบุราคา</span>
                           )}
                         </div>
                         <p className="text-xs text-gray-500">ราคาต่อต้น</p>
@@ -499,7 +509,9 @@ const SearchPage: React.FC<SearchPageProps> = ({ selectedPlants, setSelectedPlan
                                 </span>
                               )}
                             </div>
-                            <span className="font-semibold text-green-600">฿{supplier.price.toLocaleString()}</span>
+                            <span className="font-semibold text-green-600">
+                              {supplier.price != null ? `฿${supplier.price.toLocaleString()}` : 'ไม่ระบุราคา'}
+                            </span>
                           </div>
                         ))}
                         {plant.suppliers.length > 3 && (
@@ -509,7 +521,11 @@ const SearchPage: React.FC<SearchPageProps> = ({ selectedPlants, setSelectedPlan
                         )}
                       </div>
                       <div className="mt-2 text-xs text-gray-500">
-                        ราคา: ฿{getLowestPrice(plant).toLocaleString()} - ฿{getHighestPrice(plant).toLocaleString()}
+                        {getLowestPrice(plant) != null && getHighestPrice(plant) != null ? (
+                          <>ราคา: ฿{getLowestPrice(plant)!.toLocaleString()} - ฿{getHighestPrice(plant)!.toLocaleString()}</>
+                        ) : (
+                          <span className="text-gray-400">ไม่ระบุราคา</span>
+                        )}
                       </div>
                     </>
                   ) : (

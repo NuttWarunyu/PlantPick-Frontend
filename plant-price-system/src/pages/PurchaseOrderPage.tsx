@@ -298,7 +298,7 @@ const PurchaseOrderPage: React.FC<PurchaseOrderPageProps> = ({ selectedPlants, s
                     >
                       {item.plant.suppliers.map((supplier) => (
                         <option key={supplier.id} value={supplier.id}>
-                          {supplier.name} - ฿{supplier.price.toLocaleString()} ({supplier.location})
+                          {supplier.name} - {supplier.price != null ? `฿${supplier.price.toLocaleString()}` : 'ไม่ระบุราคา'} ({supplier.location})
                           {supplier.size && ` - ${supplier.size}`}
                         </option>
                       ))}
