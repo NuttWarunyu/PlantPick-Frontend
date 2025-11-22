@@ -234,6 +234,15 @@ const db = {
 
   // Find or create supplier by name
   async findOrCreateSupplier(supplierData) {
+    // Validate required fields
+    if (!supplierData.name || supplierData.name.trim() === '') {
+      throw new Error('Supplier name is required');
+    }
+    
+    if (!supplierData.location || supplierData.location.trim() === '') {
+      throw new Error('Supplier location is required');
+    }
+    
     // ทำความสะอาดเบอร์โทร: เลือกหมายเลขแรก, ตัดช่องว่างและอักขระที่ไม่ใช่ตัวเลข/เครื่องหมายบวก
     const rawPhone = supplierData.phone || '';
     // แยกหลายเบอร์ด้วย , / หรือช่องว่างหลายตัว
@@ -249,22 +258,28 @@ const db = {
     const phoneNumbersJson = JSON.stringify(uniquePhones);
 
     // ค้นหาร้านค้าที่มีชื่อเหมือนกัน
-    const findQuery = `SELECT id FROM suppliers WHERE LOWER(name) = LOWER($1) LIMIT 1`;
-    const findResult = await pool.query(findQuery, [supplierData.name]);
+    const findQuery = `SELECT id, location, phone_numbers FROM suppliers WHERE LOWER(name) = LOWER($1) LIMIT 1`;
+    const findResult = await pool.query(findQuery, [supplierData.name.trim()]);
     
     if (findResult.rows.length > 0) {
       // ถ้ามีแล้ว ให้อัพเดทข้อมูล
       const supplierId = findResult.rows[0].id;
+      const existingLocation = findResult.rows[0].location;
+      
       // รวมเบอร์เดิม + ใหม่
-      const existing = await pool.query(`SELECT phone_numbers FROM suppliers WHERE id = $1`, [supplierId]);
       const existingPhones = (() => {
-        try { return JSON.parse(existing.rows[0]?.phone_numbers || '[]'); } catch { return []; }
+        try { return JSON.parse(findResult.rows[0]?.phone_numbers || '[]'); } catch { return []; }
       })();
       const mergedPhones = Array.from(new Set([...(existingPhones || []), ...uniquePhones]));
 
+      // ใช้ location ใหม่ถ้ามี (ไม่ใช่ empty string)
+      const locationToUse = (supplierData.location && supplierData.location.trim() !== '') 
+        ? supplierData.location.trim() 
+        : existingLocation;
+
       const updateQuery = `
         UPDATE suppliers 
-        SET location = COALESCE($1, location),
+        SET location = $1,
             phone = COALESCE($2, phone),
             phone_numbers = $3,
             latitude = COALESCE($4, latitude),
@@ -275,7 +290,7 @@ const db = {
         RETURNING *
       `;
       const updateResult = await pool.query(updateQuery, [
-        supplierData.location,
+        locationToUse,
         normalizedPhone,
         JSON.stringify(mergedPhones),
         supplierData.latitude || null,
@@ -295,8 +310,8 @@ const db = {
       `;
       const insertResult = await pool.query(insertQuery, [
         supplierId,
-        supplierData.name,
-        supplierData.location || '',
+        supplierData.name.trim(),
+        supplierData.location.trim(), // Ensure non-empty
         normalizedPhone,
         phoneNumbersJson,
         supplierData.description || null,
@@ -310,9 +325,14 @@ const db = {
 
   // Find or create plant by name
   async findOrCreatePlant(plantData) {
+    // Validate required fields
+    if (!plantData.name || plantData.name.trim() === '') {
+      throw new Error('Plant name is required');
+    }
+    
     // ค้นหาต้นไม้ที่มีชื่อเหมือนกัน
     const findQuery = `SELECT id, image_url FROM plants WHERE LOWER(name) = LOWER($1) LIMIT 1`;
-    const findResult = await pool.query(findQuery, [plantData.name]);
+    const findResult = await pool.query(findQuery, [plantData.name.trim()]);
     
     if (findResult.rows.length > 0) {
       const existingPlant = findResult.rows[0];
@@ -322,6 +342,32 @@ const db = {
           UPDATE plants SET image_url = $1, updated_at = NOW() WHERE id = $2
         `, [plantData.imageUrl, existingPlant.id]);
         existingPlant.image_url = plantData.imageUrl;
+      }
+      // อัพเดทข้อมูลอื่นๆ ถ้ามี
+      if (plantData.scientificName || plantData.category || plantData.description) {
+        const updateFields = [];
+        const updateValues = [];
+        let paramIndex = 1;
+        
+        if (plantData.scientificName) {
+          updateFields.push(`scientific_name = $${paramIndex++}`);
+          updateValues.push(plantData.scientificName);
+        }
+        if (plantData.category) {
+          updateFields.push(`category = $${paramIndex++}`);
+          updateValues.push(plantData.category);
+        }
+        if (plantData.description) {
+          updateFields.push(`description = $${paramIndex++}`);
+          updateValues.push(plantData.description);
+        }
+        
+        if (updateFields.length > 0) {
+          updateValues.push(existingPlant.id);
+          await pool.query(`
+            UPDATE plants SET ${updateFields.join(', ')}, updated_at = NOW() WHERE id = $${paramIndex}
+          `, updateValues);
+        }
       }
       return existingPlant;
     } else {
@@ -335,7 +381,7 @@ const db = {
       `;
       const insertResult = await pool.query(insertQuery, [
         plantId,
-        plantData.name,
+        plantData.name.trim(),
         plantData.scientificName || null,
         plantData.category || 'อื่นๆ',
         plantData.plantType || 'อื่นๆ',

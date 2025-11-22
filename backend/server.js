@@ -1511,88 +1511,144 @@ app.post('/api/agents/results/:id/approve', requireAdmin, async (req, res) => {
     }
     
     const result = resultQuery.rows[0];
-    const rawData = JSON.parse(result.raw_data || '{}');
+    
+    // Parse raw_data safely
+    let rawData = {};
+    try {
+      rawData = JSON.parse(result.raw_data || '{}');
+    } catch (parseError) {
+      console.warn('Failed to parse raw_data:', parseError);
+      rawData = {};
+    }
+    
+    // Validate required fields
+    if (!result.plant_name || result.plant_name.trim() === '') {
+      return res.status(400).json({
+        success: false,
+        message: 'ไม่สามารถ Approve ได้: ไม่พบชื่อต้นไม้ (Plant Name)'
+      });
+    }
     
     // 1. Find or create supplier
     // First, check if supplier already exists with location
     let existingSupplier = null;
-    if (result.supplier_name) {
+    if (result.supplier_name && result.supplier_name.trim() !== '') {
       const findSupplierQuery = `SELECT id, location FROM suppliers WHERE LOWER(name) = LOWER($1) LIMIT 1`;
-      const findSupplierResult = await pool.query(findSupplierQuery, [result.supplier_name]);
+      const findSupplierResult = await pool.query(findSupplierQuery, [result.supplier_name.trim()]);
       if (findSupplierResult.rows.length > 0) {
         existingSupplier = findSupplierResult.rows[0];
       }
     }
     
     // Use location from result, or existing supplier, or empty
-    const locationToUse = result.supplier_location?.trim() || existingSupplier?.location || '';
+    const locationFromResult = result.supplier_location?.trim() || '';
+    const locationToUse = locationFromResult || existingSupplier?.location || '';
     
     // Validate: location is required for route calculation
     if (!locationToUse || locationToUse.trim() === '') {
       return res.status(400).json({
         success: false,
-        message: 'ไม่สามารถ Approve ได้: กรุณาเพิ่มตำแหน่งที่ตั้ง (Location) ของ Supplier ก่อน\n\nตำแหน่งที่ตั้งจำเป็นสำหรับการคำนวณเส้นทาง\n\n💡 ถ้า Supplier นี้มีอยู่แล้ว ให้เพิ่ม Location ที่ Supplier ครั้งเดียว แล้ว Approve อื่นๆ จะใช้ Location เดิมได้'
+        message: 'ไม่สามารถ Approve ได้: กรุณาเพิ่มตำแหน่งที่ตั้ง (Location) ของ Supplier ก่อน\n\nตำแหน่งที่ตั้งจำเป็นสำหรับการคำนวณเส้นทาง\n\n💡 ถ้า Supplier นี้มีอยู่แล้ว ให้เพิ่ม Location ที่ Supplier ครั้งเดียว แล้ว Approve อื่นๆ จะใช้ Location เดิมได้',
+        errorCode: 'MISSING_LOCATION',
+        supplierName: result.supplier_name || 'ไม่ระบุ'
       });
     }
     
+    // Create supplier if we have supplier info
     let supplier = null;
-    if (result.supplier_name || result.supplier_phone || locationToUse) {
-      supplier = await db.findOrCreateSupplier({
-        name: result.supplier_name || 'ไม่ระบุ',
-        location: locationToUse, // Use location from result or existing supplier
-        phone: result.supplier_phone || null,
-        phoneNumbers: result.supplier_phone ? [result.supplier_phone] : [],
-        description: `Approved from scraping result ${id}`,
-        website: rawData.supplier?.website || null
-      });
+    if (result.supplier_name && result.supplier_name.trim() !== '') {
+      try {
+        supplier = await db.findOrCreateSupplier({
+          name: result.supplier_name.trim(),
+          location: locationToUse,
+          phone: result.supplier_phone || null,
+          phoneNumbers: result.supplier_phone ? [result.supplier_phone] : [],
+          description: `Approved from scraping result ${id}`,
+          website: rawData.supplier?.website || null
+        });
+      } catch (supplierError) {
+        console.error('Error creating/updating supplier:', supplierError);
+        return res.status(500).json({
+          success: false,
+          message: `เกิดข้อผิดพลาดในการสร้าง/อัพเดท Supplier: ${supplierError.message || 'ไม่ทราบสาเหตุ'}`,
+          errorCode: 'SUPPLIER_ERROR'
+        });
+      }
     }
     
     // 2. Find or create plant
-    const plant = await db.findOrCreatePlant({
-      name: result.plant_name || 'ไม่ระบุชื่อ',
-      category: rawData.category || 'ไม้ประดับ',
-      plantType: rawData.category || 'ไม้ประดับ',
-      measurementType: result.size ? 'ขนาดกระถาง' : 'ความสูง',
-      description: rawData.description || null,
-      scientificName: rawData.scientificName || '',
-      imageUrl: result.image_url || null
-    });
-    
-    // 3. Create plant-supplier relationship
-    if (supplier) {
-      await db.upsertPlantSupplier(plant.id, supplier.id, {
-        price: result.price,
-        size: result.size || null,
+    let plant = null;
+    try {
+      plant = await db.findOrCreatePlant({
+        name: result.plant_name.trim(),
+        category: rawData.category || 'ไม้ประดับ',
+        plantType: rawData.category || 'ไม้ประดับ',
+        measurementType: result.size ? 'ขนาดกระถาง' : 'ความสูง',
+        description: rawData.description || null,
+        scientificName: rawData.scientificName || '',
         imageUrl: result.image_url || null
+      });
+    } catch (plantError) {
+      console.error('Error creating/updating plant:', plantError);
+      return res.status(500).json({
+        success: false,
+        message: `เกิดข้อผิดพลาดในการสร้าง/อัพเดท Plant: ${plantError.message || 'ไม่ทราบสาเหตุ'}`,
+        errorCode: 'PLANT_ERROR'
       });
     }
     
+    // 3. Create plant-supplier relationship (only if we have supplier)
+    if (supplier) {
+      try {
+        await db.upsertPlantSupplier(plant.id, supplier.id, {
+          price: result.price || null,
+          size: result.size || null,
+          imageUrl: result.image_url || null
+        });
+      } catch (relationError) {
+        console.error('Error creating plant-supplier relationship:', relationError);
+        // Don't fail the whole approve if relationship fails, but log it
+        console.warn('Continuing approve despite relationship error');
+      }
+    }
+    
     // 4. Update scraping result status
-    await pool.query(`
-      UPDATE scraping_results 
-      SET status = 'approved', 
-          plant_id = $1, 
-          supplier_id = $2,
-          approved_by = $3,
-          approved_at = NOW()
-      WHERE id = $4
-    `, [plant.id, supplier?.id || null, adminId, id]);
+    try {
+      await pool.query(`
+        UPDATE scraping_results 
+        SET status = 'approved', 
+            plant_id = $1, 
+            supplier_id = $2,
+            approved_by = $3,
+            approved_at = NOW()
+        WHERE id = $4
+      `, [plant.id, supplier?.id || null, adminId, id]);
+    } catch (updateError) {
+      console.error('Error updating scraping result:', updateError);
+      return res.status(500).json({
+        success: false,
+        message: `เกิดข้อผิดพลาดในการอัพเดทสถานะ: ${updateError.message || 'ไม่ทราบสาเหตุ'}`,
+        errorCode: 'UPDATE_ERROR'
+      });
+    }
     
     res.json({
       success: true,
       message: 'Approve สำเร็จ ข้อมูลถูกบันทึกลงฐานข้อมูลแล้ว',
       data: {
         plantId: plant.id,
-        supplierId: supplier?.id,
+        supplierId: supplier?.id || null,
         plantName: plant.name,
-        supplierName: supplier?.name
+        supplierName: supplier?.name || null
       }
     });
   } catch (error) {
     console.error('Error approving result:', error);
+    console.error('Error stack:', error.stack);
     res.status(500).json({
       success: false,
-      message: 'เกิดข้อผิดพลาดในการ approve'
+      message: `เกิดข้อผิดพลาดในการ approve: ${error.message || 'ไม่ทราบสาเหตุ'}`,
+      errorCode: 'UNKNOWN_ERROR'
     });
   }
 });
@@ -1687,6 +1743,223 @@ app.post('/api/agents/results/:id/reject', requireAdmin, async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'เกิดข้อผิดพลาดในการ reject'
+    });
+  }
+});
+
+// ==================== Data Management APIs ====================
+
+// Get duplicate plants (admin only) - หาต้นไม้ที่ชื่อซ้ำกัน
+app.get('/api/admin/plants/duplicates', requireAdmin, async (req, res) => {
+  try {
+    const query = `
+      SELECT name, COUNT(*) as count, 
+             json_agg(json_build_object('id', id, 'name', name, 'category', category, 'created_at', created_at)) as plants
+      FROM plants
+      GROUP BY LOWER(name)
+      HAVING COUNT(*) > 1
+      ORDER BY count DESC, name
+    `;
+    const result = await pool.query(query);
+    
+    res.json({
+      success: true,
+      data: result.rows
+    });
+  } catch (error) {
+    console.error('Error getting duplicate plants:', error);
+    res.status(500).json({
+      success: false,
+      message: 'เกิดข้อผิดพลาดในการค้นหาต้นไม้ซ้ำ'
+    });
+  }
+});
+
+// Get duplicate suppliers (admin only) - หาร้านค้าที่ชื่อซ้ำกัน
+app.get('/api/admin/suppliers/duplicates', requireAdmin, async (req, res) => {
+  try {
+    const query = `
+      SELECT name, COUNT(*) as count,
+             json_agg(json_build_object('id', id, 'name', name, 'location', location, 'phone', phone, 'created_at', created_at)) as suppliers
+      FROM suppliers
+      GROUP BY LOWER(name)
+      HAVING COUNT(*) > 1
+      ORDER BY count DESC, name
+    `;
+    const result = await pool.query(query);
+    
+    res.json({
+      success: true,
+      data: result.rows
+    });
+  } catch (error) {
+    console.error('Error getting duplicate suppliers:', error);
+    res.status(500).json({
+      success: false,
+      message: 'เกิดข้อผิดพลาดในการค้นหาร้านค้าซ้ำ'
+    });
+  }
+});
+
+// Merge duplicate plants (admin only) - รวมต้นไม้ที่ซ้ำกัน
+app.post('/api/admin/plants/merge', requireAdmin, async (req, res) => {
+  try {
+    const { keepId, mergeIds } = req.body;
+    
+    if (!keepId || !Array.isArray(mergeIds) || mergeIds.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'กรุณาระบุ keepId และ mergeIds'
+      });
+    }
+    
+    // ตรวจสอบว่า keepId มีอยู่จริง
+    const keepPlant = await pool.query('SELECT id FROM plants WHERE id = $1', [keepId]);
+    if (keepPlant.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'ไม่พบต้นไม้ที่ต้องการเก็บไว้'
+      });
+    }
+    
+    // อัพเดท plant_suppliers ให้ชี้ไปที่ keepId
+    await pool.query(`
+      UPDATE plant_suppliers 
+      SET plant_id = $1, updated_at = NOW()
+      WHERE plant_id = ANY($2::varchar[])
+    `, [keepId, mergeIds]);
+    
+    // อัพเดท scraping_results
+    await pool.query(`
+      UPDATE scraping_results 
+      SET plant_id = $1
+      WHERE plant_id = ANY($2::varchar[])
+    `, [keepId, mergeIds]);
+    
+    // ลบต้นไม้ที่ซ้ำ
+    await pool.query(`
+      DELETE FROM plants WHERE id = ANY($1::varchar[])
+    `, [mergeIds]);
+    
+    res.json({
+      success: true,
+      message: `รวมต้นไม้สำเร็จ: รวม ${mergeIds.length} รายการเข้ากับ ${keepId}`
+    });
+  } catch (error) {
+    console.error('Error merging plants:', error);
+    res.status(500).json({
+      success: false,
+      message: `เกิดข้อผิดพลาดในการรวมต้นไม้: ${error.message || 'ไม่ทราบสาเหตุ'}`
+    });
+  }
+});
+
+// Merge duplicate suppliers (admin only) - รวมร้านค้าที่ซ้ำกัน
+app.post('/api/admin/suppliers/merge', requireAdmin, async (req, res) => {
+  try {
+    const { keepId, mergeIds } = req.body;
+    
+    if (!keepId || !Array.isArray(mergeIds) || mergeIds.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'กรุณาระบุ keepId และ mergeIds'
+      });
+    }
+    
+    // ตรวจสอบว่า keepId มีอยู่จริง
+    const keepSupplier = await pool.query('SELECT id FROM suppliers WHERE id = $1', [keepId]);
+    if (keepSupplier.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'ไม่พบร้านค้าที่ต้องการเก็บไว้'
+      });
+    }
+    
+    // รวมเบอร์โทรศัพท์
+    const allSuppliers = await pool.query(`
+      SELECT phone_numbers FROM suppliers WHERE id = ANY($1::varchar[])
+    `, [[keepId, ...mergeIds]]);
+    
+    const allPhones = new Set();
+    allSuppliers.rows.forEach(row => {
+      try {
+        const phones = JSON.parse(row.phone_numbers || '[]');
+        phones.forEach(phone => allPhones.add(phone));
+      } catch (e) {}
+    });
+    
+    // อัพเดท plant_suppliers ให้ชี้ไปที่ keepId
+    await pool.query(`
+      UPDATE plant_suppliers 
+      SET supplier_id = $1, updated_at = NOW()
+      WHERE supplier_id = ANY($2::varchar[])
+    `, [keepId, mergeIds]);
+    
+    // อัพเดท scraping_results
+    await pool.query(`
+      UPDATE scraping_results 
+      SET supplier_id = $1
+      WHERE supplier_id = ANY($2::varchar[])
+    `, [keepId, mergeIds]);
+    
+    // อัพเดท bills
+    await pool.query(`
+      UPDATE bills 
+      SET supplier_id = $1
+      WHERE supplier_id = ANY($2::varchar[])
+    `, [keepId, mergeIds]);
+    
+    // อัพเดท phone_numbers ของ keepId
+    await pool.query(`
+      UPDATE suppliers 
+      SET phone_numbers = $1, updated_at = NOW()
+      WHERE id = $2
+    `, [JSON.stringify(Array.from(allPhones)), keepId]);
+    
+    // ลบร้านค้าที่ซ้ำ
+    await pool.query(`
+      DELETE FROM suppliers WHERE id = ANY($1::varchar[])
+    `, [mergeIds]);
+    
+    res.json({
+      success: true,
+      message: `รวมร้านค้าสำเร็จ: รวม ${mergeIds.length} รายการเข้ากับ ${keepId}`
+    });
+  } catch (error) {
+    console.error('Error merging suppliers:', error);
+    res.status(500).json({
+      success: false,
+      message: `เกิดข้อผิดพลาดในการรวมร้านค้า: ${error.message || 'ไม่ทราบสาเหตุ'}`
+    });
+  }
+});
+
+// Get data statistics (admin only)
+app.get('/api/admin/statistics', requireAdmin, async (req, res) => {
+  try {
+    const [plantsCount, suppliersCount, plantSuppliersCount, pendingResultsCount, approvedResultsCount] = await Promise.all([
+      pool.query('SELECT COUNT(*) as count FROM plants'),
+      pool.query('SELECT COUNT(*) as count FROM suppliers'),
+      pool.query('SELECT COUNT(*) as count FROM plant_suppliers'),
+      pool.query("SELECT COUNT(*) as count FROM scraping_results WHERE status = 'pending'"),
+      pool.query("SELECT COUNT(*) as count FROM scraping_results WHERE status = 'approved'")
+    ]);
+    
+    res.json({
+      success: true,
+      data: {
+        plants: parseInt(plantsCount.rows[0].count),
+        suppliers: parseInt(suppliersCount.rows[0].count),
+        plantSuppliers: parseInt(plantSuppliersCount.rows[0].count),
+        pendingResults: parseInt(pendingResultsCount.rows[0].count),
+        approvedResults: parseInt(approvedResultsCount.rows[0].count)
+      }
+    });
+  } catch (error) {
+    console.error('Error getting statistics:', error);
+    res.status(500).json({
+      success: false,
+      message: 'เกิดข้อผิดพลาดในการดึงสถิติ'
     });
   }
 });

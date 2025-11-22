@@ -321,7 +321,6 @@ Return JSON:
       throw error;
     }
   }
-}
 
   // AI Analysis for Route Optimization - วิเคราะห์และให้คำแนะนำด้วย AI
   async analyzeRouteWithAI(routeData, orderData) {
