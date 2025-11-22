@@ -2190,6 +2190,20 @@ async function initializeDatabase() {
     try {
       await pool.query(`ALTER TABLE suppliers ADD COLUMN IF NOT EXISTS phone_numbers TEXT DEFAULT '[]'`);
     } catch (e) {}
+    // เพิ่มคอลัมน์ updated_at ถ้ายังไม่มี (สำหรับตารางเก่า)
+    try {
+      const columnExists = await pool.query(`
+        SELECT column_name 
+        FROM information_schema.columns 
+        WHERE table_name = 'suppliers' AND column_name = 'updated_at'
+      `);
+      if (columnExists.rows.length === 0) {
+        await pool.query(`ALTER TABLE suppliers ADD COLUMN updated_at TIMESTAMP DEFAULT NOW()`);
+        console.log('✅ เพิ่มคอลัมน์ updated_at ในตาราง suppliers');
+      }
+    } catch (e) {
+      console.warn('Note: updated_at column check/add failed:', e.message);
+    }
     // เพิ่มคอลัมน์สำหรับ geocoding (latitude, longitude, formatted_address)
     try {
       await pool.query(`ALTER TABLE suppliers ADD COLUMN IF NOT EXISTS latitude DECIMAL(10, 8)`);

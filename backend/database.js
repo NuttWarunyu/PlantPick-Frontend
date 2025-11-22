@@ -277,18 +277,29 @@ const db = {
         ? supplierData.location.trim() 
         : existingLocation;
 
-      const updateQuery = `
+      // Build update query - only include updated_at if column exists
+      let updateQuery = `
         UPDATE suppliers 
         SET location = $1,
             phone = COALESCE($2, phone),
             phone_numbers = $3,
             latitude = COALESCE($4, latitude),
             longitude = COALESCE($5, longitude),
-            formatted_address = COALESCE($6, formatted_address),
-            updated_at = NOW()
-        WHERE id = $7
-        RETURNING *
+            formatted_address = COALESCE($6, formatted_address)
       `;
+      
+      // Check if updated_at column exists
+      const columnCheck = await pool.query(`
+        SELECT column_name 
+        FROM information_schema.columns 
+        WHERE table_name = 'suppliers' AND column_name = 'updated_at'
+      `);
+      
+      if (columnCheck.rows.length > 0) {
+        updateQuery += `, updated_at = NOW()`;
+      }
+      
+      updateQuery += ` WHERE id = $7 RETURNING *`;
       const updateResult = await pool.query(updateQuery, [
         locationToUse,
         normalizedPhone,
