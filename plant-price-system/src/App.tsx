@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { Search, FileText, Calculator, Store, FolderOpen, Camera, BarChart3, TrendingUp, Menu, X, Bot, Lock } from 'lucide-react';
+import { Search, FileText, Calculator, Store, FolderOpen, Camera, BarChart3, TrendingUp, Menu, X, Bot, Lock, Database } from 'lucide-react';
 import SearchPage from './pages/SearchPage';
 import PurchaseOrderPage from './pages/PurchaseOrderPage';
 import OrderSummaryPage from './pages/OrderSummaryPage';
@@ -85,10 +85,16 @@ function AppContent() {
                   <span>สแกนบิล</span>
                 </a>
                 {isAdmin ? (
-                  <a href="/ai-agent" className="flex items-center space-x-1 px-3 py-2 text-sm text-green-700 hover:text-green-900 hover:bg-green-50 rounded-md transition-colors">
-                    <Bot className="h-4 w-4" />
-                    <span>AI Agent</span>
-                  </a>
+                  <>
+                    <a href="/database" className="flex items-center space-x-1 px-3 py-2 text-sm text-green-700 hover:text-green-900 hover:bg-green-50 rounded-md transition-colors">
+                      <FileText className="h-4 w-4" />
+                      <span>จัดการฐานข้อมูล</span>
+                    </a>
+                    <a href="/ai-agent" className="flex items-center space-x-1 px-3 py-2 text-sm text-green-700 hover:text-green-900 hover:bg-green-50 rounded-md transition-colors">
+                      <Bot className="h-4 w-4" />
+                      <span>AI Agent</span>
+                    </a>
+                  </>
                 ) : (
                   <a href="/admin-login" className="flex items-center space-x-1 px-3 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-md transition-colors">
                     <Lock className="h-4 w-4" />
@@ -127,10 +133,16 @@ function AppContent() {
                     <span className="font-medium">รายการบิล</span>
                   </a>
                   {isAdmin ? (
-                    <a href="/ai-agent" className="flex flex-col items-center justify-center space-y-1 px-4 py-4 text-sm text-green-700 active:text-green-900 active:bg-green-50 rounded-xl transition-colors touch-manipulation" style={{ minHeight: '80px' }}>
-                      <Bot className="h-6 w-6" />
-                      <span className="font-medium">AI Agent</span>
-                    </a>
+                    <>
+                      <a href="/database" className="flex flex-col items-center justify-center space-y-1 px-4 py-4 text-sm text-green-700 active:text-green-900 active:bg-green-50 rounded-xl transition-colors touch-manipulation" style={{ minHeight: '80px' }}>
+                        <Database className="h-6 w-6" />
+                        <span className="font-medium">ฐานข้อมูล</span>
+                      </a>
+                      <a href="/ai-agent" className="flex flex-col items-center justify-center space-y-1 px-4 py-4 text-sm text-green-700 active:text-green-900 active:bg-green-50 rounded-xl transition-colors touch-manipulation" style={{ minHeight: '80px' }}>
+                        <Bot className="h-6 w-6" />
+                        <span className="font-medium">AI Agent</span>
+                      </a>
+                    </>
                   ) : (
                     <a href="/admin-login" className="flex flex-col items-center justify-center space-y-1 px-4 py-4 text-sm text-gray-600 active:text-gray-900 active:bg-gray-50 rounded-xl transition-colors touch-manipulation" style={{ minHeight: '80px' }}>
                       <Lock className="h-6 w-6" />
