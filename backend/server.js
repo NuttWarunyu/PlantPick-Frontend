@@ -1964,6 +1964,60 @@ app.get('/api/admin/statistics', requireAdmin, async (req, res) => {
   }
 });
 
+// Clear all plants and suppliers data (admin only) - ลบข้อมูลทั้งหมด
+app.delete('/api/admin/data/clear-all', requireAdmin, async (req, res) => {
+  try {
+    const { confirm } = req.body;
+    
+    if (confirm !== 'DELETE_ALL_DATA') {
+      return res.status(400).json({
+        success: false,
+        message: 'กรุณายืนยันการลบข้อมูลโดยส่ง confirm: "DELETE_ALL_DATA"'
+      });
+    }
+    
+    // ลบข้อมูลตามลำดับเพื่อไม่ให้เกิด foreign key constraint error
+    // 1. ลบ plant_suppliers (ความสัมพันธ์)
+    await pool.query('DELETE FROM plant_suppliers');
+    
+    // 2. ลบ scraping_results ที่อ้างอิง plants/suppliers
+    await pool.query(`
+      UPDATE scraping_results 
+      SET plant_id = NULL, supplier_id = NULL
+      WHERE plant_id IS NOT NULL OR supplier_id IS NOT NULL
+    `);
+    
+    // 3. ลบ suppliers
+    await pool.query('DELETE FROM suppliers');
+    
+    // 4. ลบ plants
+    await pool.query('DELETE FROM plants');
+    
+    // 5. ลบ bills และ bill_items (ถ้ามี)
+    await pool.query('DELETE FROM bill_items');
+    await pool.query('DELETE FROM bills');
+    
+    res.json({
+      success: true,
+      message: 'ลบข้อมูลทั้งหมดสำเร็จแล้ว (plants, suppliers, plant_suppliers, bills)',
+      data: {
+        deleted: {
+          plants: 'all',
+          suppliers: 'all',
+          plantSuppliers: 'all',
+          bills: 'all'
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Error clearing all data:', error);
+    res.status(500).json({
+      success: false,
+      message: `เกิดข้อผิดพลาดในการลบข้อมูล: ${error.message || 'ไม่ทราบสาเหตุ'}`
+    });
+  }
+});
+
 // 🗺️ Route Optimization Endpoints
 
 // Optimize route for project
