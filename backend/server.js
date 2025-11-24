@@ -274,6 +274,35 @@ app.get('/api/suppliers', async (req, res) => {
   }
 });
 
+// Delete supplier by ID (standalone supplier)
+app.delete('/api/suppliers/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const supplier = await db.deleteSupplierById(id);
+    if (!supplier) {
+      return res.status(404).json({
+        success: false,
+        data: null,
+        message: 'ไม่พบข้อมูลร้านค้า'
+      });
+    }
+    
+    res.json({
+      success: true,
+      data: supplier,
+      message: 'ลบข้อมูลร้านค้าสำเร็จ'
+    });
+  } catch (error) {
+    console.error('Error deleting supplier:', error);
+    res.status(500).json({
+      success: false,
+      data: null,
+      message: `เกิดข้อผิดพลาดในการลบข้อมูลร้านค้า: ${error.message}`
+    });
+  }
+});
+
 // 📊 Statistics Endpoint - ดึงข้อมูลสถิติ
 app.get('/api/statistics', async (req, res) => {
   try {
@@ -558,6 +587,35 @@ app.delete('/api/plants/:plantId/suppliers/:supplierId', async (req, res) => {
       success: false,
       data: null,
       message: 'เกิดข้อผิดพลาดในการลบข้อมูลผู้จัดจำหน่าย'
+    });
+  }
+});
+
+// Delete plant by ID
+app.delete('/api/plants/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const plant = await db.deletePlant(id);
+    if (!plant) {
+      return res.status(404).json({
+        success: false,
+        data: null,
+        message: 'ไม่พบข้อมูลต้นไม้'
+      });
+    }
+    
+    res.json({
+      success: true,
+      data: plant,
+      message: 'ลบข้อมูลต้นไม้สำเร็จ'
+    });
+  } catch (error) {
+    console.error('Error deleting plant:', error);
+    res.status(500).json({
+      success: false,
+      data: null,
+      message: `เกิดข้อผิดพลาดในการลบข้อมูลต้นไม้: ${error.message}`
     });
   }
 });

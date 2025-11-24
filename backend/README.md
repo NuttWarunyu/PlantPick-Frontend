@@ -71,13 +71,24 @@ GET /api/health
 ```
 GET /api/plants              # Get all plants
 GET /api/plants/:id          # Get specific plant
+POST /api/plants             # Create new plant
+DELETE /api/plants/:id       # Delete plant by ID
 ```
 
 ### Suppliers
 ```
-POST /api/plants/:plantId/suppliers                    # Add supplier
+GET /api/suppliers           # Get all suppliers
+POST /api/suppliers          # Create new supplier
+POST /api/plants/:plantId/suppliers                    # Add supplier to plant
 PUT /api/plants/:plantId/suppliers/:supplierId/price   # Update price
-DELETE /api/plants/:plantId/suppliers/:supplierId       # Delete supplier
+DELETE /api/plants/:plantId/suppliers/:supplierId       # Delete supplier from plant
+DELETE /api/suppliers/:id    # Delete supplier by ID
+```
+
+### Admin (ลบข้อมูลทั้งหมด)
+```
+DELETE /api/admin/data/clear-all  # Delete all plants, suppliers, and related data (requires admin auth)
+Body: { "confirm": "DELETE_ALL_DATA" }
 ```
 
 ## 🗃️ Database Schema

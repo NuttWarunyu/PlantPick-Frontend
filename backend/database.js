@@ -135,6 +135,28 @@ const db = {
     return result.rows[0];
   },
 
+  // Delete plant by ID
+  async deletePlant(plantId) {
+    // ลบ plant_suppliers ก่อน (foreign key constraint)
+    await pool.query('DELETE FROM plant_suppliers WHERE plant_id = $1', [plantId]);
+    
+    // ลบ plant
+    const query = `DELETE FROM plants WHERE id = $1 RETURNING *`;
+    const result = await pool.query(query, [plantId]);
+    return result.rows[0];
+  },
+
+  // Delete supplier by ID (standalone supplier)
+  async deleteSupplierById(supplierId) {
+    // ลบ plant_suppliers ก่อน (foreign key constraint)
+    await pool.query('DELETE FROM plant_suppliers WHERE supplier_id = $1', [supplierId]);
+    
+    // ลบ supplier
+    const query = `DELETE FROM suppliers WHERE id = $1 RETURNING *`;
+    const result = await pool.query(query, [supplierId]);
+    return result.rows[0];
+  },
+
   // Orders
   async createOrder(orderData) {
     const query = `
