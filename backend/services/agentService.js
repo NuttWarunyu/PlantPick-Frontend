@@ -525,13 +525,23 @@ ${text}
 
   // AI Helper: Check if place is a wholesale supplier
   async checkIfWholesale(place) {
-    // Simple fast check: check types or name
-    const keywords = ['wholesale', 'supplies', 'garden center', 'florist', 'market', 'farm', 'ขายส่ง', 'ตลาด', 'สวน', 'ฟาร์ม'];
-    const nameLower = place.name.toLowerCase();
+    // Enhanced keywords for Thai plant wholesale markets (คลอง 15, ตลาดวัดพระเงิน)
+    const wholesaleKeywords = [
+      'wholesale', 'supplies', 'garden center', 'florist', 'market', 'farm',
+      'ขายส่ง', 'ตลาด', 'สวน', 'ฟาร์ม', 'คลอง 15', 'วัดพระเงิน', 'ตลาดต้นไม้',
+      'ไม้ดอก', 'ไม้ประดับ', 'กล้วยไม้', 'ต้นไม้', 'พันธุ์ไม้', 'ไม้ล้อม'
+    ];
+    
+    const nameLower = (place.name || '').toLowerCase();
+    const addressLower = ((place.formatted_address || place.location || '')).toLowerCase();
+    const combinedText = `${nameLower} ${addressLower}`;
 
-    // 1. Basic Keyword Match
-    const hasKeyword = keywords.some(k => nameLower.includes(k));
-    if (hasKeyword) return true; // High likelihood
+    // 1. Basic Keyword Match (more lenient for Thai markets)
+    const hasKeyword = wholesaleKeywords.some(k => combinedText.includes(k));
+    if (hasKeyword) {
+      console.log(`✅ Keyword match: ${place.name} (Wholesale)`);
+      return true; // High likelihood
+    }
 
     // 2. AI Analysis for ambiguous cases (using existing aiService)
     try {
