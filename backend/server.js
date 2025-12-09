@@ -38,11 +38,76 @@ const upload = multer({
 
 // Routes
 app.get('/api/health', (req, res) => {
-  res.json({
-    status: 'OK',
+  res.json({ 
+    status: 'OK', 
     message: 'Plant Price API is running',
     timestamp: new Date().toISOString()
   });
+});
+
+// Test Google Maps API Key (admin only)
+app.get('/api/test/google-maps', requireAdmin, async (req, res) => {
+  try {
+    const googleMapsService = require('./services/googleMapsService');
+    const apiKey = process.env.GOOGLE_MAPS_API_KEY || '';
+    
+    // Check if API key is set
+    if (!apiKey) {
+      return res.json({
+        success: false,
+        message: '❌ GOOGLE_MAPS_API_KEY ไม่ได้ตั้งค่าใน environment variables',
+        apiKeySet: false,
+        testResults: null
+      });
+    }
+    
+    // Test 1: Simple Places API Text Search
+    console.log('🧪 Testing Google Maps API Key...');
+    const testKeyword = 'ร้านต้นไม้ กรุงเทพ';
+    
+    try {
+      const places = await googleMapsService.searchPlaces(testKeyword);
+      
+      res.json({
+        success: true,
+        message: '✅ Google Maps API Key ใช้งานได้!',
+        apiKeySet: true,
+        apiKeyPreview: `${apiKey.substring(0, 10)}...${apiKey.substring(apiKey.length - 5)}`,
+        testResults: {
+          keyword: testKeyword,
+          placesFound: places.length,
+          samplePlaces: places.slice(0, 3).map(p => ({
+            name: p.name,
+            location: p.location,
+            placeId: p.placeId,
+            rating: p.rating
+          })),
+          allPlaces: places.map(p => ({
+            name: p.name,
+            location: p.location
+          }))
+        }
+      });
+    } catch (apiError) {
+      res.json({
+        success: false,
+        message: `❌ Google Maps API Error: ${apiError.message}`,
+        apiKeySet: true,
+        apiKeyPreview: `${apiKey.substring(0, 10)}...${apiKey.substring(apiKey.length - 5)}`,
+        error: {
+          message: apiError.message,
+          details: 'ตรวจสอบว่า Places API ถูกเปิดใช้งานแล้วหรือยัง'
+        }
+      });
+    }
+  } catch (error) {
+    console.error('Test Google Maps API error:', error);
+    res.status(500).json({
+      success: false,
+      message: `เกิดข้อผิดพลาด: ${error.message}`,
+      error: error.message
+    });
+  }
 });
 
 // Add supplier endpoint

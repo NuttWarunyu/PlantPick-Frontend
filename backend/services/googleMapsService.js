@@ -32,12 +32,31 @@ class GoogleMapsService {
                 }
             );
 
+            // Handle different API response statuses
+            if (response.data.status === 'REQUEST_DENIED') {
+                const errorMsg = response.data.error_message || 'API Key may be invalid or Places API not enabled';
+                console.error(`❌ Google Maps API REQUEST_DENIED: ${errorMsg}`);
+                throw new Error(`Google Maps API error: REQUEST_DENIED - ${errorMsg}. Please check: 1) API Key is correct, 2) Places API is enabled, 3) Billing is enabled`);
+            }
+            
+            if (response.data.status === 'OVER_QUERY_LIMIT') {
+                console.error(`❌ Google Maps API OVER_QUERY_LIMIT: ${response.data.error_message || 'Quota exceeded'}`);
+                throw new Error(`Google Maps API error: OVER_QUERY_LIMIT - Quota exceeded. Please check usage in Google Cloud Console`);
+            }
+            
             if (response.data.status !== 'OK' && response.data.status !== 'ZERO_RESULTS') {
-                throw new Error(`Google Maps API error: ${response.data.status} - ${response.data.error_message || 'Unknown error'}`);
+                const errorMsg = response.data.error_message || 'Unknown error';
+                console.error(`❌ Google Maps API error: ${response.data.status} - ${errorMsg}`);
+                throw new Error(`Google Maps API error: ${response.data.status} - ${errorMsg}`);
             }
 
             const results = response.data.results || [];
-            console.log(`✅ Found ${results.length} places for "${keyword}"`);
+            
+            if (response.data.status === 'ZERO_RESULTS') {
+                console.log(`⚠️ ZERO_RESULTS for "${keyword}" - No places found. Try different keywords.`);
+            } else {
+                console.log(`✅ Found ${results.length} places for "${keyword}"`);
+            }
 
             // Transform to our format
             return results.map(place => this.formatPlace(place));

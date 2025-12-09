@@ -72,6 +72,7 @@ const AiAgentPage: React.FC = () => {
   const [mapKeyword, setMapKeyword] = useState('');
   const [filterWholesale, setFilterWholesale] = useState(false);
   const [isSearchingMap, setIsSearchingMap] = useState(false);
+  const [apiTestResult, setApiTestResult] = useState<any>(null);
 
   // Edit location state
   const [editingLocation, setEditingLocation] = useState<string | null>(null);
@@ -260,6 +261,44 @@ const AiAgentPage: React.FC = () => {
       alert(`เกิดข้อผิดพลาด: ${error.message}`);
     } finally {
       setIsAnalyzing(false);
+    }
+  };
+
+  const handleTestGoogleMaps = async () => {
+    addLog('🧪 เริ่มทดสอบ Google Maps API Key...');
+    setIsSearchingMap(true);
+    setApiTestResult(null);
+
+    try {
+      const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:3002';
+      const backendUrl = apiUrl.replace(/\/api$/, '');
+
+      const response = await fetch(`${backendUrl}/api/test/google-maps`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${adminToken}`,
+          'x-admin-token': adminToken || ''
+        }
+      });
+
+      const data = await response.json();
+      setApiTestResult(data);
+      
+      if (data.success) {
+        addLog(`✅ ทดสอบสำเร็จ: พบ ${data.testResults?.placesFound || 0} สถานที่`);
+      } else {
+        addLog(`❌ ทดสอบล้มเหลว: ${data.message || 'ไม่ทราบสาเหตุ'}`);
+      }
+    } catch (error: any) {
+      console.error('Error testing Google Maps API:', error);
+      addLog(`❌ Error testing API: ${error.message}`);
+      setApiTestResult({
+        success: false,
+        message: `เกิดข้อผิดพลาด: ${error.message}`,
+        apiKeySet: false
+      });
+    } finally {
+      setIsSearchingMap(false);
     }
   };
 
@@ -766,16 +805,25 @@ const AiAgentPage: React.FC = () => {
             {/* Google Maps Tab */}
             {activeTab === 'maps' && (
               <div className="bg-white rounded-xl shadow-sm p-6 space-y-6">
-                <div className="flex items-center space-x-3 mb-4">
-                  <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-                    <MapPin className="w-6 h-6 text-green-600" />
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                      <MapPin className="w-6 h-6 text-green-600" />
+                    </div>
+                    <div>
+                      <h2 className="text-xl font-bold text-gray-900">ค้นหาร้านค้าจาก Google Maps</h2>
+                      <p className="text-sm text-gray-500">
+                        ใช้ Google Places API เพื่อค้นหาร้านค้าส่งต้นไม้ในจุดขายส่งหลัก
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <h2 className="text-xl font-bold text-gray-900">ค้นหาร้านค้าจาก Google Maps</h2>
-                    <p className="text-sm text-gray-500">
-                      ใช้ Google Places API เพื่อค้นหาร้านค้าส่งต้นไม้ในจุดขายส่งหลัก
-                    </p>
-                  </div>
+                  <button
+                    onClick={handleTestGoogleMaps}
+                    className="px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors text-sm font-medium flex items-center space-x-2"
+                  >
+                    <RefreshCw className="w-4 h-4" />
+                    <span>ทดสอบ API Key</span>
+                  </button>
                 </div>
 
                 {/* Quick Search Presets */}
@@ -839,9 +887,71 @@ const AiAgentPage: React.FC = () => {
                   </div>
                 </div>
 
+                {/* API Test Result */}
+                {apiTestResult && (
+                  <div className={`border rounded-lg p-4 mb-6 ${
+                    apiTestResult.success 
+                      ? 'bg-green-50 border-green-200' 
+                      : 'bg-red-50 border-red-200'
+                  }`}>
+                    <div className="flex items-start space-x-3">
+                      {apiTestResult.success ? (
+                        <CheckCircle className="w-5 h-5 text-green-600 mt-0.5" />
+                      ) : (
+                        <XCircle className="w-5 h-5 text-red-600 mt-0.5" />
+                      )}
+                      <div className="flex-1">
+                        <h4 className={`font-semibold mb-2 ${
+                          apiTestResult.success ? 'text-green-800' : 'text-red-800'
+                        }`}>
+                          {apiTestResult.success ? '✅ ทดสอบสำเร็จ' : '❌ ทดสอบล้มเหลว'}
+                        </h4>
+                        <p className={`text-sm mb-2 ${
+                          apiTestResult.success ? 'text-green-700' : 'text-red-700'
+                        }`}>
+                          {apiTestResult.message}
+                        </p>
+                        {apiTestResult.apiKeySet && apiTestResult.apiKeyPreview && (
+                          <p className="text-xs text-gray-600 mb-2">
+                            API Key: {apiTestResult.apiKeyPreview}
+                          </p>
+                        )}
+                        {apiTestResult.success && apiTestResult.testResults && (
+                          <div className="mt-3 space-y-2">
+                            <p className="text-sm font-medium text-green-800">
+                              พบ {apiTestResult.testResults.placesFound} สถานที่:
+                            </p>
+                            <div className="bg-white rounded p-3 max-h-40 overflow-y-auto">
+                              {apiTestResult.testResults.samplePlaces?.map((place: any, idx: number) => (
+                                <div key={idx} className="text-xs text-gray-700 mb-2 pb-2 border-b last:border-0">
+                                  <p className="font-medium">📍 {place.name}</p>
+                                  <p className="text-gray-600">{place.location}</p>
+                                  {place.rating && (
+                                    <p className="text-gray-500">⭐ {place.rating}/5</p>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        {apiTestResult.error && (
+                          <div className="mt-2 p-2 bg-red-100 rounded text-xs text-red-800">
+                            <p className="font-medium">รายละเอียด Error:</p>
+                            <p>{apiTestResult.error.message || apiTestResult.error}</p>
+                            {apiTestResult.error.details && (
+                              <p className="mt-1">{apiTestResult.error.details}</p>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
                   <h4 className="font-semibold text-blue-800 mb-2">💡 คำแนะนำการค้นหา</h4>
                   <ul className="list-disc list-inside text-sm text-blue-700 space-y-1">
+                    <li>คลิกปุ่ม "ทดสอบ API Key" เพื่อตรวจสอบว่า API Key ใช้งานได้</li>
                     <li>ใช้ปุ่ม Quick Search ด้านบนเพื่อค้นหาจุดขายส่งหลัก</li>
                     <li>หรือพิมพ์คำค้นหาด้วยตนเอง: เช่น "ร้านต้นไม้ ขายส่ง ตลาดวัดพระเงิน"</li>
                     <li>สามารถค้นหาหลายคำได้ทีละบรรทัด (batch search)</li>

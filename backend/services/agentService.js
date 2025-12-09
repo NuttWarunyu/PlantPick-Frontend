@@ -419,7 +419,12 @@ ${text}
           console.log(`📍 Searching for: "${keyword}"`);
           const places = await googleMapsService.searchPlaces(keyword);
 
-          if (places.length === 0) continue;
+          if (places.length === 0) {
+            console.log(`⚠️ No results found for: "${keyword}"`);
+            continue;
+          }
+          
+          console.log(`✅ Found ${places.length} places for: "${keyword}"`);
 
           // 3. Process each place
           for (const place of places) {
