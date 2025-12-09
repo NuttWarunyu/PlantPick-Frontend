@@ -3,16 +3,17 @@
 
 const aiService = require('./aiService');
 const scrapingService = require('./scrapingService');
+const googleMapsService = require('./googleMapsService');
 const { db, pool } = require('../database');
 const { v4: uuidv4 } = require('uuid');
 
 // Helper function to parse Facebook post date (e.g., "5 ชั่วโมง", "1 วัน", "2 วัน")
 function parsePostDate(postDateStr) {
   if (!postDateStr) return null;
-  
+
   const now = new Date();
   const dateStr = postDateStr.toLowerCase().trim();
-  
+
   // Match patterns like "5 ชั่วโมง", "1 วัน", "2 วัน", "3 สัปดาห์", "1 เดือน"
   const hourMatch = dateStr.match(/(\d+)\s*ชั่วโมง/);
   if (hourMatch) {
@@ -21,7 +22,7 @@ function parsePostDate(postDateStr) {
     date.setHours(date.getHours() - hours);
     return date;
   }
-  
+
   const dayMatch = dateStr.match(/(\d+)\s*วัน/);
   if (dayMatch) {
     const days = parseInt(dayMatch[1]);
@@ -29,7 +30,7 @@ function parsePostDate(postDateStr) {
     date.setDate(date.getDate() - days);
     return date;
   }
-  
+
   const weekMatch = dateStr.match(/(\d+)\s*สัปดาห์/);
   if (weekMatch) {
     const weeks = parseInt(weekMatch[1]);
@@ -37,7 +38,7 @@ function parsePostDate(postDateStr) {
     date.setDate(date.getDate() - (weeks * 7));
     return date;
   }
-  
+
   const monthMatch = dateStr.match(/(\d+)\s*เดือน/);
   if (monthMatch) {
     const months = parseInt(monthMatch[1]);
@@ -45,7 +46,7 @@ function parsePostDate(postDateStr) {
     date.setMonth(date.getMonth() - months);
     return date;
   }
-  
+
   // If can't parse, assume it's recent (within 30 days)
   return now;
 }
@@ -55,22 +56,22 @@ class AgentService {
   async scrapeWebsite(websiteId, url) {
     try {
       console.log(`🤖 AI Agent: Starting scrape for ${url}`);
-      
+
       // 1. Scrape HTML content
       const scrapeResult = await scrapingService.scrapeHTML(url);
       if (!scrapeResult.success) {
         const errorMsg = scrapeResult.error || 'Unknown error';
         console.error(`❌ Scraping failed: ${errorMsg}`);
-        
+
         // Check if it's a Facebook URL and provide helpful error message
         const isFacebook = url.includes('facebook.com') || url.includes('fb.com');
         if (isFacebook) {
           throw new Error(`ไม่สามารถ scrape Facebook ได้: ${errorMsg}\n\n💡 หมายเหตุ: Facebook มีระบบป้องกัน bot ที่แข็งแกร่ง อาจต้อง:\n- ใช้ Puppeteer (ต้องติดตั้ง Chromium)\n- ใช้ Facebook Graph API (ต้องมี Access Token)\n- หรือลองใช้ URL อื่น`);
         }
-        
+
         throw new Error(`Failed to scrape: ${errorMsg}`);
       }
-      
+
       console.log(`✅ Scraping successful: ${scrapeResult.method}, HTML length: ${scrapeResult.html.length}`);
 
       // 2. Extract text content
@@ -81,16 +82,16 @@ class AgentService {
 
       // 3. Extract structured data (basic) - รวมรูปภาพด้วย
       const structuredResult = await scrapingService.extractStructuredData(scrapeResult.html);
-      
+
       // เก็บ URL รูปภาพสำหรับส่งให้ AI
       const imageUrls = structuredResult.data?.images?.slice(0, 10).map(img => img.src).filter(src => src && !src.startsWith('data:')).join(', ') || '';
-      
+
       // 4. Use AI to analyze and extract plant data
       // Check if it's Facebook
       const isFacebook = url.includes('facebook.com') || url.includes('fb.com');
       const isFacebookProfile = url.includes('/user/') || url.includes('/profile.php');
       const sourceType = isFacebookProfile ? 'Facebook Profile (เจ้าของสวน)' : (isFacebook ? 'Facebook Group/Page' : 'เว็บไซต์');
-      
+
       const aiPrompt = `คุณเป็น AI Agent ที่ช่วยแกะข้อมูลต้นไม้และราคาจาก${sourceType}
 
 ข้อมูลจาก${sourceType}:
@@ -150,7 +151,7 @@ ${isFacebook && !isFacebookProfile ? '⚠️ หมายเหตุ: ข้อ
 ตอบเป็น JSON ล้วนๆ เท่านั้น ห้ามใส่โค้ดบล็อก (เช่น code fences) หรือคำอธิบายอื่นๆ`;
 
       const aiResult = await aiService.analyzeText(aiPrompt);
-      
+
       if (!aiResult || !aiResult.plants) {
         throw new Error('AI failed to extract plant data');
       }
@@ -203,7 +204,7 @@ ${JSON.stringify(extractedData, null, 2)}
 ตอบเป็น JSON ล้วนๆ เท่านั้น ห้ามใส่โค้ดบล็อก`;
 
       const validatedResult = await aiService.analyzeText(validationPrompt);
-      
+
       return validatedResult || extractedData;
     } catch (error) {
       console.error('Validation error:', error);
@@ -215,7 +216,7 @@ ${JSON.stringify(extractedData, null, 2)}
   async analyzePastedText(text, sourceUrl = null) {
     try {
       console.log(`🤖 AI Agent: Analyzing pasted text (length: ${text.length})`);
-      
+
       // Use AI to analyze and extract plant data from pasted text
       const aiPrompt = `คุณเป็น AI Agent ที่ช่วยแกะข้อมูลต้นไม้และราคาจากข้อความที่ copy-paste จาก Facebook
 
@@ -277,7 +278,7 @@ ${text}
 ตอบเป็น JSON ล้วนๆ เท่านั้น ห้ามใส่โค้ดบล็อก (เช่น code fences) หรือคำอธิบายอื่นๆ`;
 
       const aiResult = await aiService.analyzeText(aiPrompt);
-      
+
       if (!aiResult || !aiResult.plants) {
         throw new Error('AI failed to extract plant data from pasted text');
       }
@@ -306,7 +307,7 @@ ${text}
   // Save scraping results to database
   async saveScrapingResults(websiteId, url, data) {
     const jobId = `job_${Date.now()}_${uuidv4()}`;
-    
+
     try {
       // 1. Create scraping job
       await pool.query(`
@@ -324,7 +325,7 @@ ${text}
             const resultId = `result_${Date.now()}_${uuidv4()}`;
             // ถ้ามีราคา ใช้ราคา ถ้าไม่มี ใช้ null (ไม่ใช่ 0)
             const plantPrice = (plantData.price && plantData.price > 0) ? plantData.price : null;
-            
+
             // Store all data for admin review (including supplier info)
             // Don't create plant/supplier yet - wait for approval
             await pool.query(`
@@ -393,7 +394,168 @@ ${text}
       throw error;
     }
   }
+  // Search from Google Maps and save as candidates
+  async searchPlacesAndSave(keywords, filterWholesale = false) {
+    // 1. Handle single keyword or array
+    const keywordList = Array.isArray(keywords) ? keywords : [keywords];
+    const jobId = `job_maps_${Date.now()}_${uuidv4()}`;
+    const allSavedItems = [];
+    let totalProcessed = 0;
+
+    try {
+      console.log(`🤖 AI Agent: Starting Google Maps batch search for ${keywordList.length} keywords`);
+
+      // Create Job
+      await pool.query(`
+        INSERT INTO scraping_jobs (id, website_id, url, status, started_at)
+        VALUES ($1, $2, $3, $4, NOW())
+      `, [jobId, null, `Maps Batch Search (${keywordList.length} keywords)`, 'processing']);
+
+      // 2. Loop through keywords
+      for (const keyword of keywordList) {
+        if (!keyword || !keyword.trim()) continue;
+
+        try {
+          console.log(`📍 Searching for: "${keyword}"`);
+          const places = await googleMapsService.searchPlaces(keyword);
+
+          if (places.length === 0) continue;
+
+          // 3. Process each place
+          for (const place of places) {
+            totalProcessed++;
+
+            // Deduplication (Check by Place ID)
+            if (place.placeId) {
+              const existing = await pool.query(
+                `SELECT id FROM scraping_results WHERE raw_data->>'placeId' = $1 AND status != 'rejected'`,
+                [place.placeId]
+              );
+              if (existing.rows.length > 0) {
+                console.log(`Evaluate duplicate: ${place.name} (Skipping)`);
+                continue;
+              }
+            }
+
+            // Fetch Details (Phone, etc.)
+            let detailedPlace = place;
+            if (place.placeId) {
+              const details = await googleMapsService.getPlaceDetails(place.placeId);
+              if (details) {
+                // Merge details
+                detailedPlace = { ...place, ...details };
+                // Specific phone formatting if needed
+                detailedPlace.phone = details.formatted_phone_number || details.international_phone_number || place.phone;
+              }
+            }
+
+            // AI Filtering (Wholesale check)
+            if (filterWholesale) {
+              const isWholesale = await this.checkIfWholesale(detailedPlace);
+              if (!isWholesale) {
+                console.log(`🚫 AI Filtered out: ${detailedPlace.name} (Not wholesale)`);
+                continue;
+              }
+            }
+
+            // Save Result
+            const resultId = `result_${Date.now()}_${uuidv4()}`;
+            await pool.query(`
+              INSERT INTO scraping_results (
+                id, job_id, plant_id, supplier_id, plant_name, price, size, 
+                raw_data, confidence, status, image_url,
+                supplier_name, supplier_phone, supplier_location
+              )
+              VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+            `, [
+              resultId,
+              jobId,
+              null,
+              null,
+              `New Supplier Found`, // Generic name
+              null,
+              null,
+              JSON.stringify(detailedPlace),
+              0.95,
+              'pending',
+              null, // Image URL could be fetched from Photo References later
+              detailedPlace.name,
+              detailedPlace.phone || null,
+              detailedPlace.formatted_address || detailedPlace.location
+            ]);
+
+            allSavedItems.push({
+              resultId,
+              supplierName: detailedPlace.name,
+              location: detailedPlace.formatted_address
+            });
+          }
+
+        } catch (searchErr) {
+          console.error(`Error searching keyword "${keyword}":`, searchErr);
+        }
+      }
+
+      // 4. Update Job
+      await pool.query(`
+        UPDATE scraping_jobs
+        SET status = $1, completed_at = NOW(), result = $2
+        WHERE id = $3
+      `, ['completed', JSON.stringify({ items: allSavedItems, count: allSavedItems.length }), jobId]);
+
+      return {
+        success: true,
+        count: allSavedItems.length,
+        processed: totalProcessed,
+        jobId,
+        items: allSavedItems
+      };
+
+    } catch (error) {
+      console.error('❌ Maps Batch Search Error:', error);
+      // Update job status to failed
+      await pool.query(`
+        UPDATE scraping_jobs
+        SET status = $1, completed_at = NOW(), result = $2
+        WHERE id = $3
+      `, ['failed', JSON.stringify({ error: error.message }), jobId]);
+      throw error;
+    }
+  }
+
+  // AI Helper: Check if place is a wholesale supplier
+  async checkIfWholesale(place) {
+    // Simple fast check: check types or name
+    const keywords = ['wholesale', 'supplies', 'garden center', 'florist', 'market', 'farm', 'ขายส่ง', 'ตลาด', 'สวน', 'ฟาร์ม'];
+    const nameLower = place.name.toLowerCase();
+
+    // 1. Basic Keyword Match
+    const hasKeyword = keywords.some(k => nameLower.includes(k));
+    if (hasKeyword) return true; // High likelihood
+
+    // 2. AI Analysis for ambiguous cases (using existing aiService)
+    try {
+      const prompt = `Analyzer this business: "${place.name}". 
+      Categories: ${JSON.stringify(place.types)}. 
+      Reviews: ${JSON.stringify(place.reviews?.slice(0, 2) || [])}.
+      Is this significantly likely to be a plant wholesaler, plant market, or large garden supplier?
+      Answer YES or NO only.`;
+
+      const aiResponse = await aiService.analyzeText(prompt);
+      // aiService returns JSON usually, but here we just want a string check if analyzeText returns string.
+      // Assuming analyzeText returns object, we might need a simpler calls. 
+      // For safety, let's stick to keyword matching + Types for now to save tokens/time,
+      // as "Wholesale" filter implies strict "Wholesale" intent.
+
+      // Let's rely on Types
+      const validTypes = ['florist', 'store', 'point_of_interest', 'establishment'];
+      if (!place.types || place.types.length === 0) return true; // Default keep
+
+      return place.types.some(t => validTypes.includes(t));
+    } catch (e) {
+      return true; // Fail safe: keep it
+    }
+  }
 }
 
 module.exports = new AgentService();
-

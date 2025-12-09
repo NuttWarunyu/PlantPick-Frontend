@@ -14,9 +14,9 @@ import AddPlantSupplierPage from './pages/AddPlantSupplierPage';
 import ProjectPage from './pages/ProjectPage';
 import BillScannerPage from './pages/BillScannerPage';
 import DashboardPage from './pages/DashboardPage';
-import PriceAnalysisPage from './pages/PriceAnalysisPage';
-import RouteOptimizationPage from './pages/RouteOptimizationPage';
-import CostAnalysisPage from './pages/CostAnalysisPage';
+// import PriceAnalysisPage from './pages/PriceAnalysisPage';
+// import RouteOptimizationPage from './pages/RouteOptimizationPage';
+// import CostAnalysisPage from './pages/CostAnalysisPage';
 import SupplierListPage from './pages/SupplierListPage';
 import DatabaseManagementPage from './pages/DatabaseManagementPage';
 import AdminLoginPage from './pages/AdminLoginPage';
@@ -76,10 +76,12 @@ function AppContent() {
                   <Store className="h-4 w-4" />
                   <span>ร้านค้า</span>
                 </a>
+                {/* Temporarily hidden - not in use yet
                 <a href="/price-analysis" className="flex items-center space-x-1 px-3 py-2 text-sm text-green-700 hover:text-green-900 hover:bg-green-50 rounded-md transition-colors">
                   <TrendingUp className="h-4 w-4" />
                   <span>วิเคราะห์</span>
                 </a>
+                */}
                 <a href="/bill-scanner" className="flex items-center space-x-1 px-3 py-2 text-sm text-green-700 hover:text-green-900 hover:bg-green-50 rounded-md transition-colors">
                   <Camera className="h-4 w-4" />
                   <span>สแกนบิล</span>
@@ -229,6 +231,7 @@ function AppContent() {
                   path="/dashboard" 
                   element={<DashboardPage />} 
                 />
+                {/* Temporarily hidden - not in use yet
                 <Route 
                   path="/price-analysis" 
                   element={<PriceAnalysisPage />} 
@@ -241,6 +244,7 @@ function AppContent() {
                   path="/cost-analysis" 
                   element={<CostAnalysisPage />} 
                 />
+                */}
                 <Route 
                   path="/suppliers" 
                   element={<SupplierListPage />} 

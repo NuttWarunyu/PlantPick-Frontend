@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  Bot, Plus, RefreshCw, Trash2, 
+import {
+  Bot, Plus, RefreshCw, Trash2,
   Globe, Clock, CheckCircle, XCircle, AlertCircle,
-  LogOut, Eye, ExternalLink, Loader, FileText, Send, Edit2
+  LogOut, Eye, ExternalLink, Loader, FileText, Send, Edit2, MapPin
 } from 'lucide-react';
 import { useAdmin } from '../contexts/AdminContext';
 
@@ -53,21 +53,26 @@ const AiAgentPage: React.FC = () => {
   const [jobs, setJobs] = useState<ScrapingJob[]>([]);
   const [results, setResults] = useState<ScrapingResult[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'websites' | 'jobs' | 'results' | 'logs' | 'paste'>('websites');
+  const [activeTab, setActiveTab] = useState<'websites' | 'jobs' | 'results' | 'logs' | 'paste' | 'maps'>('websites');
   const [scrapingStatus, setScrapingStatus] = useState<Record<string, 'idle' | 'scraping' | 'success' | 'error'>>({});
   const [scrapingMessage, setScrapingMessage] = useState<Record<string, string>>({});
   const [logs, setLogs] = useState<string[]>([]);
-  
+
   // Add website modal
   const [showAddModal, setShowAddModal] = useState(false);
   const [newWebsite, setNewWebsite] = useState({ name: '', url: '', description: '', schedule: 'manual' });
   const [isAdding, setIsAdding] = useState(false);
-  
+
   // Paste text state
   const [pastedText, setPastedText] = useState('');
   const [sourceUrl, setSourceUrl] = useState('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  
+
+  // Maps search state
+  const [mapKeyword, setMapKeyword] = useState('');
+  const [filterWholesale, setFilterWholesale] = useState(false);
+  const [isSearchingMap, setIsSearchingMap] = useState(false);
+
   // Edit location state
   const [editingLocation, setEditingLocation] = useState<string | null>(null);
   const [locationValue, setLocationValue] = useState('');
@@ -78,7 +83,7 @@ const AiAgentPage: React.FC = () => {
       return;
     }
     loadData();
-    
+
     // Auto refresh every 10 seconds
     const interval = setInterval(loadData, 10000);
     return () => clearInterval(interval);
@@ -127,10 +132,10 @@ const AiAgentPage: React.FC = () => {
       // Load results (admin can see all, filter by status if needed)
       if (activeTab === 'results' || isAdmin) {
         const statusFilter = isAdmin ? undefined : 'approved'; // Admin sees all, others see approved only
-        const resultsUrl = statusFilter 
+        const resultsUrl = statusFilter
           ? `${backendUrl}/api/agents/results?limit=100&status=${statusFilter}`
           : `${backendUrl}/api/agents/results?limit=100`;
-        
+
         const resultsRes = await fetch(resultsUrl, {
           headers: {
             'Authorization': `Bearer ${adminToken}`,
@@ -139,8 +144,10 @@ const AiAgentPage: React.FC = () => {
         });
         const resultsData = await resultsRes.json();
         if (resultsData.success) {
-          setResults(resultsData.data || []);
-          addLog(`✅ โหลดผลลัพธ์ ${resultsData.data?.length || 0} รายการ`);
+          // Filter out approved results - ไม่แสดงผลลัพธ์ที่ approve แล้ว
+          const filteredResults = (resultsData.data || []).filter((r: ScrapingResult) => r.status !== 'approved');
+          setResults(filteredResults);
+          addLog(`✅ โหลดผลลัพธ์ ${filteredResults.length} รายการ (ซ่อนผลลัพธ์ที่ approve แล้ว)`);
         } else {
           addLog(`❌ โหลดผลลัพธ์ล้มเหลว: ${resultsData.message}`);
         }
@@ -195,10 +202,10 @@ const AiAgentPage: React.FC = () => {
       alert('กรุณา paste ข้อความที่ต้องการวิเคราะห์');
       return;
     }
-    
+
     setIsAnalyzing(true);
     addLog(`🚀 เริ่มการวิเคราะห์ข้อความ (ความยาว: ${pastedText.length} ตัวอักษร)`);
-    
+
     try {
       const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:3002';
       const backendUrl = apiUrl.replace(/\/api$/, '');
@@ -210,7 +217,7 @@ const AiAgentPage: React.FC = () => {
           'x-admin-token': adminToken || '',
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           text: pastedText,
           sourceUrl: sourceUrl || null
         })
@@ -219,30 +226,30 @@ const AiAgentPage: React.FC = () => {
       const data = await response.json();
       if (data.success) {
         addLog(`✅ เริ่มการวิเคราะห์ข้อความสำเร็จ: ${data.data?.message || 'กำลังประมวลผล'}`);
-        
+
         // Clear form
         setPastedText('');
         setSourceUrl('');
-        
+
         // Auto refresh results and switch to results tab
         setTimeout(() => {
           loadData();
           setActiveTab('results');
         }, 1000);
-        
+
         // Continue polling for results
         let pollCount = 0;
         const maxPolls = 30;
         const pollInterval = setInterval(async () => {
           pollCount++;
           await loadData();
-          
+
           if (pollCount >= maxPolls) {
             clearInterval(pollInterval);
             addLog(`⏱️ หยุด polling หลังจาก ${maxPolls} ครั้ง`);
           }
         }, 10000);
-        
+
         alert('✅ เริ่มการวิเคราะห์ข้อความแล้ว กำลังรอผลลัพธ์...');
       } else {
         throw new Error(data.message || 'เกิดข้อผิดพลาด');
@@ -256,12 +263,62 @@ const AiAgentPage: React.FC = () => {
     }
   };
 
+  const handleSearchMaps = async () => {
+    if (!mapKeyword.trim()) {
+      alert('กรุณาระบุคำค้นหา (เช่น "ร้านขายส่งต้นไม้ วัดพระเงิน")');
+      return;
+    }
+
+    setIsSearchingMap(true);
+    addLog(`🗺️ เริ่มค้นหา Google Maps: "${mapKeyword}"`);
+
+    try {
+      const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:3002';
+      const backendUrl = apiUrl.replace(/\/api$/, '');
+
+      const response = await fetch(`${backendUrl}/api/agents/search-maps`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${adminToken}`,
+          'x-admin-token': adminToken || '',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          keywords: mapKeyword, // Send as string, backend will split by newline
+          filterWholesale // Send checkbox state
+        })
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        addLog(`✅ ค้นหาสำเร็จ: พบ ${data.data?.count || 0} สถานที่`);
+        setMapKeyword('');
+
+        // Switch to results tab to show pending items
+        setTimeout(() => {
+          loadData();
+          setActiveTab('results');
+        }, 1000);
+
+        alert(`✅ ค้นหาสำเร็จ! พบ ${data.data?.count || 0} สถานที่\n\nข้อมูลถูกบันทึกในแท็บ Results รอการ Approve`);
+      } else {
+        throw new Error(data.message || 'เกิดข้อผิดพลาด');
+      }
+    } catch (error: any) {
+      console.error('Error searching maps:', error);
+      addLog(`❌ Error searching maps: ${error.message}`);
+      alert(`เกิดข้อผิดพลาด: ${error.message}`);
+    } finally {
+      setIsSearchingMap(false);
+    }
+  };
+
   const handleScrape = async (websiteId?: string, url?: string) => {
     const key = websiteId || url || 'manual';
     setScrapingStatus(prev => ({ ...prev, [key]: 'scraping' }));
     setScrapingMessage(prev => ({ ...prev, [key]: 'กำลังเริ่มการ scrape...' }));
     addLog(`🚀 เริ่มการ scrape: ${url || websiteId || 'manual'}`);
-    
+
     try {
       const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:3002';
       const backendUrl = apiUrl.replace(/\/api$/, '');
@@ -281,7 +338,7 @@ const AiAgentPage: React.FC = () => {
         setScrapingMessage(prev => ({ ...prev, [key]: '✅ เริ่มการ scrape แล้ว กำลังรอผลลัพธ์...' }));
         setScrapingStatus(prev => ({ ...prev, [key]: 'success' }));
         addLog(`✅ เริ่มการ scrape สำเร็จ: ${data.data?.message || 'กำลังประมวลผล'}`);
-        
+
         // Auto refresh jobs and results
         setTimeout(() => {
           loadData();
@@ -290,14 +347,14 @@ const AiAgentPage: React.FC = () => {
             setActiveTab('jobs');
           }
         }, 1000);
-        
+
         // Continue polling for results
         let pollCount = 0;
         const maxPolls = 30; // 30 polls = 5 minutes (10s interval)
         const pollInterval = setInterval(async () => {
           pollCount++;
           await loadData();
-          
+
           // Fetch latest jobs to check status
           const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:3002';
           const backendUrl = apiUrl.replace(/\/api$/, '');
@@ -312,21 +369,21 @@ const AiAgentPage: React.FC = () => {
             if (jobsData.success) {
               const latestJobs = jobsData.data || [];
               // Check if job is completed
-              const completedJob = latestJobs.find((j: ScrapingJob) => 
+              const completedJob = latestJobs.find((j: ScrapingJob) =>
                 ((websiteId && j.website_id === websiteId) || (url && j.url === url)) &&
                 (j.status === 'completed' || j.status === 'failed')
               );
-              
+
               if (completedJob || pollCount >= maxPolls) {
                 clearInterval(pollInterval);
                 if (completedJob) {
-                  const statusMsg = completedJob.status === 'completed' 
-                    ? '✅ Scraping เสร็จสิ้น! ตรวจสอบผลลัพธ์ในแท็บ Results' 
+                  const statusMsg = completedJob.status === 'completed'
+                    ? '✅ Scraping เสร็จสิ้น! ตรวจสอบผลลัพธ์ในแท็บ Results'
                     : `❌ Scraping ล้มเหลว: ${completedJob.error_message || 'ไม่ทราบสาเหตุ'}`;
                   setScrapingMessage(prev => ({ ...prev, [key]: statusMsg }));
                   setScrapingStatus(prev => ({ ...prev, [key]: completedJob.status === 'completed' ? 'success' : 'error' }));
                   addLog(statusMsg);
-                  
+
                   // Switch to results tab if completed
                   if (completedJob.status === 'completed') {
                     setTimeout(() => setActiveTab('results'), 2000);
@@ -341,7 +398,7 @@ const AiAgentPage: React.FC = () => {
             console.error('Error polling jobs:', err);
           }
         }, 10000); // Poll every 10 seconds
-        
+
         // Clear status after 10 seconds
         setTimeout(() => {
           setScrapingStatus(prev => ({ ...prev, [key]: 'idle' }));
@@ -379,13 +436,13 @@ const AiAgentPage: React.FC = () => {
       const proceed = window.confirm('⚠️ ผลลัพธ์นี้ไม่มีตำแหน่งที่ตั้ง\n\nถ้า Supplier นี้มี Location อยู่แล้วในระบบ จะใช้ Location เดิม\n\nถ้ายังไม่มี Location จะต้องเพิ่มก่อน\n\nต้องการดำเนินการต่อหรือไม่?');
       if (!proceed) return;
     }
-    
+
     if (!window.confirm('คุณต้องการ approve ผลลัพธ์นี้หรือไม่? ข้อมูลจะถูกบันทึกลงฐานข้อมูล')) return;
-    
+
     try {
       const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:3002';
       const backendUrl = apiUrl.replace(/\/api$/, '');
-      
+
       const response = await fetch(`${backendUrl}/api/agents/results/${id}/approve`, {
         method: 'POST',
         headers: {
@@ -394,12 +451,14 @@ const AiAgentPage: React.FC = () => {
           'Content-Type': 'application/json'
         }
       });
-      
+
       const data = await response.json();
       if (data.success) {
-        addLog(`✅ Approve สำเร็จ: ${data.data?.plantName || id} → บันทึกลงฐานข้อมูลแล้ว`);
-        alert('✅ Approve สำเร็จ! ข้อมูลถูกบันทึกลงฐานข้อมูลแล้ว');
-        loadData();
+        addLog(`✅ Approve สำเร็จ: ${data.data?.plantName || id} → บันทึกลงฐานข้อมูลแล้ว และลบออกจากรายการแล้ว`);
+        // Remove from local state immediately (ไม่ต้องรอ reload)
+        setResults(prev => prev.filter(r => r.id !== id));
+        alert('✅ Approve สำเร็จ! ข้อมูลถูกบันทึกลงฐานข้อมูลแล้ว และลบออกจากรายการแล้ว');
+        loadData(); // Reload to sync with backend
       } else {
         addLog(`❌ Approve ล้มเหลว: ${data.message || 'ไม่ทราบสาเหตุ'}`);
         alert(data.message || 'เกิดข้อผิดพลาด');
@@ -413,12 +472,12 @@ const AiAgentPage: React.FC = () => {
 
   const handleApproveAll = async () => {
     const pendingResults = results.filter(r => r.status === 'pending');
-    
+
     if (pendingResults.length === 0) {
       alert('ไม่มีผลลัพธ์ที่รอ Approve');
       return;
     }
-    
+
     // Group by supplier name to check if supplier has location
     const supplierGroups = new Map<string, typeof pendingResults>();
     pendingResults.forEach(r => {
@@ -428,12 +487,12 @@ const AiAgentPage: React.FC = () => {
       }
       supplierGroups.get(supplierName)!.push(r);
     });
-    
+
     // Check if any supplier group has no location at all
     // Check both result location and supplier location in DB
     const suppliersWithoutLocation: string[] = [];
     supplierGroups.forEach((results, supplierName) => {
-      const hasAnyLocation = results.some(r => 
+      const hasAnyLocation = results.some(r =>
         (r.supplier_location && r.supplier_location.trim() !== '') ||
         (r.supplier_location_in_db && r.supplier_location_in_db.trim() !== '')
       );
@@ -441,24 +500,24 @@ const AiAgentPage: React.FC = () => {
         suppliersWithoutLocation.push(supplierName);
       }
     });
-    
+
     if (suppliersWithoutLocation.length > 0) {
       alert(`⚠️ ไม่สามารถ Approve ทั้งหมดได้: มี Supplier ${suppliersWithoutLocation.length} รายการที่ไม่มีตำแหน่งที่ตั้ง (Location)\n\nSupplier ที่ไม่มี Location:\n${suppliersWithoutLocation.slice(0, 5).join('\n')}${suppliersWithoutLocation.length > 5 ? '\n...' : ''}\n\nกรุณาเพิ่มตำแหน่งที่ตั้งให้ Supplier เหล่านี้ก่อน Approve\n\n💡 เพิ่ม Location ครั้งเดียวสำหรับ Supplier เดียวกัน แล้ว Approve อื่นๆ จะใช้ Location เดิมได้`);
       return;
     }
-    
+
     if (!window.confirm(`คุณต้องการ approve ทั้งหมด ${pendingResults.length} รายการหรือไม่? ข้อมูลจะถูกบันทึกลงฐานข้อมูล`)) return;
-    
+
     setIsAnalyzing(true);
     addLog(`🚀 เริ่ม Approve ทั้งหมด ${pendingResults.length} รายการ...`);
-    
+
     try {
       const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:3002';
       const backendUrl = apiUrl.replace(/\/api$/, '');
-      
+
       let successCount = 0;
       let failCount = 0;
-      
+
       // Approve all results sequentially
       for (const result of pendingResults) {
         try {
@@ -470,11 +529,13 @@ const AiAgentPage: React.FC = () => {
               'Content-Type': 'application/json'
             }
           });
-          
+
           const data = await response.json();
           if (data.success) {
             successCount++;
-            addLog(`✅ Approve สำเร็จ: ${data.data?.plantName || result.id}`);
+            addLog(`✅ Approve สำเร็จ: ${data.data?.plantName || result.id} → ลบออกจากรายการแล้ว`);
+            // Remove from local state immediately
+            setResults(prev => prev.filter(r => r.id !== result.id));
           } else {
             failCount++;
             addLog(`❌ Approve ล้มเหลว: ${result.plant_name} - ${data.message || 'ไม่ทราบสาเหตุ'}`);
@@ -484,10 +545,10 @@ const AiAgentPage: React.FC = () => {
           addLog(`❌ Error approving ${result.plant_name}: ${error.message || 'ไม่ทราบสาเหตุ'}`);
         }
       }
-      
+
       addLog(`✅ Approve ทั้งหมดเสร็จสิ้น: สำเร็จ ${successCount} รายการ, ล้มเหลว ${failCount} รายการ`);
       alert(`✅ Approve ทั้งหมดเสร็จสิ้น!\n\nสำเร็จ: ${successCount} รายการ\nล้มเหลว: ${failCount} รายการ`);
-      
+
       loadData();
     } catch (error: any) {
       console.error('Error approving all results:', error);
@@ -503,11 +564,11 @@ const AiAgentPage: React.FC = () => {
       alert('กรุณากรอกตำแหน่งที่ตั้ง');
       return;
     }
-    
+
     try {
       const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:3002';
       const backendUrl = apiUrl.replace(/\/api$/, '');
-      
+
       const response = await fetch(`${backendUrl}/api/agents/results/${id}/location`, {
         method: 'PUT',
         headers: {
@@ -517,7 +578,7 @@ const AiAgentPage: React.FC = () => {
         },
         body: JSON.stringify({ location: locationValue.trim() })
       });
-      
+
       const data = await response.json();
       if (data.success) {
         addLog(`✅ อัพเดทตำแหน่งที่ตั้งสำเร็จ: ${locationValue.trim()}`);
@@ -537,11 +598,11 @@ const AiAgentPage: React.FC = () => {
 
   const handleRejectResult = async (id: string) => {
     if (!window.confirm('คุณต้องการ reject ผลลัพธ์นี้หรือไม่?')) return;
-    
+
     try {
       const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:3002';
       const backendUrl = apiUrl.replace(/\/api$/, '');
-      
+
       const response = await fetch(`${backendUrl}/api/agents/results/${id}/reject`, {
         method: 'POST',
         headers: {
@@ -550,7 +611,7 @@ const AiAgentPage: React.FC = () => {
           'Content-Type': 'application/json'
         }
       });
-      
+
       const data = await response.json();
       if (data.success) {
         addLog(`✅ Reject สำเร็จ: ${id}`);
@@ -636,54 +697,58 @@ const AiAgentPage: React.FC = () => {
 
         {/* Tabs */}
         <div className="bg-white rounded-xl shadow-sm mb-6">
-          <div className="flex border-b border-gray-200">
+          <div className="flex border-b border-gray-200 overflow-x-auto">
             <button
               onClick={() => setActiveTab('websites')}
-              className={`flex-1 px-4 py-3 sm:py-4 text-center font-medium transition-colors touch-manipulation ${
-                activeTab === 'websites'
-                  ? 'text-green-600 border-b-2 border-green-600 bg-green-50'
-                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-              }`}
+              className={`flex-1 px-4 py-3 sm:py-4 text-center font-medium transition-colors touch-manipulation whitespace-nowrap ${activeTab === 'websites'
+                ? 'text-green-600 border-b-2 border-green-600 bg-green-50'
+                : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                }`}
             >
               🌐 เว็บไซต์ ({websites.length})
             </button>
             <button
+              onClick={() => setActiveTab('maps')}
+              className={`flex-1 px-4 py-3 sm:py-4 text-center font-medium transition-colors touch-manipulation whitespace-nowrap ${activeTab === 'maps'
+                ? 'text-green-600 border-b-2 border-green-600 bg-green-50'
+                : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                }`}
+            >
+              🗺️ Google Maps
+            </button>
+            <button
               onClick={() => setActiveTab('jobs')}
-              className={`flex-1 px-4 py-3 sm:py-4 text-center font-medium transition-colors touch-manipulation ${
-                activeTab === 'jobs'
-                  ? 'text-green-600 border-b-2 border-green-600 bg-green-50'
-                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-              }`}
+              className={`flex-1 px-4 py-3 sm:py-4 text-center font-medium transition-colors touch-manipulation whitespace-nowrap ${activeTab === 'jobs'
+                ? 'text-green-600 border-b-2 border-green-600 bg-green-50'
+                : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                }`}
             >
               ⚙️ Jobs ({jobs.length})
             </button>
             <button
               onClick={() => setActiveTab('results')}
-              className={`flex-1 px-4 py-3 sm:py-4 text-center font-medium transition-colors touch-manipulation ${
-                activeTab === 'results'
-                  ? 'text-green-600 border-b-2 border-green-600 bg-green-50'
-                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-              }`}
+              className={`flex-1 px-4 py-3 sm:py-4 text-center font-medium transition-colors touch-manipulation ${activeTab === 'results'
+                ? 'text-green-600 border-b-2 border-green-600 bg-green-50'
+                : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                }`}
             >
               📊 ผลลัพธ์ ({results.length})
             </button>
             <button
               onClick={() => setActiveTab('paste')}
-              className={`flex-1 px-4 py-3 sm:py-4 text-center font-medium transition-colors touch-manipulation ${
-                activeTab === 'paste'
-                  ? 'text-green-600 border-b-2 border-green-600 bg-green-50'
-                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-              }`}
+              className={`flex-1 px-4 py-3 sm:py-4 text-center font-medium transition-colors touch-manipulation ${activeTab === 'paste'
+                ? 'text-green-600 border-b-2 border-green-600 bg-green-50'
+                : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                }`}
             >
               📋 Paste Text
             </button>
             <button
               onClick={() => setActiveTab('logs')}
-              className={`flex-1 px-4 py-3 sm:py-4 text-center font-medium transition-colors touch-manipulation ${
-                activeTab === 'logs'
-                  ? 'text-green-600 border-b-2 border-green-600 bg-green-50'
-                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-              }`}
+              className={`flex-1 px-4 py-3 sm:py-4 text-center font-medium transition-colors touch-manipulation ${activeTab === 'logs'
+                ? 'text-green-600 border-b-2 border-green-600 bg-green-50'
+                : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                }`}
             >
               📝 Logs ({logs.length})
             </button>
@@ -698,6 +763,82 @@ const AiAgentPage: React.FC = () => {
           </div>
         ) : (
           <>
+            {/* Google Maps Tab */}
+            {activeTab === 'maps' && (
+              <div className="bg-white rounded-xl shadow-sm p-6 space-y-6">
+                <div className="flex items-center space-x-3 mb-4">
+                  <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                    <MapPin className="w-6 h-6 text-green-600" />
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-bold text-gray-900">ค้นหาร้านค้าจาก Google Maps</h2>
+                    <p className="text-sm text-gray-500">
+                      ใช้ Google Places API เพื่อค้นหาร้านค้าส่งต้นไม้ในพื้นที่ที่ต้องการ
+                    </p>
+                  </div>
+                </div>
+
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                  <h4 className="font-semibold text-blue-800 mb-2">💡 คำแนะนำการค้นหา</h4>
+                  <ul className="list-disc list-inside text-sm text-blue-700 space-y-1">
+                    <li>ระบุประเภทร้านและทำเล: เช่น "ร้านต้นไม้ ขายส่ง ตลาดวัดพระเงิน"</li>
+                    <li>ระบุชื่อตลาด: เช่น "ตลาดไท ต้นไม้", "คลอง 15 ไม้ดอกไม้ประดับ"</li>
+                    <li>ระบุจังหวัด: เช่น "ร้านกล้วยไม้ นครปฐม"</li>
+                  </ul>
+                </div>
+
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      คำค้นหา (Keywords) - ค้นหาหลายคำได้ทีละบรรทัด
+                    </label>
+                    <div className="space-y-3">
+                      <textarea
+                        value={mapKeyword}
+                        onChange={(e) => setMapKeyword(e.target.value)}
+                        placeholder={`ร้านขายส่งต้นไม้ ตลาดวัดพระเงิน\nร้านกล้วยไม้ นครปฐม\nตลาดต้นไม้ คลอง 15`}
+                        className="w-full h-32 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                      />
+
+                      <div className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          id="filterWholesale"
+                          checked={filterWholesale}
+                          onChange={(e) => setFilterWholesale(e.target.checked)}
+                          className="w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500"
+                        />
+                        <label htmlFor="filterWholesale" className="text-sm text-gray-700">
+                          คัดกรองเฉพาะร้านขายส่ง (AI Filtering) - <i>อาจใช้เวลานานขึ้น</i>
+                        </label>
+                      </div>
+
+                      <button
+                        onClick={handleSearchMaps}
+                        disabled={isSearchingMap || !mapKeyword.trim()}
+                        className={`w-full flex items-center justify-center space-x-2 px-6 py-3 rounded-lg text-white font-medium transition-colors ${isSearchingMap || !mapKeyword.trim()
+                          ? 'bg-gray-400 cursor-not-allowed'
+                          : 'bg-green-600 hover:bg-green-700'
+                          }`}
+                      >
+                        {isSearchingMap ? (
+                          <>
+                            <Loader className="w-5 h-5 animate-spin" />
+                            <span>กำลังค้นหา... (อาจใช้เวลาสักครู่)</span>
+                          </>
+                        ) : (
+                          <>
+                            <MapPin className="w-5 h-5" />
+                            <span>ค้นหา</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Websites Tab */}
             {activeTab === 'websites' && (
               <div className="space-y-4">
@@ -740,9 +881,8 @@ const AiAgentPage: React.FC = () => {
                               <ExternalLink className="w-3 h-3 flex-shrink-0" />
                             </a>
                           </div>
-                          <span className={`px-2 py-1 text-xs rounded-full ${
-                            website.enabled ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'
-                          }`}>
+                          <span className={`px-2 py-1 text-xs rounded-full ${website.enabled ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'
+                            }`}>
                             {website.enabled ? 'เปิด' : 'ปิด'}
                           </span>
                         </div>
@@ -762,15 +902,14 @@ const AiAgentPage: React.FC = () => {
                             <button
                               onClick={() => handleScrape(website.id)}
                               disabled={scrapingStatus[website.id] === 'scraping'}
-                              className={`flex-1 flex items-center justify-center space-x-1 px-3 py-2 rounded-lg transition-colors touch-manipulation text-sm font-medium ${
-                                scrapingStatus[website.id] === 'scraping'
-                                  ? 'bg-gray-400 text-white cursor-not-allowed'
-                                  : scrapingStatus[website.id] === 'success'
+                              className={`flex-1 flex items-center justify-center space-x-1 px-3 py-2 rounded-lg transition-colors touch-manipulation text-sm font-medium ${scrapingStatus[website.id] === 'scraping'
+                                ? 'bg-gray-400 text-white cursor-not-allowed'
+                                : scrapingStatus[website.id] === 'success'
                                   ? 'bg-green-600 text-white hover:bg-green-700'
                                   : scrapingStatus[website.id] === 'error'
-                                  ? 'bg-red-600 text-white hover:bg-red-700'
-                                  : 'bg-blue-600 text-white hover:bg-blue-700'
-                              }`}
+                                    ? 'bg-red-600 text-white hover:bg-red-700'
+                                    : 'bg-blue-600 text-white hover:bg-blue-700'
+                                }`}
                             >
                               {scrapingStatus[website.id] === 'scraping' ? (
                                 <>
@@ -792,13 +931,12 @@ const AiAgentPage: React.FC = () => {
                             </button>
                           </div>
                           {scrapingMessage[website.id] && (
-                            <div className={`text-xs px-2 py-1 rounded ${
-                              scrapingStatus[website.id] === 'success' 
-                                ? 'bg-green-50 text-green-700' 
-                                : scrapingStatus[website.id] === 'error'
+                            <div className={`text-xs px-2 py-1 rounded ${scrapingStatus[website.id] === 'success'
+                              ? 'bg-green-50 text-green-700'
+                              : scrapingStatus[website.id] === 'error'
                                 ? 'bg-red-50 text-red-700'
                                 : 'bg-blue-50 text-blue-700'
-                            }`}>
+                              }`}>
                               {scrapingMessage[website.id]}
                             </div>
                           )}
@@ -874,7 +1012,7 @@ const AiAgentPage: React.FC = () => {
                     <FileText className="w-5 h-5" />
                     <span>Paste Text จาก Facebook</span>
                   </h2>
-                  
+
                   <div className="space-y-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -888,7 +1026,7 @@ const AiAgentPage: React.FC = () => {
                         placeholder="https://www.facebook.com/..."
                       />
                     </div>
-                    
+
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         ข้อความจาก Facebook Post
@@ -923,7 +1061,7 @@ const AiAgentPage: React.FC = () => {
                         ความยาว: {pastedText.length} ตัวอักษร
                       </p>
                     </div>
-                    
+
                     <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                       <p className="text-sm text-blue-800">
                         <strong>💡 วิธีใช้:</strong>
@@ -936,7 +1074,7 @@ const AiAgentPage: React.FC = () => {
                         <li>ผลลัพธ์จะแสดงในแท็บ "ผลลัพธ์" และรอ Approve</li>
                       </ul>
                     </div>
-                    
+
                     <button
                       onClick={handleAnalyzeText}
                       disabled={isAnalyzing || !pastedText.trim()}
@@ -992,37 +1130,35 @@ const AiAgentPage: React.FC = () => {
                 ) : (
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     {results.map((result) => (
-                      <div 
-                        key={result.id} 
-                        className={`bg-white rounded-xl shadow-sm p-4 sm:p-6 border-2 ${
-                          result.status === 'pending' ? 'border-yellow-300 bg-yellow-50' :
+                      <div
+                        key={result.id}
+                        className={`bg-white rounded-xl shadow-sm p-4 sm:p-6 border-2 ${result.status === 'pending' ? 'border-yellow-300 bg-yellow-50' :
                           result.status === 'approved' ? 'border-green-300 bg-green-50' :
-                          result.status === 'rejected' ? 'border-red-300 bg-red-50' :
-                          'border-gray-200'
-                        }`}
+                            result.status === 'rejected' ? 'border-red-300 bg-red-50' :
+                              'border-gray-200'
+                          }`}
                       >
                         {/* Status Badge */}
                         {result.status && (
                           <div className="mb-3">
-                            <span className={`px-2 py-1 text-xs rounded-full ${
-                              result.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
+                            <span className={`px-2 py-1 text-xs rounded-full ${result.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
                               result.status === 'approved' ? 'bg-green-100 text-green-700' :
-                              result.status === 'rejected' ? 'bg-red-100 text-red-700' :
-                              'bg-gray-100 text-gray-700'
-                            }`}>
+                                result.status === 'rejected' ? 'bg-red-100 text-red-700' :
+                                  'bg-gray-100 text-gray-700'
+                              }`}>
                               {result.status === 'pending' ? '⏳ รอ Approve' :
-                               result.status === 'approved' ? '✅ Approve แล้ว' :
-                               result.status === 'rejected' ? '❌ Reject แล้ว' :
-                               'Unknown'}
+                                result.status === 'approved' ? '✅ Approve แล้ว' :
+                                  result.status === 'rejected' ? '❌ Reject แล้ว' :
+                                    'Unknown'}
                             </span>
                           </div>
                         )}
-                        
+
                         {/* Plant Image */}
                         {result.image_url && (
                           <div className="mb-3">
-                            <img 
-                              src={result.image_url} 
+                            <img
+                              src={result.image_url}
                               alt={result.plant_name}
                               className="w-full h-32 object-cover rounded-lg"
                               onError={(e) => {
@@ -1031,10 +1167,10 @@ const AiAgentPage: React.FC = () => {
                             />
                           </div>
                         )}
-                        
+
                         {/* Plant Name */}
                         <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-2">{result.plant_name}</h3>
-                        
+
                         {/* Supplier Info */}
                         {result.supplier_name && (
                           <div className="mb-2">
@@ -1096,26 +1232,26 @@ const AiAgentPage: React.FC = () => {
                             )}
                           </div>
                         )}
-                        
+
                         {/* Price */}
                         {result.price ? (
                           <p className="text-xl font-bold text-green-600 mb-2">฿{result.price.toLocaleString()}</p>
                         ) : (
                           <p className="text-sm text-gray-500 mb-2">💰 ไม่มีราคา</p>
                         )}
-                        
+
                         {/* Size */}
                         {result.size && (
                           <p className="text-sm text-gray-600 mb-2">📏 Size: {result.size}</p>
                         )}
-                        
+
                         {/* Confidence */}
                         {result.confidence && (
                           <p className="text-xs text-gray-500 mb-3">
                             🎯 Confidence: {(result.confidence * 100).toFixed(0)}%
                           </p>
                         )}
-                        
+
                         {/* Admin Actions */}
                         {isAdmin && result.status === 'pending' && (
                           <div className="flex space-x-2 mt-4">
@@ -1135,7 +1271,7 @@ const AiAgentPage: React.FC = () => {
                             </button>
                           </div>
                         )}
-                        
+
                         {/* Approved Info */}
                         {result.status === 'approved' && result.approved_at && (
                           <p className="text-xs text-green-600 mt-2">
@@ -1171,15 +1307,14 @@ const AiAgentPage: React.FC = () => {
                   <div className="bg-gray-900 rounded-xl shadow-sm p-4 sm:p-6 font-mono text-sm">
                     <div className="space-y-1 max-h-96 overflow-y-auto">
                       {logs.map((log, index) => (
-                        <div 
-                          key={index} 
-                          className={`p-2 rounded ${
-                            log.includes('✅') ? 'bg-green-900 text-green-300' :
+                        <div
+                          key={index}
+                          className={`p-2 rounded ${log.includes('✅') ? 'bg-green-900 text-green-300' :
                             log.includes('❌') ? 'bg-red-900 text-red-300' :
-                            log.includes('🚀') ? 'bg-blue-900 text-blue-300' :
-                            log.includes('⏱️') ? 'bg-yellow-900 text-yellow-300' :
-                            'bg-gray-800 text-gray-300'
-                          }`}
+                              log.includes('🚀') ? 'bg-blue-900 text-blue-300' :
+                                log.includes('⏱️') ? 'bg-yellow-900 text-yellow-300' :
+                                  'bg-gray-800 text-gray-300'
+                            }`}
                         >
                           {log}
                         </div>
@@ -1197,7 +1332,7 @@ const AiAgentPage: React.FC = () => {
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
             <div className="bg-white rounded-2xl shadow-xl p-6 sm:p-8 max-w-md w-full max-h-[90vh] overflow-y-auto">
               <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-6">เพิ่มเว็บไซต์</h2>
-              
+
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">ชื่อเว็บไซต์</label>

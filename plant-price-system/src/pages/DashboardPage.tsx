@@ -87,33 +87,34 @@ const DashboardPage: React.FC = () => {
       emoji: '🌱',
       route: '/add-plant'
     },
-    {
-      id: 'price-analysis',
-      title: 'วิเคราะห์ราคา',
-      description: 'วิเคราะห์เทรนด์ราคา',
-      icon: <BarChart3 className="w-7 h-7" />,
-      gradient: 'from-indigo-400 to-purple-500',
-      emoji: '📊',
-      route: '/price-analysis'
-    },
-    {
-      id: 'route-optimization',
-      title: 'วางแผนเส้นทาง',
-      description: 'หาทางไปซื้อที่ประหยัดที่สุด',
-      icon: <MapPin className="w-7 h-7" />,
-      gradient: 'from-pink-400 to-rose-500',
-      emoji: '🗺️',
-      route: '/route-optimization'
-    },
-    {
-      id: 'cost-analysis',
-      title: 'วิเคราะห์ต้นทุน',
-      description: 'วิเคราะห์และหาวิธีประหยัด',
-      icon: <PieChart className="w-7 h-7" />,
-      gradient: 'from-teal-400 to-cyan-500',
-      emoji: '💰',
-      route: '/cost-analysis'
-    },
+    // Temporarily hidden - not in use yet
+    // {
+    //   id: 'price-analysis',
+    //   title: 'วิเคราะห์ราคา',
+    //   description: 'วิเคราะห์เทรนด์ราคา',
+    //   icon: <BarChart3 className="w-7 h-7" />,
+    //   gradient: 'from-indigo-400 to-purple-500',
+    //   emoji: '📊',
+    //   route: '/price-analysis'
+    // },
+    // {
+    //   id: 'route-optimization',
+    //   title: 'วางแผนเส้นทาง',
+    //   description: 'หาทางไปซื้อที่ประหยัดที่สุด',
+    //   icon: <MapPin className="w-7 h-7" />,
+    //   gradient: 'from-pink-400 to-rose-500',
+    //   emoji: '🗺️',
+    //   route: '/route-optimization'
+    // },
+    // {
+    //   id: 'cost-analysis',
+    //   title: 'วิเคราะห์ต้นทุน',
+    //   description: 'วิเคราะห์และหาวิธีประหยัด',
+    //   icon: <PieChart className="w-7 h-7" />,
+    //   gradient: 'from-teal-400 to-cyan-500',
+    //   emoji: '💰',
+    //   route: '/cost-analysis'
+    // },
     ...(isAdmin ? [{
       id: 'ai-agent',
       title: 'AI Agent',

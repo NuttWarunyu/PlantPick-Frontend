@@ -27,7 +27,7 @@ app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 // Configure multer for file uploads
-const upload = multer({ 
+const upload = multer({
   dest: 'uploads/',
   limits: {
     fileSize: 10 * 1024 * 1024 // 10MB limit
@@ -38,8 +38,8 @@ const upload = multer({
 
 // Routes
 app.get('/api/health', (req, res) => {
-  res.json({ 
-    status: 'OK', 
+  res.json({
+    status: 'OK',
     message: 'Plant Price API is running',
     timestamp: new Date().toISOString()
   });
@@ -49,15 +49,15 @@ app.get('/api/health', (req, res) => {
 app.post('/api/suppliers', async (req, res) => {
   try {
     const { name, location, phone, website, description, specialties, businessHours, paymentMethods } = req.body;
-    
+
     const supplierId = `supplier_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    
+
     const query = `
       INSERT INTO suppliers (id, name, location, phone, website, description, specialties, business_hours, payment_methods, created_at)
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW())
       RETURNING *
     `;
-    
+
     const result = await pool.query(query, [
       supplierId,
       name,
@@ -69,7 +69,7 @@ app.post('/api/suppliers', async (req, res) => {
       businessHours || null,
       JSON.stringify(paymentMethods)
     ]);
-    
+
     res.json({
       success: true,
       data: result.rows[0],
@@ -89,15 +89,15 @@ app.post('/api/suppliers', async (req, res) => {
 app.post('/api/plant-suppliers', async (req, res) => {
   try {
     const { plantId, supplierId, price, size, stockQuantity, minOrderQuantity, deliveryAvailable, deliveryCost, notes } = req.body;
-    
+
     const connectionId = `ps_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    
+
     const query = `
       INSERT INTO plant_suppliers (id, plant_id, supplier_id, price, size, stock_quantity, min_order_quantity, delivery_available, delivery_cost, notes)
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
       RETURNING *
     `;
-    
+
     const result = await pool.query(query, [
       connectionId,
       plantId,
@@ -110,7 +110,7 @@ app.post('/api/plant-suppliers', async (req, res) => {
       deliveryCost || 0,
       notes || null
     ]);
-    
+
     res.json({
       success: true,
       data: result.rows[0],
@@ -130,7 +130,7 @@ app.post('/api/plant-suppliers', async (req, res) => {
 app.get('/api/plant-suppliers', async (req, res) => {
   try {
     const { plantId, supplierId } = req.query;
-    
+
     let query = `
       SELECT 
         ps.*,
@@ -145,7 +145,7 @@ app.get('/api/plant-suppliers', async (req, res) => {
       JOIN suppliers s ON ps.supplier_id = s.id
       WHERE ps.is_active = true
     `;
-    
+
     const params = [];
     if (plantId) {
       query += ` AND ps.plant_id = $${params.length + 1}`;
@@ -155,11 +155,11 @@ app.get('/api/plant-suppliers', async (req, res) => {
       query += ` AND ps.supplier_id = $${params.length + 1}`;
       params.push(supplierId);
     }
-    
+
     query += ` ORDER BY ps.price ASC`;
-    
+
     const result = await pool.query(query, params);
-    
+
     res.json({
       success: true,
       data: result.rows,
@@ -186,26 +186,26 @@ app.get('/api/suppliers', async (req, res) => {
         AND table_name = 'suppliers'
       );
     `);
-    
+
     if (!tableCheck.rows[0].exists) {
       console.log('⚠️ ตาราง suppliers ไม่มีอยู่ กำลังสร้าง...');
       // สร้างตารางอัตโนมัติ
       await initializeDatabase();
     }
-    
+
     const query = `
       SELECT id, name, location, phone, website, description, 
              specialties, business_hours, payment_methods, created_at
       FROM suppliers
       ORDER BY created_at DESC
     `;
-    
+
     const result = await pool.query(query);
-    
+
     const suppliers = result.rows.map(row => {
       let specialties = [];
       let paymentMethods = [];
-      
+
       // Handle specialties - check if it's valid JSON
       if (row.specialties && row.specialties.trim() !== '') {
         try {
@@ -228,7 +228,7 @@ app.get('/api/suppliers', async (req, res) => {
       } else {
         specialties = [];
       }
-      
+
       // Handle payment methods - check if it's valid JSON
       if (row.payment_methods && row.payment_methods.trim() !== '') {
         try {
@@ -251,14 +251,14 @@ app.get('/api/suppliers', async (req, res) => {
       } else {
         paymentMethods = [];
       }
-      
+
       return {
         ...row,
         specialties,
         paymentMethods
       };
     });
-    
+
     res.json({
       success: true,
       data: suppliers,
@@ -278,7 +278,7 @@ app.get('/api/suppliers', async (req, res) => {
 app.delete('/api/suppliers/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    
+
     const supplier = await db.deleteSupplierById(id);
     if (!supplier) {
       return res.status(404).json({
@@ -287,7 +287,7 @@ app.delete('/api/suppliers/:id', async (req, res) => {
         message: 'ไม่พบข้อมูลร้านค้า'
       });
     }
-    
+
     res.json({
       success: true,
       data: supplier,
@@ -321,33 +321,33 @@ app.get('/api/statistics', async (req, res) => {
         AND table_name = 'suppliers'
       );
     `);
-    
+
     if (!plantsTableCheck.rows[0].exists || !suppliersTableCheck.rows[0].exists) {
       console.log('⚠️ ตารางบางตารางไม่มี กำลังสร้าง...');
       await initializeDatabase();
     }
-    
+
     let plants = [];
     let suppliers = [];
-    
+
     try {
       plants = await db.getPlants();
     } catch (error) {
       console.error('Error getting plants:', error);
       // ถ้า error ให้ใช้ array ว่าง
     }
-    
+
     try {
       suppliers = await db.getAllSuppliers();
     } catch (error) {
       console.error('Error getting suppliers:', error);
       // ถ้า error ให้ใช้ array ว่าง
     }
-    
+
     // นับจำนวนต้นไม้ตามหมวดหมู่
     const categoryCount = {};
     const plantTypeCount = {};
-    
+
     plants.forEach(plant => {
       if (plant.category) {
         categoryCount[plant.category] = (categoryCount[plant.category] || 0) + 1;
@@ -356,7 +356,7 @@ app.get('/api/statistics', async (req, res) => {
         plantTypeCount[plant.plantType] = (plantTypeCount[plant.plantType] || 0) + 1;
       }
     });
-    
+
     res.json({
       success: true,
       data: {
@@ -387,16 +387,16 @@ app.get('/statistics', async (req, res) => {
   try {
     const plants = await db.getPlants();
     const suppliers = await db.getAllSuppliers();
-    
+
     // นับจำนวนต้นไม้ตามหมวดหมู่
     const categoryCount = {};
     const plantTypeCount = {};
-    
+
     plants.forEach(plant => {
       categoryCount[plant.category] = (categoryCount[plant.category] || 0) + 1;
       plantTypeCount[plant.plant_type] = (plantTypeCount[plant.plant_type] || 0) + 1;
     });
-    
+
     res.json({
       success: true,
       data: {
@@ -440,13 +440,13 @@ app.get('/api/plants', async (req, res) => {
         AND table_name = 'plant_suppliers'
       );
     `);
-    
+
     if (!plantsTableCheck.rows[0].exists || !plantSuppliersTableCheck.rows[0].exists) {
       console.log('⚠️ ตารางบางตารางไม่มี กำลังสร้าง...');
       // สร้างตารางอัตโนมัติ
       await initializeDatabase();
     }
-    
+
     const plants = await db.getPlants();
     res.json({
       success: true,
@@ -474,7 +474,7 @@ app.get('/api/plants/:id', async (req, res) => {
         message: 'ไม่พบข้อมูลต้นไม้'
       });
     }
-    
+
     res.json({
       success: true,
       data: plant,
@@ -495,7 +495,7 @@ app.post('/api/plants/:plantId/suppliers', async (req, res) => {
   try {
     const { plantId } = req.params;
     const { name, price, phone, location, size } = req.body;
-    
+
     // Check if plant exists
     const plant = await db.getPlantById(plantId);
     if (!plant) {
@@ -505,7 +505,7 @@ app.post('/api/plants/:plantId/suppliers', async (req, res) => {
         message: 'ไม่พบข้อมูลต้นไม้'
       });
     }
-    
+
     const newSupplier = {
       id: `supplier_${Date.now()}`,
       name,
@@ -514,9 +514,9 @@ app.post('/api/plants/:plantId/suppliers', async (req, res) => {
       location,
       size
     };
-    
+
     const supplier = await db.addSupplier(plantId, newSupplier);
-    
+
     res.json({
       success: true,
       data: supplier,
@@ -537,7 +537,7 @@ app.put('/api/plants/:plantId/suppliers/:supplierId/price', async (req, res) => 
   try {
     const { plantId, supplierId } = req.params;
     const { price } = req.body;
-    
+
     const supplier = await db.updateSupplierPrice(plantId, supplierId, Number(price));
     if (!supplier) {
       return res.status(404).json({
@@ -546,7 +546,7 @@ app.put('/api/plants/:plantId/suppliers/:supplierId/price', async (req, res) => 
         message: 'ไม่พบข้อมูลผู้จัดจำหน่าย'
       });
     }
-    
+
     res.json({
       success: true,
       data: supplier,
@@ -566,7 +566,7 @@ app.put('/api/plants/:plantId/suppliers/:supplierId/price', async (req, res) => 
 app.delete('/api/plants/:plantId/suppliers/:supplierId', async (req, res) => {
   try {
     const { plantId, supplierId } = req.params;
-    
+
     const supplier = await db.deleteSupplier(plantId, supplierId);
     if (!supplier) {
       return res.status(404).json({
@@ -575,7 +575,7 @@ app.delete('/api/plants/:plantId/suppliers/:supplierId', async (req, res) => {
         message: 'ไม่พบข้อมูลผู้จัดจำหน่าย'
       });
     }
-    
+
     res.json({
       success: true,
       data: supplier,
@@ -595,7 +595,7 @@ app.delete('/api/plants/:plantId/suppliers/:supplierId', async (req, res) => {
 app.delete('/api/plants/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    
+
     const plant = await db.deletePlant(id);
     if (!plant) {
       return res.status(404).json({
@@ -604,7 +604,7 @@ app.delete('/api/plants/:id', async (req, res) => {
         message: 'ไม่พบข้อมูลต้นไม้'
       });
     }
-    
+
     res.json({
       success: true,
       data: plant,
@@ -626,9 +626,9 @@ app.delete('/api/plants/:id', async (req, res) => {
 app.post('/api/ai/validate', async (req, res) => {
   try {
     const { data, type } = req.body;
-    
+
     const validation = await aiService.validateDataWithAI(data, type);
-    
+
     res.json({
       success: true,
       data: validation,
@@ -648,13 +648,13 @@ app.post('/api/ai/validate', async (req, res) => {
 app.post('/api/ai/analyze-price', async (req, res) => {
   try {
     const { plantName, price, category, historicalPrices } = req.body;
-    
+
     // ใช้ AI วิเคราะห์ราคา
     const aiAnalysis = await aiService.analyzePrice(plantName, price, category);
-    
+
     // ใช้ Smart Pricing
     const optimalPrice = aiService.suggestOptimalPrice(plantName, category, price, historicalPrices || []);
-    
+
     res.json({
       success: true,
       data: {
@@ -680,9 +680,9 @@ app.get('/api/ai/insights', async (req, res) => {
     const plants = await db.getPlants();
     const suppliers = await db.getAllSuppliers();
     const orders = await db.getOrders();
-    
+
     const insights = aiService.generateInsights(plants, suppliers, orders);
-    
+
     res.json({
       success: true,
       data: insights,
@@ -722,10 +722,10 @@ app.post('/api/ai/scan-bill', async (req, res) => {
 
   } catch (error) {
     console.error('❌ AI Bill Scan Error:', error);
-    
+
     // ตรวจสอบ error type เพื่อให้ error message ชัดเจนขึ้น
     let errorMessage = 'เกิดข้อผิดพลาดในการสแกนใบเสร็จ';
-    
+
     if (error.message) {
       if (error.message.includes('API key')) {
         errorMessage = '⚠️ ยังไม่ได้ตั้งค่า OPENAI_API_KEY ใน Railway. กรุณาเพิ่ม API Key ใน Railway Dashboard → Variables';
@@ -741,7 +741,7 @@ app.post('/api/ai/scan-bill', async (req, res) => {
         errorMessage = `เกิดข้อผิดพลาด: ${error.message}`;
       }
     }
-    
+
     res.status(500).json({
       success: false,
       data: null,
@@ -773,7 +773,7 @@ app.get('/api/orders', async (req, res) => {
 app.post('/api/orders', async (req, res) => {
   try {
     const { orderNumber, totalAmount, items } = req.body;
-    
+
     const orderId = `order_${Date.now()}`;
     const order = await db.createOrder({
       id: orderId,
@@ -781,7 +781,7 @@ app.post('/api/orders', async (req, res) => {
       totalAmount,
       status: 'pending'
     });
-    
+
     // Add order items
     for (const item of items) {
       await db.addOrderItem(orderId, {
@@ -793,7 +793,7 @@ app.post('/api/orders', async (req, res) => {
         totalPrice: item.totalPrice
       });
     }
-    
+
     res.json({
       success: true,
       data: order,
@@ -832,7 +832,7 @@ app.get('/api/locations', async (req, res) => {
 app.post('/api/plants', async (req, res) => {
   try {
     const { name, scientificName, category, plantType, measurementType, description } = req.body;
-    
+
     const plantId = `plant_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     const plant = await db.createPlant({
       id: plantId,
@@ -843,7 +843,7 @@ app.post('/api/plants', async (req, res) => {
       measurementType,
       description
     });
-    
+
     res.json({
       success: true,
       data: plant,
@@ -864,7 +864,7 @@ app.post('/api/plants/:plantId/suppliers', async (req, res) => {
   try {
     const { plantId } = req.params;
     const { name, price, phone, location, size } = req.body;
-    
+
     const supplierId = `supplier_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     const supplier = await db.addSupplier(plantId, {
       id: supplierId,
@@ -874,7 +874,7 @@ app.post('/api/plants/:plantId/suppliers', async (req, res) => {
       location,
       size
     });
-    
+
     res.json({
       success: true,
       data: supplier,
@@ -1005,7 +1005,7 @@ app.post('/api/bills', async (req, res) => {
         AND table_name = 'bills'
       );
     `);
-    
+
     if (!billsTableCheck.rows[0].exists) {
       console.log('⚠️ ตาราง bills ยังไม่มี กำลังสร้าง...');
       await initializeDatabase();
@@ -1043,7 +1043,7 @@ app.post('/api/bills', async (req, res) => {
         const itemPrice = parseFloat(item.price) || parseFloat(item.unitPrice) || 0;
         const itemQuantity = parseInt(item.quantity) || 1;
         const itemSize = item.size || null;
-        
+
         if (!plantName) {
           errors.push(`รายการไม่มีชื่อต้นไม้: ${JSON.stringify(item)}`);
           continue;
@@ -1160,7 +1160,7 @@ app.post('/api/admin/login', async (req, res) => {
   try {
     const { password } = req.body;
     const result = adminAuth.login(password);
-    
+
     if (result.success) {
       res.json({
         success: true,
@@ -1189,9 +1189,9 @@ app.post('/api/admin/login', async (req, res) => {
 
 app.post('/api/admin/logout', async (req, res) => {
   try {
-    const token = req.headers['authorization']?.replace('Bearer ', '') || 
-                  req.headers['x-admin-token'] || 
-                  req.body.token;
+    const token = req.headers['authorization']?.replace('Bearer ', '') ||
+      req.headers['x-admin-token'] ||
+      req.body.token;
     const result = adminAuth.logout(token);
     res.json({
       success: result.success,
@@ -1246,7 +1246,7 @@ app.get('/api/agents/websites', optionalAdmin, async (req, res) => {
 app.post('/api/agents/websites', requireAdmin, async (req, res) => {
   try {
     const { name, url, description, schedule } = req.body;
-    
+
     if (!name || !url) {
       return res.status(400).json({
         success: false,
@@ -1386,6 +1386,51 @@ app.post('/api/agents/analyze-text', requireAdmin, async (req, res) => {
 });
 
 // Trigger scraping (admin only)
+// Google Maps Search (admin only)
+app.post('/api/agents/search-maps', requireAdmin, async (req, res) => {
+  try {
+    const { keyword, keywords, filterWholesale } = req.body;
+
+    // Support both single 'keyword' and array/string 'keywords'
+    let searchKeywords = [];
+    if (keywords) {
+      if (Array.isArray(keywords)) {
+        searchKeywords = keywords;
+      } else if (typeof keywords === 'string') {
+        searchKeywords = keywords.split('\n').map(k => k.trim()).filter(k => k);
+      }
+    } else if (keyword) {
+      searchKeywords = [keyword];
+    }
+
+    if (searchKeywords.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'กรุณาระบุคำค้นหา (keyword)'
+      });
+    }
+
+    // Call agentService to search and save
+    const result = await agentService.searchPlacesAndSave(searchKeywords, filterWholesale);
+
+    if (!result.success) {
+      return res.status(400).json(result);
+    }
+
+    res.json({
+      success: true,
+      message: `ค้นหาสำเร็จ Processed: ${result.processed}, Found: ${result.count} items`,
+      data: result
+    });
+  } catch (error) {
+    console.error('Error searching maps:', error);
+    res.status(500).json({
+      success: false,
+      message: `เกิดข้อผิดพลาดในการค้นหา Google Maps: ${error.message}`
+    });
+  }
+});
+
 app.post('/api/agents/scrape', requireAdmin, async (req, res) => {
   try {
     const { websiteId, url } = req.body;
@@ -1458,12 +1503,12 @@ app.get('/api/agents/jobs', optionalAdmin, async (req, res) => {
       FROM scraping_jobs
     `;
     const params = [];
-    
+
     if (status) {
       query += ' WHERE status = $1';
       params.push(status);
     }
-    
+
     query += ' ORDER BY created_at DESC LIMIT $' + (params.length + 1);
     params.push(parseInt(limit));
 
@@ -1488,7 +1533,7 @@ app.get('/api/agents/results', optionalAdmin, async (req, res) => {
   try {
     const { jobId, limit = 100, status } = req.query;
     const isAdmin = req.admin || false;
-    
+
     let query = `
       SELECT sr.id, sr.job_id, sr.plant_id, sr.supplier_id, sr.plant_name, sr.price, sr.size, 
              sr.confidence, sr.status, sr.created_at, sr.image_url,
@@ -1503,15 +1548,15 @@ app.get('/api/agents/results', optionalAdmin, async (req, res) => {
     `;
     const params = [];
     const conditions = [];
-    
+
     // Always filter out rejected results
     conditions.push(`sr.status != 'rejected'`);
-    
+
     if (jobId) {
       conditions.push(`sr.job_id = $${params.length + 1}`);
       params.push(jobId);
     }
-    
+
     if (status) {
       conditions.push(`sr.status = $${params.length + 1}`);
       params.push(status);
@@ -1519,22 +1564,22 @@ app.get('/api/agents/results', optionalAdmin, async (req, res) => {
       // Non-admin users only see approved results
       conditions.push(`sr.status = 'approved'`);
     }
-    
+
     if (conditions.length > 0) {
       query += ' WHERE ' + conditions.join(' AND ');
     }
-    
+
     query += ' ORDER BY sr.created_at DESC LIMIT $' + (params.length + 1);
     params.push(parseInt(limit));
 
     const result = await pool.query(query, params);
-    
+
     // Merge location: use supplier location if result doesn't have one
     const processedRows = result.rows.map(row => ({
       ...row,
       supplier_location: row.supplier_location || row.supplier_location_in_db || null
     }));
-    
+
     res.json({
       success: true,
       data: processedRows,
@@ -1555,21 +1600,21 @@ app.post('/api/agents/results/:id/approve', requireAdmin, async (req, res) => {
   try {
     const { id } = req.params;
     const adminId = req.admin?.id || 'admin';
-    
+
     // Get scraping result
     const resultQuery = await pool.query(`
       SELECT * FROM scraping_results WHERE id = $1 AND status = 'pending'
     `, [id]);
-    
+
     if (resultQuery.rows.length === 0) {
       return res.status(404).json({
         success: false,
         message: 'ไม่พบผลลัพธ์ที่ต้องการ approve หรือ approve แล้ว'
       });
     }
-    
+
     const result = resultQuery.rows[0];
-    
+
     // Parse raw_data safely
     let rawData = {};
     try {
@@ -1578,7 +1623,7 @@ app.post('/api/agents/results/:id/approve', requireAdmin, async (req, res) => {
       console.warn('Failed to parse raw_data:', parseError);
       rawData = {};
     }
-    
+
     // Validate required fields
     if (!result.plant_name || result.plant_name.trim() === '') {
       return res.status(400).json({
@@ -1586,7 +1631,7 @@ app.post('/api/agents/results/:id/approve', requireAdmin, async (req, res) => {
         message: 'ไม่สามารถ Approve ได้: ไม่พบชื่อต้นไม้ (Plant Name)'
       });
     }
-    
+
     // 1. Find or create supplier
     // First, check if supplier already exists with location
     let existingSupplier = null;
@@ -1597,11 +1642,11 @@ app.post('/api/agents/results/:id/approve', requireAdmin, async (req, res) => {
         existingSupplier = findSupplierResult.rows[0];
       }
     }
-    
+
     // Use location from result, or existing supplier, or empty
     const locationFromResult = result.supplier_location?.trim() || '';
     const locationToUse = locationFromResult || existingSupplier?.location || '';
-    
+
     // Validate: location is required for route calculation
     if (!locationToUse || locationToUse.trim() === '') {
       return res.status(400).json({
@@ -1611,7 +1656,7 @@ app.post('/api/agents/results/:id/approve', requireAdmin, async (req, res) => {
         supplierName: result.supplier_name || 'ไม่ระบุ'
       });
     }
-    
+
     // Create supplier if we have supplier info
     let supplier = null;
     if (result.supplier_name && result.supplier_name.trim() !== '') {
@@ -1633,7 +1678,7 @@ app.post('/api/agents/results/:id/approve', requireAdmin, async (req, res) => {
         });
       }
     }
-    
+
     // 2. Find or create plant
     let plant = null;
     try {
@@ -1654,7 +1699,7 @@ app.post('/api/agents/results/:id/approve', requireAdmin, async (req, res) => {
         errorCode: 'PLANT_ERROR'
       });
     }
-    
+
     // 3. Create plant-supplier relationship (only if we have supplier)
     if (supplier) {
       try {
@@ -1669,9 +1714,10 @@ app.post('/api/agents/results/:id/approve', requireAdmin, async (req, res) => {
         console.warn('Continuing approve despite relationship error');
       }
     }
-    
-    // 4. Update scraping result status
+
+    // 4. Update scraping result status and then delete it (ไม่แสดงในรายการอีกต่อไป)
     try {
+      // Update status first (for logging/history if needed)
       await pool.query(`
         UPDATE scraping_results 
         SET status = 'approved', 
@@ -1681,18 +1727,24 @@ app.post('/api/agents/results/:id/approve', requireAdmin, async (req, res) => {
             approved_at = NOW()
         WHERE id = $4
       `, [plant.id, supplier?.id || null, adminId, id]);
+
+      // Delete the result after approval (ไม่แสดงในรายการอีกต่อไป)
+      await pool.query(`
+        DELETE FROM scraping_results 
+        WHERE id = $1
+      `, [id]);
     } catch (updateError) {
-      console.error('Error updating scraping result:', updateError);
+      console.error('Error updating/deleting scraping result:', updateError);
       return res.status(500).json({
         success: false,
         message: `เกิดข้อผิดพลาดในการอัพเดทสถานะ: ${updateError.message || 'ไม่ทราบสาเหตุ'}`,
         errorCode: 'UPDATE_ERROR'
       });
     }
-    
+
     res.json({
       success: true,
-      message: 'Approve สำเร็จ ข้อมูลถูกบันทึกลงฐานข้อมูลแล้ว',
+      message: 'Approve สำเร็จ ข้อมูลถูกบันทึกลงฐานข้อมูลแล้ว และลบออกจากรายการแล้ว',
       data: {
         plantId: plant.id,
         supplierId: supplier?.id || null,
@@ -1717,28 +1769,28 @@ app.put('/api/agents/results/:id/location', requireAdmin, async (req, res) => {
   try {
     const { id } = req.params;
     const { location } = req.body;
-    
+
     if (!location || location.trim() === '') {
       return res.status(400).json({
         success: false,
         message: 'กรุณาระบุตำแหน่งที่ตั้ง'
       });
     }
-    
+
     // Get the result to find supplier name
     const resultQuery = await pool.query(`
       SELECT supplier_name FROM scraping_results WHERE id = $1 AND status = 'pending'
     `, [id]);
-    
+
     if (resultQuery.rows.length === 0) {
       return res.status(404).json({
         success: false,
         message: 'ไม่พบผลลัพธ์ที่ต้องการอัพเดท'
       });
     }
-    
+
     const supplierName = resultQuery.rows[0].supplier_name;
-    
+
     // Update supplier location (if supplier exists) and all pending results with same supplier name
     if (supplierName) {
       // Update supplier location (find or create supplier)
@@ -1749,7 +1801,7 @@ app.put('/api/agents/results/:id/location', requireAdmin, async (req, res) => {
         phoneNumbers: [],
         description: `Location updated from scraping result ${id}`
       });
-      
+
       // Update all pending results with same supplier name
       await pool.query(`
         UPDATE scraping_results 
@@ -1764,7 +1816,7 @@ app.put('/api/agents/results/:id/location', requireAdmin, async (req, res) => {
         WHERE id = $2 AND status = 'pending'
       `, [location.trim(), id]);
     }
-    
+
     res.json({
       success: true,
       message: `อัพเดทตำแหน่งที่ตั้งสำเร็จ${supplierName ? ` (อัพเดท Supplier "${supplierName}" และผลลัพธ์ทั้งหมดที่เกี่ยวข้อง)` : ''}`
@@ -1783,7 +1835,7 @@ app.post('/api/agents/results/:id/reject', requireAdmin, async (req, res) => {
   try {
     const { id } = req.params;
     const adminId = req.admin?.id || 'admin';
-    
+
     await pool.query(`
       UPDATE scraping_results 
       SET status = 'rejected', 
@@ -1791,7 +1843,7 @@ app.post('/api/agents/results/:id/reject', requireAdmin, async (req, res) => {
           approved_at = NOW()
       WHERE id = $2 AND status = 'pending'
     `, [adminId, id]);
-    
+
     res.json({
       success: true,
       message: 'Reject สำเร็จ'
@@ -1819,7 +1871,7 @@ app.get('/api/admin/plants/duplicates', requireAdmin, async (req, res) => {
       ORDER BY count DESC, name
     `;
     const result = await pool.query(query);
-    
+
     res.json({
       success: true,
       data: result.rows
@@ -1845,7 +1897,7 @@ app.get('/api/admin/suppliers/duplicates', requireAdmin, async (req, res) => {
       ORDER BY count DESC, name
     `;
     const result = await pool.query(query);
-    
+
     res.json({
       success: true,
       data: result.rows
@@ -1863,14 +1915,14 @@ app.get('/api/admin/suppliers/duplicates', requireAdmin, async (req, res) => {
 app.post('/api/admin/plants/merge', requireAdmin, async (req, res) => {
   try {
     const { keepId, mergeIds } = req.body;
-    
+
     if (!keepId || !Array.isArray(mergeIds) || mergeIds.length === 0) {
       return res.status(400).json({
         success: false,
         message: 'กรุณาระบุ keepId และ mergeIds'
       });
     }
-    
+
     // ตรวจสอบว่า keepId มีอยู่จริง
     const keepPlant = await pool.query('SELECT id FROM plants WHERE id = $1', [keepId]);
     if (keepPlant.rows.length === 0) {
@@ -1879,26 +1931,26 @@ app.post('/api/admin/plants/merge', requireAdmin, async (req, res) => {
         message: 'ไม่พบต้นไม้ที่ต้องการเก็บไว้'
       });
     }
-    
+
     // อัพเดท plant_suppliers ให้ชี้ไปที่ keepId
     await pool.query(`
       UPDATE plant_suppliers 
       SET plant_id = $1, updated_at = NOW()
       WHERE plant_id = ANY($2::varchar[])
     `, [keepId, mergeIds]);
-    
+
     // อัพเดท scraping_results
     await pool.query(`
       UPDATE scraping_results 
       SET plant_id = $1
       WHERE plant_id = ANY($2::varchar[])
     `, [keepId, mergeIds]);
-    
+
     // ลบต้นไม้ที่ซ้ำ
     await pool.query(`
       DELETE FROM plants WHERE id = ANY($1::varchar[])
     `, [mergeIds]);
-    
+
     res.json({
       success: true,
       message: `รวมต้นไม้สำเร็จ: รวม ${mergeIds.length} รายการเข้ากับ ${keepId}`
@@ -1916,14 +1968,14 @@ app.post('/api/admin/plants/merge', requireAdmin, async (req, res) => {
 app.post('/api/admin/suppliers/merge', requireAdmin, async (req, res) => {
   try {
     const { keepId, mergeIds } = req.body;
-    
+
     if (!keepId || !Array.isArray(mergeIds) || mergeIds.length === 0) {
       return res.status(400).json({
         success: false,
         message: 'กรุณาระบุ keepId และ mergeIds'
       });
     }
-    
+
     // ตรวจสอบว่า keepId มีอยู่จริง
     const keepSupplier = await pool.query('SELECT id FROM suppliers WHERE id = $1', [keepId]);
     if (keepSupplier.rows.length === 0) {
@@ -1932,53 +1984,53 @@ app.post('/api/admin/suppliers/merge', requireAdmin, async (req, res) => {
         message: 'ไม่พบร้านค้าที่ต้องการเก็บไว้'
       });
     }
-    
+
     // รวมเบอร์โทรศัพท์
     const allSuppliers = await pool.query(`
       SELECT phone_numbers FROM suppliers WHERE id = ANY($1::varchar[])
     `, [[keepId, ...mergeIds]]);
-    
+
     const allPhones = new Set();
     allSuppliers.rows.forEach(row => {
       try {
         const phones = JSON.parse(row.phone_numbers || '[]');
         phones.forEach(phone => allPhones.add(phone));
-      } catch (e) {}
+      } catch (e) { }
     });
-    
+
     // อัพเดท plant_suppliers ให้ชี้ไปที่ keepId
     await pool.query(`
       UPDATE plant_suppliers 
       SET supplier_id = $1, updated_at = NOW()
       WHERE supplier_id = ANY($2::varchar[])
     `, [keepId, mergeIds]);
-    
+
     // อัพเดท scraping_results
     await pool.query(`
       UPDATE scraping_results 
       SET supplier_id = $1
       WHERE supplier_id = ANY($2::varchar[])
     `, [keepId, mergeIds]);
-    
+
     // อัพเดท bills
     await pool.query(`
       UPDATE bills 
       SET supplier_id = $1
       WHERE supplier_id = ANY($2::varchar[])
     `, [keepId, mergeIds]);
-    
+
     // อัพเดท phone_numbers ของ keepId
     await pool.query(`
       UPDATE suppliers 
       SET phone_numbers = $1, updated_at = NOW()
       WHERE id = $2
     `, [JSON.stringify(Array.from(allPhones)), keepId]);
-    
+
     // ลบร้านค้าที่ซ้ำ
     await pool.query(`
       DELETE FROM suppliers WHERE id = ANY($1::varchar[])
     `, [mergeIds]);
-    
+
     res.json({
       success: true,
       message: `รวมร้านค้าสำเร็จ: รวม ${mergeIds.length} รายการเข้ากับ ${keepId}`
@@ -2002,7 +2054,7 @@ app.get('/api/admin/statistics', requireAdmin, async (req, res) => {
       pool.query("SELECT COUNT(*) as count FROM scraping_results WHERE status = 'pending'"),
       pool.query("SELECT COUNT(*) as count FROM scraping_results WHERE status = 'approved'")
     ]);
-    
+
     res.json({
       success: true,
       data: {
@@ -2026,35 +2078,35 @@ app.get('/api/admin/statistics', requireAdmin, async (req, res) => {
 app.delete('/api/admin/data/clear-all', requireAdmin, async (req, res) => {
   try {
     const { confirm } = req.body;
-    
+
     if (confirm !== 'DELETE_ALL_DATA') {
       return res.status(400).json({
         success: false,
         message: 'กรุณายืนยันการลบข้อมูลโดยส่ง confirm: "DELETE_ALL_DATA"'
       });
     }
-    
+
     // ลบข้อมูลตามลำดับเพื่อไม่ให้เกิด foreign key constraint error
     // 1. ลบ plant_suppliers (ความสัมพันธ์)
     await pool.query('DELETE FROM plant_suppliers');
-    
+
     // 2. ลบ scraping_results ที่อ้างอิง plants/suppliers
     await pool.query(`
       UPDATE scraping_results 
       SET plant_id = NULL, supplier_id = NULL
       WHERE plant_id IS NOT NULL OR supplier_id IS NOT NULL
     `);
-    
+
     // 3. ลบ suppliers
     await pool.query('DELETE FROM suppliers');
-    
+
     // 4. ลบ plants
     await pool.query('DELETE FROM plants');
-    
+
     // 5. ลบ bills และ bill_items (ถ้ามี)
     await pool.query('DELETE FROM bill_items');
     await pool.query('DELETE FROM bills');
-    
+
     res.json({
       success: true,
       message: 'ลบข้อมูลทั้งหมดสำเร็จแล้ว (plants, suppliers, plant_suppliers, bills)',
@@ -2082,7 +2134,7 @@ app.delete('/api/admin/data/clear-all', requireAdmin, async (req, res) => {
 app.post('/api/route/optimize', async (req, res) => {
   try {
     const { projectLocation, selectedSuppliers } = req.body;
-    
+
     if (!projectLocation || !selectedSuppliers || selectedSuppliers.length === 0) {
       return res.status(400).json({
         success: false,
@@ -2092,7 +2144,7 @@ app.post('/api/route/optimize', async (req, res) => {
 
     const routeOptimizationService = require('./services/routeOptimizationService');
     const result = await routeOptimizationService.optimizeRoute(projectLocation, selectedSuppliers);
-    
+
     res.json({
       success: true,
       data: result,
@@ -2112,7 +2164,7 @@ app.post('/api/route/optimize', async (req, res) => {
 app.post('/api/route/geocode', async (req, res) => {
   try {
     const { address } = req.body;
-    
+
     if (!address) {
       return res.status(400).json({
         success: false,
@@ -2122,7 +2174,7 @@ app.post('/api/route/geocode', async (req, res) => {
 
     const routeOptimizationService = require('./services/routeOptimizationService');
     const result = await routeOptimizationService.geocodeAddress(address);
-    
+
     res.json({
       success: true,
       data: result,
@@ -2142,7 +2194,7 @@ app.post('/api/route/geocode', async (req, res) => {
 app.post('/api/route/geocode-batch', async (req, res) => {
   try {
     const { addresses } = req.body;
-    
+
     if (!addresses || !Array.isArray(addresses) || addresses.length === 0) {
       return res.status(400).json({
         success: false,
@@ -2152,7 +2204,7 @@ app.post('/api/route/geocode-batch', async (req, res) => {
 
     const routeOptimizationService = require('./services/routeOptimizationService');
     const results = await routeOptimizationService.geocodeAddresses(addresses);
-    
+
     res.json({
       success: true,
       data: results,
@@ -2172,7 +2224,7 @@ app.post('/api/route/geocode-batch', async (req, res) => {
 app.post('/api/suppliers/validate-location', async (req, res) => {
   try {
     const { location } = req.body;
-    
+
     if (!location) {
       return res.status(400).json({
         success: false,
@@ -2182,7 +2234,7 @@ app.post('/api/suppliers/validate-location', async (req, res) => {
 
     const supplierValidationService = require('./services/supplierValidationService');
     const result = await supplierValidationService.validateSupplierLocation(location);
-    
+
     res.json({
       success: result.isValid,
       data: result,
@@ -2202,7 +2254,7 @@ app.post('/api/suppliers/validate-location', async (req, res) => {
 app.post('/api/route/analyze', async (req, res) => {
   try {
     const { routeData, orderData } = req.body;
-    
+
     if (!routeData || !orderData) {
       return res.status(400).json({
         success: false,
@@ -2212,7 +2264,7 @@ app.post('/api/route/analyze', async (req, res) => {
 
     const routeOptimizationService = require('./services/routeOptimizationService');
     const analysis = await routeOptimizationService.analyzeRouteWithAI(routeData, orderData);
-    
+
     res.json({
       success: true,
       data: analysis,
@@ -2251,7 +2303,7 @@ app.use('*', (req, res) => {
 async function initializeDatabase() {
   try {
     console.log('🔍 กำลังตรวจสอบและสร้างตาราง...');
-    
+
     // สร้างตาราง plants ถ้ายังไม่มี
     await pool.query(`
       CREATE TABLE IF NOT EXISTS plants (
@@ -2272,9 +2324,9 @@ async function initializeDatabase() {
     // เพิ่มคอลัมน์ image_url ถ้ายังไม่มี
     try {
       await pool.query(`ALTER TABLE plants ADD COLUMN IF NOT EXISTS image_url TEXT`);
-    } catch (e) {}
+    } catch (e) { }
     console.log('✅ ตาราง plants พร้อมใช้งาน');
-    
+
     // สร้างตาราง suppliers ถ้ายังไม่มี
     await pool.query(`
       CREATE TABLE IF NOT EXISTS suppliers (
@@ -2297,11 +2349,11 @@ async function initializeDatabase() {
     // ขยายความยาวเบอร์โทรรองรับหลายเบอร์
     try {
       await pool.query(`ALTER TABLE suppliers ALTER COLUMN phone TYPE VARCHAR(50)`);
-    } catch (e) {}
+    } catch (e) { }
     // เพิ่มคอลัมน์ phone_numbers (เก็บหลายเบอร์เป็น JSON)
     try {
       await pool.query(`ALTER TABLE suppliers ADD COLUMN IF NOT EXISTS phone_numbers TEXT DEFAULT '[]'`);
-    } catch (e) {}
+    } catch (e) { }
     // เพิ่มคอลัมน์ updated_at ถ้ายังไม่มี (สำหรับตารางเก่า)
     try {
       const columnExists = await pool.query(`
@@ -2326,7 +2378,7 @@ async function initializeDatabase() {
     } catch (e) {
       console.error('Error adding geocoding columns:', e.message);
     }
-    
+
     // สร้างตาราง plant_suppliers ถ้ายังไม่มี
     await pool.query(`
       CREATE TABLE IF NOT EXISTS plant_suppliers (
@@ -2356,9 +2408,9 @@ async function initializeDatabase() {
       await pool.query(`ALTER TABLE plant_suppliers ADD COLUMN IF NOT EXISTS image_url TEXT`);
       // แก้ price ให้เป็น NULL ได้ (สำหรับ catalog ที่ไม่มีราคา)
       await pool.query(`ALTER TABLE plant_suppliers ALTER COLUMN price DROP NOT NULL`);
-    } catch (e) {}
+    } catch (e) { }
     console.log('✅ ตาราง plant_suppliers พร้อมใช้งาน');
-    
+
     // สร้างตาราง bills ถ้ายังไม่มี
     await pool.query(`
       CREATE TABLE IF NOT EXISTS bills (
@@ -2382,8 +2434,8 @@ async function initializeDatabase() {
     // ขยายความยาวเบอร์โทรในบิล
     try {
       await pool.query(`ALTER TABLE bills ALTER COLUMN supplier_phone TYPE VARCHAR(50)`);
-    } catch (e) {}
-    
+    } catch (e) { }
+
     // สร้างตาราง bill_items ถ้ายังไม่มี
     await pool.query(`
       CREATE TABLE IF NOT EXISTS bill_items (
@@ -2404,7 +2456,7 @@ async function initializeDatabase() {
     await pool.query('CREATE INDEX IF NOT EXISTS idx_bill_items_bill_id ON bill_items(bill_id)');
     await pool.query('CREATE INDEX IF NOT EXISTS idx_bill_items_plant_id ON bill_items(plant_id)');
     console.log('✅ ตาราง bill_items พร้อมใช้งาน');
-    
+
     // 🤖 AI Agent Tables - สร้างตารางสำหรับ AI Agent
     // ตาราง websites - เก็บเว็บไซต์ที่ต้อง scrape
     await pool.query(`
@@ -2422,7 +2474,7 @@ async function initializeDatabase() {
     `);
     await pool.query('CREATE INDEX IF NOT EXISTS idx_websites_enabled ON websites(enabled)');
     console.log('✅ ตาราง websites พร้อมใช้งาน');
-    
+
     // ตาราง scraping_jobs - เก็บประวัติการ scrape
     await pool.query(`
       CREATE TABLE IF NOT EXISTS scraping_jobs (
@@ -2441,7 +2493,7 @@ async function initializeDatabase() {
     await pool.query('CREATE INDEX IF NOT EXISTS idx_scraping_jobs_website_id ON scraping_jobs(website_id)');
     await pool.query('CREATE INDEX IF NOT EXISTS idx_scraping_jobs_status ON scraping_jobs(status)');
     console.log('✅ ตาราง scraping_jobs พร้อมใช้งาน');
-    
+
     // ตาราง scraping_results - เก็บผลลัพธ์การ scrape
     await pool.query(`
       CREATE TABLE IF NOT EXISTS scraping_results (
@@ -2503,13 +2555,13 @@ async function initializeDatabase() {
       console.error('Error adding columns to scraping_results:', e.message);
     }
     console.log('✅ ตาราง scraping_results พร้อมใช้งาน');
-    
+
     // ตรวจสอบจำนวนข้อมูล
     const plantsCount = await pool.query('SELECT COUNT(*) FROM plants');
     const suppliersCount = await pool.query('SELECT COUNT(*) FROM suppliers');
     console.log(`📊 จำนวนต้นไม้: ${plantsCount.rows[0].count} รายการ`);
     console.log(`📊 จำนวนร้านค้า: ${suppliersCount.rows[0].count} รายการ`);
-    
+
   } catch (error) {
     console.error('❌ เกิดข้อผิดพลาดในการสร้างตาราง:', error.message);
     // ไม่ throw error เพราะอาจมีตารางอยู่แล้ว
@@ -2521,7 +2573,7 @@ app.listen(PORT, async () => {
   console.log(`🌱 Plant Price API Server running on port ${PORT}`);
   console.log(`📊 Health check: http://localhost:${PORT}/api/health`);
   console.log(`🌿 Plants API: http://localhost:${PORT}/api/plants`);
-  
+
   // Initialize database tables
   await initializeDatabase();
 });
