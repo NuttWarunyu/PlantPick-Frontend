@@ -26,8 +26,6 @@ const OrderSummaryPage: React.FC<OrderSummaryPageProps> = ({ selectedPlants, set
   const [isOptimizing, setIsOptimizing] = useState(false);
   const [routeResult, setRouteResult] = useState<any>(null);
   const [routeError, setRouteError] = useState<string | null>(null);
-  const [routeAnalysis, setRouteAnalysis] = useState<any>(null);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   // สร้างหมายเลขคำสั่งซื้อ
   useEffect(() => {
@@ -114,7 +112,7 @@ const OrderSummaryPage: React.FC<OrderSummaryPageProps> = ({ selectedPlants, set
       setRouteResult(result);
       
       // เรียก AI Analysis หลังจากได้ route result
-      await handleAnalyzeRoute(result);
+      // await handleAnalyzeRoute(result); // Commented out - not currently used
     } catch (error: any) {
       setRouteError(error.message || 'เกิดข้อผิดพลาดในการคำนวณเส้นทาง');
       console.error('Route optimization error:', error);
@@ -123,43 +121,40 @@ const OrderSummaryPage: React.FC<OrderSummaryPageProps> = ({ selectedPlants, set
     }
   };
 
-  // AI Analysis for route
-  const handleAnalyzeRoute = async (routeData: any) => {
-    setIsAnalyzing(true);
-    try {
-      const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:3002';
-      const backendUrl = apiUrl.replace(/\/api$/, '');
+  // AI Analysis for route (commented out - not currently used)
+  // const handleAnalyzeRoute = async (routeData: any) => {
+  //   try {
+  //     const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:3002';
+  //     const backendUrl = apiUrl.replace(/\/api$/, '');
 
-      const orderData = {
-        totalPrice: getTotalPrice(),
-        items: orderItems,
-        locationGroups: locationGroups
-      };
+  //     const orderData = {
+  //       totalPrice: getTotalPrice(),
+  //       items: orderItems,
+  //       locationGroups: locationGroups
+  //     };
 
-      const response = await fetch(`${backendUrl}/api/route/analyze`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          routeData,
-          orderData
-        })
-      });
+  //     const response = await fetch(`${backendUrl}/api/route/analyze`, {
+  //       method: 'POST',
+  //       headers: {
+  //         'Content-Type': 'application/json',
+  //       },
+  //       body: JSON.stringify({
+  //         routeData,
+  //         orderData
+  //       })
+  //     });
 
-      if (response.ok) {
-        const data = await response.json();
-        if (data.success && data.data) {
-          setRouteAnalysis(data.data);
-        }
-      }
-    } catch (error: any) {
-      console.error('Route analysis error:', error);
-      // ไม่แสดง error เพราะเป็น optional feature
-    } finally {
-      setIsAnalyzing(false);
-    }
-  };
+  //     if (response.ok) {
+  //       const data = await response.json();
+  //       if (data.success && data.data) {
+  //         // Route analysis result
+  //       }
+  //     }
+  //   } catch (error: any) {
+  //     console.error('Route analysis error:', error);
+  //     // ไม่แสดง error เพราะเป็น optional feature
+  //   }
+  // };
 
   // Calculate number of trucks needed
   const calculateTrucksNeeded = () => {
