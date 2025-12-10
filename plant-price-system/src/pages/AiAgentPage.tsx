@@ -303,13 +303,14 @@ const AiAgentPage: React.FC = () => {
   };
 
   const handleSearchMaps = async () => {
-    if (!mapKeyword.trim()) {
+    const trimmedKeyword = mapKeyword.trim();
+    if (!trimmedKeyword) {
       alert('กรุณาระบุคำค้นหา (เช่น "ร้านขายส่งต้นไม้ วัดพระเงิน")');
       return;
     }
 
     setIsSearchingMap(true);
-    addLog(`🗺️ เริ่มค้นหา Google Maps: "${mapKeyword}"`);
+    addLog(`🗺️ เริ่มค้นหา Google Maps: "${trimmedKeyword}"`);
 
     try {
       const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:3002';
@@ -323,7 +324,7 @@ const AiAgentPage: React.FC = () => {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          keywords: mapKeyword, // Send as string, backend will split by newline
+          keywords: trimmedKeyword, // Send trimmed keyword, backend will split by newline
           filterWholesale // Send checkbox state
         })
       });
@@ -332,17 +333,50 @@ const AiAgentPage: React.FC = () => {
       if (data.success) {
         const count = data.data?.count || 0;
         const processed = data.data?.processed || 0;
+        const rawResultsCount = data.data?.rawResultsCount || 0;
+        const rawPlacesSample = data.data?.rawPlacesSample || [];
         
         addLog(`✅ ค้นหาสำเร็จ: พบ ${count} สถานที่ (ประมวลผล ${processed} สถานที่)`);
+        if (rawResultsCount > 0) {
+          addLog(`🔍 พบ ${rawResultsCount} สถานที่จาก Google Maps (ก่อนกรอง)`);
+        }
         
         // Show detailed message
         let message = data.message || `✅ ค้นหาสำเร็จ! พบ ${count} สถานที่`;
-        if (count === 0 && processed > 0) {
-          message += `\n\n⚠️ ไม่พบสถานที่ใหม่ที่บันทึกได้`;
-          message += `\n- ประมวลผล ${processed} สถานที่`;
-          message += `\n- อาจถูกกรองออก (AI Filtering) หรือซ้ำกับข้อมูลเดิม`;
-          if (filterWholesale) {
-            message += `\n\n💡 ลองปิด "AI Filtering" เพื่อดูผลลัพธ์ทั้งหมด`;
+        
+        // Add debug info if no results
+        if (count === 0) {
+          if (rawResultsCount > 0) {
+            message += `\n\n📊 สถานะการค้นหา:`;
+            message += `\n- พบ ${rawResultsCount} สถานที่จาก Google Maps`;
+            if (processed > 0) {
+              message += `\n- ประมวลผล ${processed} สถานที่`;
+              message += `\n- บันทึกได้ ${count} สถานที่`;
+              message += `\n- ถูกกรองออก ${processed - count} สถานที่`;
+              
+              if (rawPlacesSample.length > 0) {
+                message += `\n\n📍 ตัวอย่างสถานที่ที่พบ:`;
+                rawPlacesSample.slice(0, 3).forEach((place: any, idx: number) => {
+                  message += `\n${idx + 1}. ${place.name}`;
+                });
+              }
+            } else {
+              message += `\n- แต่ไม่สามารถประมวลผลได้ (ตรวจสอบ logs)`;
+            }
+            
+            message += `\n\n💡 สาเหตุที่เป็นไปได้:`;
+            message += `\n- ข้อมูลซ้ำกับที่มีอยู่แล้ว (Deduplication)`;
+            if (filterWholesale) {
+              message += `\n- ถูกกรองออกโดย AI Filtering (ไม่ใช่ร้านขายส่ง)`;
+            }
+            message += `\n\n💡 ลอง:`;
+            if (filterWholesale) {
+              message += `\n- ปิด "AI Filtering" เพื่อดูผลลัพธ์ทั้งหมด`;
+            }
+            message += `\n- ตรวจสอบ logs ใน Railway Dashboard`;
+          } else {
+            message += `\n\n⚠️ Google Maps ไม่พบผลลัพธ์สำหรับคำค้นหานี้`;
+            message += `\n💡 ลองใช้ keyword อื่น เช่น "ร้านต้นไม้ ขายส่ง คลอง 15"`;
           }
         } else {
           message += `\n\nข้อมูลถูกบันทึกในแท็บ Results รอการ Approve`;

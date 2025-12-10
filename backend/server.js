@@ -1489,6 +1489,7 @@ app.post('/api/agents/analyze-text', requireAdmin, async (req, res) => {
 app.post('/api/agents/search-maps', requireAdmin, async (req, res) => {
   try {
     const { keyword, keywords, filterWholesale } = req.body;
+    const googleMapsService = require('./services/googleMapsService');
 
     // Support both single 'keyword' and array/string 'keywords'
     let searchKeywords = [];
@@ -1513,6 +1514,26 @@ app.post('/api/agents/search-maps', requireAdmin, async (req, res) => {
     console.log(`   Keywords: ${JSON.stringify(searchKeywords)}`);
     console.log(`   Filter Wholesale: ${filterWholesale}`);
 
+    // First, do a quick test search to see raw results (before filtering)
+    let rawResultsCount = 0;
+    let rawPlacesSample = [];
+    try {
+      const firstKeyword = searchKeywords[0];
+      const rawPlaces = await googleMapsService.searchPlaces(firstKeyword);
+      rawResultsCount = rawPlaces.length;
+      rawPlacesSample = rawPlaces.slice(0, 5).map(p => ({
+        name: p.name,
+        placeId: p.placeId,
+        location: p.location
+      }));
+      console.log(`🔍 Raw search results for "${firstKeyword}": ${rawResultsCount} places found`);
+      if (rawResultsCount > 0) {
+        console.log(`   Sample places:`, rawPlacesSample.map(p => p.name).join(', '));
+      }
+    } catch (rawErr) {
+      console.error(`⚠️ Could not get raw results count:`, rawErr.message);
+    }
+
     // Call agentService to search and save
     const result = await agentService.searchPlacesAndSave(searchKeywords, filterWholesale);
 
@@ -1524,23 +1545,38 @@ app.post('/api/agents/search-maps', requireAdmin, async (req, res) => {
     let message = `ค้นหาสำเร็จ! `;
     if (result.count === 0) {
       message += `ไม่พบสถานที่ใหม่ที่บันทึกได้`;
-      if (result.processed > 0) {
-        message += ` (ประมวลผล ${result.processed} สถานที่ แต่ถูกกรองออกหรือซ้ำกับข้อมูลเดิม)`;
+      if (rawResultsCount > 0) {
+        message += `\n\n📊 สถานะการค้นหา:`;
+        message += `\n- พบ ${rawResultsCount} สถานที่จาก Google Maps`;
+        if (result.processed > 0) {
+          message += `\n- ประมวลผล ${result.processed} สถานที่`;
+          message += `\n- บันทึกได้ ${result.count} สถานที่`;
+          message += `\n- ถูกกรองออก ${result.processed - result.count} สถานที่`;
+        } else {
+          message += `\n- แต่ไม่สามารถประมวลผลได้ (อาจมีปัญหาในระบบ)`;
+        }
+      } else {
+        message += `\n\n⚠️ Google Maps ไม่พบผลลัพธ์สำหรับคำค้นหานี้`;
+        message += `\n💡 ลองใช้ keyword อื่น เช่น "ร้านต้นไม้ ขายส่ง คลอง 15"`;
       }
       if (filterWholesale) {
-        message += `\n💡 ลองปิด "AI Filtering" เพื่อดูผลลัพธ์ทั้งหมด`;
+        message += `\n\n💡 ลองปิด "AI Filtering" เพื่อดูผลลัพธ์ทั้งหมด`;
       }
     } else {
       message += `พบ ${result.count} สถานที่ใหม่`;
       if (result.processed > result.count) {
-        message += ` (ประมวลผล ${result.processed} สถานที่)`;
+        message += ` (ประมวลผล ${result.processed} สถานที่, กรองออก ${result.processed - result.count} สถานที่)`;
       }
     }
 
     res.json({
       success: true,
       message: message,
-      data: result
+      data: {
+        ...result,
+        rawResultsCount, // Include raw count for debugging
+        rawPlacesSample // Include sample places for debugging
+      }
     });
   } catch (error) {
     console.error('Error searching maps:', error);

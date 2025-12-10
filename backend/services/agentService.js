@@ -397,13 +397,17 @@ ${text}
   // Search from Google Maps and save as candidates
   async searchPlacesAndSave(keywords, filterWholesale = false) {
     // 1. Handle single keyword or array
-    const keywordList = Array.isArray(keywords) ? keywords : [keywords];
+    let keywordList = Array.isArray(keywords) ? keywords : [keywords];
+    // Trim all keywords to remove leading/trailing spaces
+    keywordList = keywordList.map(k => typeof k === 'string' ? k.trim() : k).filter(k => k && k.length > 0);
+    
     const jobId = `job_maps_${Date.now()}_${uuidv4()}`;
     const allSavedItems = [];
     let totalProcessed = 0;
 
     try {
       console.log(`🤖 AI Agent: Starting Google Maps batch search for ${keywordList.length} keywords`);
+      console.log(`   Keywords: ${JSON.stringify(keywordList)}`);
 
       // Create Job
       await pool.query(`
@@ -413,7 +417,10 @@ ${text}
 
       // 2. Loop through keywords
       for (const keyword of keywordList) {
-        if (!keyword || !keyword.trim()) continue;
+        if (!keyword || !keyword.trim()) {
+          console.log(`⚠️ Skipping empty keyword: "${keyword}"`);
+          continue;
+        }
 
         try {
           console.log(`📍 Searching for: "${keyword}"`);
@@ -506,10 +513,27 @@ ${text}
 
           // Log summary for this keyword
           console.log(`📊 Summary for "${keyword}":`);
-          console.log(`   - Total found: ${places.length}`);
+          console.log(`   - Total found from Google Maps: ${places.length}`);
           console.log(`   - Duplicates skipped: ${duplicateCount}`);
-          console.log(`   - Filtered out: ${filteredCount}`);
-          console.log(`   - Saved: ${savedCount}`);
+          console.log(`   - Filtered out by AI: ${filteredCount}`);
+          console.log(`   - Saved to database: ${savedCount}`);
+          
+          // If no results saved, show why
+          if (savedCount === 0 && places.length > 0) {
+            console.log(`⚠️ WARNING: Found ${places.length} places but saved 0!`);
+            if (duplicateCount > 0) {
+              console.log(`   → ${duplicateCount} places were duplicates (already in database)`);
+            }
+            if (filteredCount > 0) {
+              console.log(`   → ${filteredCount} places were filtered out by AI (not wholesale)`);
+            }
+            if (duplicateCount === 0 && filteredCount === 0 && filterWholesale) {
+              console.log(`   → All places were filtered out by AI Filtering`);
+            }
+            if (!filterWholesale && duplicateCount === places.length) {
+              console.log(`   → All places were duplicates (already in database)`);
+            }
+          }
 
         } catch (searchErr) {
           console.error(`❌ Error searching keyword "${keyword}":`, searchErr);
@@ -528,6 +552,11 @@ ${text}
       console.log(`   - Keywords processed: ${keywordList.length}`);
       console.log(`   - Total places processed: ${totalProcessed}`);
       console.log(`   - Results saved: ${allSavedItems.length}`);
+      
+      if (allSavedItems.length === 0 && totalProcessed > 0) {
+        console.log(`⚠️ WARNING: Processed ${totalProcessed} places but saved 0 results!`);
+        console.log(`   → Check logs above for duplicate/filtered counts`);
+      }
 
       return {
         success: true,
