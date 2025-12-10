@@ -438,77 +438,129 @@ ${text}
           let filteredCount = 0;
           let savedCount = 0;
 
-          for (const place of places) {
-            totalProcessed++;
+          for (let idx = 0; idx < places.length; idx++) {
+            const place = places[idx];
+            try {
+              totalProcessed++;
+              console.log(`🔄 Processing place ${idx + 1}/${places.length}: ${place.name || 'Unknown'}`);
 
-            // Deduplication (Check by Place ID)
-            if (place.placeId) {
-              const existing = await pool.query(
-                `SELECT id FROM scraping_results WHERE raw_data->>'placeId' = $1 AND status != 'rejected'`,
-                [place.placeId]
-              );
-              if (existing.rows.length > 0) {
-                duplicateCount++;
-                console.log(`⚠️ Duplicate skipped: ${place.name} (Place ID: ${place.placeId})`);
-                continue;
+              // Deduplication (Check by Place ID)
+              if (place.placeId) {
+                try {
+                  // raw_data is TEXT, so we need to cast it to JSONB first
+                  const existing = await pool.query(
+                    `SELECT id FROM scraping_results 
+                     WHERE raw_data::jsonb->>'placeId' = $1 
+                     AND status != 'rejected'`,
+                    [place.placeId]
+                  );
+                  if (existing.rows.length > 0) {
+                    duplicateCount++;
+                    console.log(`⚠️ Duplicate skipped: ${place.name} (Place ID: ${place.placeId})`);
+                    continue;
+                  }
+                } catch (dupErr) {
+                  console.error(`❌ Error checking duplicate for ${place.name}:`, dupErr.message);
+                  console.error(`   Error details:`, dupErr);
+                  // Try alternative method: search in raw_data as text
+                  try {
+                    const existingText = await pool.query(
+                      `SELECT id FROM scraping_results 
+                       WHERE raw_data LIKE $1 
+                       AND status != 'rejected'`,
+                      [`%"placeId":"${place.placeId}"%`]
+                    );
+                    if (existingText.rows.length > 0) {
+                      duplicateCount++;
+                      console.log(`⚠️ Duplicate skipped (text search): ${place.name} (Place ID: ${place.placeId})`);
+                      continue;
+                    }
+                  } catch (textErr) {
+                    console.error(`❌ Error in text-based duplicate check:`, textErr.message);
+                    // Continue processing even if duplicate check fails
+                  }
+                }
               }
-            }
 
-            // Fetch Details (Phone, etc.)
-            let detailedPlace = place;
-            if (place.placeId) {
-              const details = await googleMapsService.getPlaceDetails(place.placeId);
-              if (details) {
-                // Merge details
-                detailedPlace = { ...place, ...details };
-                // Specific phone formatting if needed
-                detailedPlace.phone = details.formatted_phone_number || details.international_phone_number || place.phone;
+              // Fetch Details (Phone, etc.)
+              let detailedPlace = place;
+              if (place.placeId) {
+                try {
+                  const details = await googleMapsService.getPlaceDetails(place.placeId);
+                  if (details) {
+                    // Merge details
+                    detailedPlace = { ...place, ...details };
+                    // Specific phone formatting if needed
+                    detailedPlace.phone = details.formatted_phone_number || details.international_phone_number || place.phone;
+                  }
+                } catch (detailsErr) {
+                  console.warn(`⚠️ Could not fetch details for ${place.name}:`, detailsErr.message);
+                  // Continue with basic place data
+                }
               }
-            }
 
-            // AI Filtering (Wholesale check)
-            if (filterWholesale) {
-              const isWholesale = await this.checkIfWholesale(detailedPlace);
-              if (!isWholesale) {
-                filteredCount++;
-                console.log(`🚫 AI Filtered out: ${detailedPlace.name} (Not wholesale)`);
-                continue;
+              // AI Filtering (Wholesale check)
+              if (filterWholesale) {
+                try {
+                  const isWholesale = await this.checkIfWholesale(detailedPlace);
+                  if (!isWholesale) {
+                    filteredCount++;
+                    console.log(`🚫 AI Filtered out: ${detailedPlace.name} (Not wholesale)`);
+                    continue;
+                  }
+                  console.log(`✅ AI Approved: ${detailedPlace.name} (Wholesale)`);
+                } catch (filterErr) {
+                  console.error(`❌ Error in AI filtering for ${detailedPlace.name}:`, filterErr.message);
+                  // If filtering fails, skip this place to be safe
+                  filteredCount++;
+                  continue;
+                }
               }
-              console.log(`✅ AI Approved: ${detailedPlace.name} (Wholesale)`);
+
+              // Save Result
+              try {
+                const resultId = `result_${Date.now()}_${uuidv4()}`;
+                await pool.query(`
+                  INSERT INTO scraping_results (
+                    id, job_id, plant_id, supplier_id, plant_name, price, size, 
+                    raw_data, confidence, status, image_url,
+                    supplier_name, supplier_phone, supplier_location
+                  )
+                  VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+                `, [
+                  resultId,
+                  jobId,
+                  null,
+                  null,
+                  `New Supplier Found`, // Generic name
+                  null,
+                  null,
+                  JSON.stringify(detailedPlace),
+                  0.95,
+                  'pending',
+                  null, // Image URL could be fetched from Photo References later
+                  detailedPlace.name,
+                  detailedPlace.phone || null,
+                  detailedPlace.formatted_address || detailedPlace.location
+                ]);
+
+                allSavedItems.push({
+                  resultId,
+                  supplierName: detailedPlace.name,
+                  location: detailedPlace.formatted_address
+                });
+                savedCount++;
+                console.log(`✅ Saved: ${detailedPlace.name}`);
+              } catch (saveErr) {
+                console.error(`❌ Error saving ${detailedPlace.name}:`, saveErr.message);
+                console.error(`   Error details:`, saveErr);
+                // Continue processing other places
+              }
+            } catch (placeErr) {
+              console.error(`❌ Error processing place "${place.name}":`, placeErr.message);
+              console.error(`   Error stack:`, placeErr.stack);
+              // Continue processing other places
             }
-
-            // Save Result
-            const resultId = `result_${Date.now()}_${uuidv4()}`;
-            await pool.query(`
-              INSERT INTO scraping_results (
-                id, job_id, plant_id, supplier_id, plant_name, price, size, 
-                raw_data, confidence, status, image_url,
-                supplier_name, supplier_phone, supplier_location
-              )
-              VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
-            `, [
-              resultId,
-              jobId,
-              null,
-              null,
-              `New Supplier Found`, // Generic name
-              null,
-              null,
-              JSON.stringify(detailedPlace),
-              0.95,
-              'pending',
-              null, // Image URL could be fetched from Photo References later
-              detailedPlace.name,
-              detailedPlace.phone || null,
-              detailedPlace.formatted_address || detailedPlace.location
-            ]);
-
-            allSavedItems.push({
-              resultId,
-              supplierName: detailedPlace.name,
-              location: detailedPlace.formatted_address
-            });
-            savedCount++;
           }
 
           // Log summary for this keyword
