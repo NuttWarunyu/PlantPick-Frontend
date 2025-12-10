@@ -1,6 +1,12 @@
 {
-  "buildCommand": "cd plant-price-system && npm run build",
+  "buildCommand": "cd plant-price-system && npm install && npm run build",
   "outputDirectory": "plant-price-system/build",
-  "installCommand": "npm install && cd plant-price-system && npm install",
-  "framework": "create-react-app"
+  "installCommand": "cd plant-price-system && npm install",
+  "framework": null,
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
 }
