@@ -1535,31 +1535,60 @@ app.post('/api/agents/search-maps', requireAdmin, async (req, res) => {
     }
 
     // Call agentService to search and save
+    console.log(`📞 Calling agentService.searchPlacesAndSave with ${searchKeywords.length} keywords, filterWholesale: ${filterWholesale}`);
     const result = await agentService.searchPlacesAndSave(searchKeywords, filterWholesale);
 
     if (!result.success) {
+      console.error(`❌ agentService.searchPlacesAndSave failed:`, result);
       return res.status(400).json(result);
     }
+
+    console.log(`📊 Search result summary:`);
+    console.log(`   - Raw results from Google Maps: ${rawResultsCount}`);
+    console.log(`   - Processed by agentService: ${result.processed}`);
+    console.log(`   - Saved to database: ${result.count}`);
 
     // Enhanced response message
     let message = `ค้นหาสำเร็จ! `;
     if (result.count === 0) {
       message += `ไม่พบสถานที่ใหม่ที่บันทึกได้`;
+      
+      // Always show raw results if available
       if (rawResultsCount > 0) {
         message += `\n\n📊 สถานะการค้นหา:`;
-        message += `\n- พบ ${rawResultsCount} สถานที่จาก Google Maps`;
+        message += `\n- ✅ พบ ${rawResultsCount} สถานที่จาก Google Maps`;
+        
+        if (rawPlacesSample.length > 0) {
+          message += `\n\n📍 ตัวอย่างสถานที่ที่พบ:`;
+          rawPlacesSample.slice(0, 5).forEach((place, idx) => {
+            message += `\n${idx + 1}. ${place.name}`;
+            if (place.location) {
+              message += `\n   📍 ${place.location.substring(0, 60)}...`;
+            }
+          });
+        }
+        
         if (result.processed > 0) {
+          message += `\n\n📈 สถานะการประมวลผล:`;
           message += `\n- ประมวลผล ${result.processed} สถานที่`;
           message += `\n- บันทึกได้ ${result.count} สถานที่`;
           message += `\n- ถูกกรองออก ${result.processed - result.count} สถานที่`;
+          message += `\n\n💡 สาเหตุที่เป็นไปได้:`;
+          message += `\n- ข้อมูลซ้ำกับที่มีอยู่แล้ว (Deduplication)`;
+          if (filterWholesale) {
+            message += `\n- ถูกกรองออกโดย AI Filtering (ไม่ใช่ร้านขายส่ง)`;
+          }
         } else {
-          message += `\n- แต่ไม่สามารถประมวลผลได้ (อาจมีปัญหาในระบบ)`;
+          message += `\n\n⚠️ พบ ${rawResultsCount} สถานที่ แต่ไม่สามารถประมวลผลได้`;
+          message += `\n- ตรวจสอบ logs ใน Railway Dashboard`;
+          message += `\n- อาจมีปัญหาในการเรียก Google Maps API หรือ database`;
         }
       } else {
         message += `\n\n⚠️ Google Maps ไม่พบผลลัพธ์สำหรับคำค้นหานี้`;
         message += `\n💡 ลองใช้ keyword อื่น เช่น "ร้านต้นไม้ ขายส่ง คลอง 15"`;
       }
-      if (filterWholesale) {
+      
+      if (filterWholesale && rawResultsCount > 0) {
         message += `\n\n💡 ลองปิด "AI Filtering" เพื่อดูผลลัพธ์ทั้งหมด`;
       }
     } else {

@@ -339,6 +339,11 @@ const AiAgentPage: React.FC = () => {
         addLog(`✅ ค้นหาสำเร็จ: พบ ${count} สถานที่ (ประมวลผล ${processed} สถานที่)`);
         if (rawResultsCount > 0) {
           addLog(`🔍 พบ ${rawResultsCount} สถานที่จาก Google Maps (ก่อนกรอง)`);
+          if (rawPlacesSample.length > 0) {
+            addLog(`📍 ตัวอย่าง: ${rawPlacesSample.slice(0, 3).map((p: any) => p.name).join(', ')}`);
+          }
+        } else {
+          addLog(`⚠️ ไม่พบผลลัพธ์จาก Google Maps สำหรับ keyword นี้`);
         }
         
         // Show detailed message

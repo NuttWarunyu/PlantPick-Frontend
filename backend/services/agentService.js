@@ -564,7 +564,13 @@ ${text}
         processed: totalProcessed,
         jobId,
         items: allSavedItems,
-        keywordsProcessed: keywordList.length
+        keywordsProcessed: keywordList.length,
+        // Add summary for debugging
+        summary: {
+          totalKeywords: keywordList.length,
+          totalProcessed: totalProcessed,
+          totalSaved: allSavedItems.length
+        }
       };
 
     } catch (error) {
