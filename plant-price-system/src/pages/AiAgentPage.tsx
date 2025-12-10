@@ -600,6 +600,13 @@ const AiAgentPage: React.FC = () => {
       return;
     }
 
+    // Check admin token
+    if (!adminToken) {
+      alert('⚠️ คุณต้อง Login เป็น Admin ก่อน');
+      navigate('/admin-login');
+      return;
+    }
+
     if (!window.confirm(`คุณต้องการ approve ทั้งหมด ${pendingResults.length} รายการหรือไม่? ข้อมูลจะถูกบันทึกลงฐานข้อมูล`)) return;
 
     setIsAnalyzing(true);
@@ -611,10 +618,18 @@ const AiAgentPage: React.FC = () => {
 
       let successCount = 0;
       let failCount = 0;
+      const errors: string[] = [];
+      let hasUnauthorizedError = false;
 
-      // Approve all results sequentially
-      for (const result of pendingResults) {
+      // Approve all results sequentially with delay to avoid rate limiting
+      for (let i = 0; i < pendingResults.length; i++) {
+        const result = pendingResults[i];
         try {
+          // Add small delay between requests to avoid rate limiting
+          if (i > 0) {
+            await new Promise(resolve => setTimeout(resolve, 100)); // 100ms delay
+          }
+
           const response = await fetch(`${backendUrl}/api/agents/results/${result.id}/approve`, {
             method: 'POST',
             headers: {
@@ -624,6 +639,41 @@ const AiAgentPage: React.FC = () => {
             }
           });
 
+          // Check if response is ok
+          if (!response.ok) {
+            if (response.status === 401) {
+              // Token expired or invalid
+              hasUnauthorizedError = true;
+              errors.push(`${result.plant_name || result.id}: Admin access required (401)`);
+              failCount++;
+              addLog(`❌ Approve ล้มเหลว: ${result.plant_name || result.id} - Admin access required (401)`);
+              
+              // If first request fails with 401, stop and ask user to login
+              if (i === 0) {
+                alert('⚠️ Admin token หมดอายุหรือไม่ถูกต้อง กรุณา Login ใหม่');
+                navigate('/admin-login');
+                setIsAnalyzing(false);
+                return;
+              }
+              continue;
+            }
+            
+            // Try to parse error response
+            let errorMessage = `${response.status} ${response.statusText}`;
+            try {
+              const errorText = await response.text();
+              const errorData = JSON.parse(errorText);
+              errorMessage = errorData.message || errorMessage;
+            } catch {
+              // Ignore parse error
+            }
+            
+            errors.push(`${result.plant_name || result.id}: ${errorMessage}`);
+            failCount++;
+            addLog(`❌ Approve ล้มเหลว: ${result.plant_name || result.id} - ${errorMessage}`);
+            continue;
+          }
+
           const data = await response.json();
           if (data.success) {
             successCount++;
@@ -632,22 +682,41 @@ const AiAgentPage: React.FC = () => {
             setResults(prev => prev.filter(r => r.id !== result.id));
           } else {
             failCount++;
-            addLog(`❌ Approve ล้มเหลว: ${result.plant_name} - ${data.message || 'ไม่ทราบสาเหตุ'}`);
+            errors.push(`${result.plant_name || result.id}: ${data.message || 'ไม่ทราบสาเหตุ'}`);
+            addLog(`❌ Approve ล้มเหลว: ${result.plant_name || result.id} - ${data.message || 'ไม่ทราบสาเหตุ'}`);
           }
         } catch (error: any) {
           failCount++;
-          addLog(`❌ Error approving ${result.plant_name}: ${error.message || 'ไม่ทราบสาเหตุ'}`);
+          const errorMsg = error.message || 'ไม่ทราบสาเหตุ';
+          errors.push(`${result.plant_name || result.id}: ${errorMsg}`);
+          addLog(`❌ Error approving ${result.plant_name || result.id}: ${errorMsg}`);
         }
       }
 
       addLog(`✅ Approve ทั้งหมดเสร็จสิ้น: สำเร็จ ${successCount} รายการ, ล้มเหลว ${failCount} รายการ`);
-      alert(`✅ Approve ทั้งหมดเสร็จสิ้น!\n\nสำเร็จ: ${successCount} รายการ\nล้มเหลว: ${failCount} รายการ`);
+      
+      let alertMessage = `✅ Approve ทั้งหมดเสร็จสิ้น!\n\nสำเร็จ: ${successCount} รายการ\nล้มเหลว: ${failCount} รายการ`;
+      if (failCount > 0) {
+        if (hasUnauthorizedError) {
+          alertMessage += `\n\n⚠️ มีบางรายการที่ Admin token หมดอายุ (401 Unauthorized)\nกรุณา Login ใหม่แล้วลองอีกครั้ง`;
+        } else if (errors.length > 0) {
+          alertMessage += `\n\n❌ Errors:\n${errors.slice(0, 5).join('\n')}${errors.length > 5 ? '\n...' : ''}`;
+        }
+      }
+      alert(alertMessage);
 
-      loadData();
+      if (hasUnauthorizedError && failCount === pendingResults.length) {
+        // All failed due to 401, redirect to login
+        setTimeout(() => {
+          navigate('/admin-login');
+        }, 2000);
+      } else {
+        loadData();
+      }
     } catch (error: any) {
       console.error('Error approving all results:', error);
       addLog(`❌ Error approving all: ${error.message || 'ไม่ทราบสาเหตุ'}`);
-      alert('เกิดข้อผิดพลาดในการ approve ทั้งหมด');
+      alert(`เกิดข้อผิดพลาด: ${error.message || 'ไม่ทราบสาเหตุ'}`);
     } finally {
       setIsAnalyzing(false);
     }
