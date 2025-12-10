@@ -427,6 +427,10 @@ ${text}
           console.log(`✅ Found ${places.length} places for: "${keyword}"`);
 
           // 3. Process each place
+          let duplicateCount = 0;
+          let filteredCount = 0;
+          let savedCount = 0;
+
           for (const place of places) {
             totalProcessed++;
 
@@ -437,7 +441,8 @@ ${text}
                 [place.placeId]
               );
               if (existing.rows.length > 0) {
-                console.log(`Evaluate duplicate: ${place.name} (Skipping)`);
+                duplicateCount++;
+                console.log(`⚠️ Duplicate skipped: ${place.name} (Place ID: ${place.placeId})`);
                 continue;
               }
             }
@@ -458,9 +463,11 @@ ${text}
             if (filterWholesale) {
               const isWholesale = await this.checkIfWholesale(detailedPlace);
               if (!isWholesale) {
+                filteredCount++;
                 console.log(`🚫 AI Filtered out: ${detailedPlace.name} (Not wholesale)`);
                 continue;
               }
+              console.log(`✅ AI Approved: ${detailedPlace.name} (Wholesale)`);
             }
 
             // Save Result
@@ -494,10 +501,19 @@ ${text}
               supplierName: detailedPlace.name,
               location: detailedPlace.formatted_address
             });
+            savedCount++;
           }
 
+          // Log summary for this keyword
+          console.log(`📊 Summary for "${keyword}":`);
+          console.log(`   - Total found: ${places.length}`);
+          console.log(`   - Duplicates skipped: ${duplicateCount}`);
+          console.log(`   - Filtered out: ${filteredCount}`);
+          console.log(`   - Saved: ${savedCount}`);
+
         } catch (searchErr) {
-          console.error(`Error searching keyword "${keyword}":`, searchErr);
+          console.error(`❌ Error searching keyword "${keyword}":`, searchErr);
+          console.error(`   Error details:`, searchErr.message);
         }
       }
 
@@ -508,12 +524,18 @@ ${text}
         WHERE id = $3
       `, ['completed', JSON.stringify({ items: allSavedItems, count: allSavedItems.length }), jobId]);
 
+      console.log(`🎉 Google Maps search completed:`);
+      console.log(`   - Keywords processed: ${keywordList.length}`);
+      console.log(`   - Total places processed: ${totalProcessed}`);
+      console.log(`   - Results saved: ${allSavedItems.length}`);
+
       return {
         success: true,
         count: allSavedItems.length,
         processed: totalProcessed,
         jobId,
-        items: allSavedItems
+        items: allSavedItems,
+        keywordsProcessed: keywordList.length
       };
 
     } catch (error) {

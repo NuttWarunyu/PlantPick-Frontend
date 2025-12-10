@@ -330,7 +330,25 @@ const AiAgentPage: React.FC = () => {
 
       const data = await response.json();
       if (data.success) {
-        addLog(`✅ ค้นหาสำเร็จ: พบ ${data.data?.count || 0} สถานที่`);
+        const count = data.data?.count || 0;
+        const processed = data.data?.processed || 0;
+        
+        addLog(`✅ ค้นหาสำเร็จ: พบ ${count} สถานที่ (ประมวลผล ${processed} สถานที่)`);
+        
+        // Show detailed message
+        let message = data.message || `✅ ค้นหาสำเร็จ! พบ ${count} สถานที่`;
+        if (count === 0 && processed > 0) {
+          message += `\n\n⚠️ ไม่พบสถานที่ใหม่ที่บันทึกได้`;
+          message += `\n- ประมวลผล ${processed} สถานที่`;
+          message += `\n- อาจถูกกรองออก (AI Filtering) หรือซ้ำกับข้อมูลเดิม`;
+          if (filterWholesale) {
+            message += `\n\n💡 ลองปิด "AI Filtering" เพื่อดูผลลัพธ์ทั้งหมด`;
+          }
+        } else {
+          message += `\n\nข้อมูลถูกบันทึกในแท็บ Results รอการ Approve`;
+        }
+        
+        alert(message);
         setMapKeyword('');
 
         // Switch to results tab to show pending items
@@ -338,8 +356,6 @@ const AiAgentPage: React.FC = () => {
           loadData();
           setActiveTab('results');
         }, 1000);
-
-        alert(`✅ ค้นหาสำเร็จ! พบ ${data.data?.count || 0} สถานที่\n\nข้อมูลถูกบันทึกในแท็บ Results รอการ Approve`);
       } else {
         throw new Error(data.message || 'เกิดข้อผิดพลาด');
       }

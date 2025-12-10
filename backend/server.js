@@ -89,15 +89,49 @@ app.get('/api/test/google-maps', requireAdmin, async (req, res) => {
         }
       });
     } catch (apiError) {
+      // Enhanced error logging
+      console.error('❌ Google Maps API Test Error:', {
+        message: apiError.message,
+        stack: apiError.stack,
+        apiKeyLength: apiKey.length,
+        apiKeyPreview: `${apiKey.substring(0, 10)}...${apiKey.substring(apiKey.length - 5)}`
+      });
+      
+      // Check if it's a REQUEST_DENIED error
+      const isRequestDenied = apiError.message.includes('REQUEST_DENIED');
+      const errorDetails = isRequestDenied 
+        ? {
+            message: apiError.message,
+            possibleCauses: [
+              'Places API ยังไม่ได้เปิดใช้งานใน Google Cloud Console',
+              'API Key Restrictions จำกัดไม่ให้ใช้ Places API',
+              'Billing ยังไม่ได้เปิดใช้งาน',
+              'API Key ไม่ถูกต้องหรือหมดอายุ'
+            ],
+            stepsToFix: [
+              '1. ไปที่ Google Cloud Console → APIs & Services → Library',
+              '2. ค้นหา "Places API" และคลิก "Enable"',
+              '3. ตรวจสอบ API Key Restrictions → ต้องอนุญาตให้ใช้ Places API',
+              '4. ตรวจสอบ Billing → เชื่อมโยง Billing Account กับโปรเจค',
+              '5. Restart Railway service หลังจากแก้ไข'
+            ],
+            links: {
+              enablePlacesAPI: 'https://console.cloud.google.com/apis/library/places-backend.googleapis.com',
+              checkCredentials: 'https://console.cloud.google.com/apis/credentials',
+              checkBilling: 'https://console.cloud.google.com/billing'
+            }
+          }
+        : {
+            message: apiError.message,
+            details: 'ตรวจสอบ logs ใน Railway Dashboard สำหรับรายละเอียดเพิ่มเติม'
+          };
+
       res.json({
         success: false,
         message: `❌ Google Maps API Error: ${apiError.message}`,
         apiKeySet: true,
         apiKeyPreview: `${apiKey.substring(0, 10)}...${apiKey.substring(apiKey.length - 5)}`,
-        error: {
-          message: apiError.message,
-          details: 'ตรวจสอบว่า Places API ถูกเปิดใช้งานแล้วหรือยัง'
-        }
+        error: errorDetails
       });
     }
   } catch (error) {
@@ -1475,6 +1509,10 @@ app.post('/api/agents/search-maps', requireAdmin, async (req, res) => {
       });
     }
 
+    console.log(`🗺️ Google Maps Search Request:`);
+    console.log(`   Keywords: ${JSON.stringify(searchKeywords)}`);
+    console.log(`   Filter Wholesale: ${filterWholesale}`);
+
     // Call agentService to search and save
     const result = await agentService.searchPlacesAndSave(searchKeywords, filterWholesale);
 
@@ -1482,9 +1520,26 @@ app.post('/api/agents/search-maps', requireAdmin, async (req, res) => {
       return res.status(400).json(result);
     }
 
+    // Enhanced response message
+    let message = `ค้นหาสำเร็จ! `;
+    if (result.count === 0) {
+      message += `ไม่พบสถานที่ใหม่ที่บันทึกได้`;
+      if (result.processed > 0) {
+        message += ` (ประมวลผล ${result.processed} สถานที่ แต่ถูกกรองออกหรือซ้ำกับข้อมูลเดิม)`;
+      }
+      if (filterWholesale) {
+        message += `\n💡 ลองปิด "AI Filtering" เพื่อดูผลลัพธ์ทั้งหมด`;
+      }
+    } else {
+      message += `พบ ${result.count} สถานที่ใหม่`;
+      if (result.processed > result.count) {
+        message += ` (ประมวลผล ${result.processed} สถานที่)`;
+      }
+    }
+
     res.json({
       success: true,
-      message: `ค้นหาสำเร็จ Processed: ${result.processed}, Found: ${result.count} items`,
+      message: message,
       data: result
     });
   } catch (error) {

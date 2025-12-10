@@ -19,6 +19,7 @@ class GoogleMapsService {
 
         try {
             console.log(`🗺️ Google Maps: Searching for "${keyword}"...`);
+            console.log(`🔑 API Key preview: ${this.apiKey.substring(0, 10)}...${this.apiKey.substring(this.apiKey.length - 5)}`);
 
             const response = await axios.get(
                 `https://maps.googleapis.com/maps/api/place/textsearch/json`,
@@ -35,7 +36,10 @@ class GoogleMapsService {
             // Handle different API response statuses
             if (response.data.status === 'REQUEST_DENIED') {
                 const errorMsg = response.data.error_message || 'API Key may be invalid or Places API not enabled';
-                console.error(`❌ Google Maps API REQUEST_DENIED: ${errorMsg}`);
+                console.error(`❌ Google Maps API REQUEST_DENIED:`);
+                console.error(`   Status: ${response.data.status}`);
+                console.error(`   Error Message: ${errorMsg}`);
+                console.error(`   Full Response:`, JSON.stringify(response.data, null, 2));
                 throw new Error(`Google Maps API error: REQUEST_DENIED - ${errorMsg}. Please check: 1) API Key is correct, 2) Places API is enabled, 3) Billing is enabled`);
             }
             

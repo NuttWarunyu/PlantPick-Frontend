@@ -165,17 +165,57 @@ curl "https://maps.googleapis.com/maps/api/place/textsearch/json?query=ร้า
    - ลองคำค้นหาอื่น เช่น "ตลาดต้นไม้ ปทุมธานี"
    - หรือ "plant market Thailand"
 
-### ปัญหา: "REQUEST_DENIED"
+### ⚠️ ปัญหา: "REQUEST_DENIED" (สำคัญ!)
 
-**สาเหตุ:**
-- API Key ไม่ถูกต้อง
-- API ยังไม่ได้เปิดใช้งาน
-- API Key restrictions จำกัดเกินไป
+**Error Message:**
+```
+REQUEST_DENIED - This API key is not authorized to use this service or API
+```
 
-**วิธีแก้:**
-1. ตรวจสอบ API Key ถูกต้อง
-2. ตรวจสอบว่า Places API ถูก enable แล้ว
-3. ลองลบ API restrictions ชั่วคราว
+**สาเหตุที่เป็นไปได้ (เรียงตามความน่าจะเป็น):**
+
+1. **Places API ยังไม่ได้เปิดใช้งาน** ⚠️ (สาเหตุที่พบบ่อยที่สุด!)
+   - ไปที่ [Google Cloud Console APIs Library](https://console.cloud.google.com/apis/library)
+   - ค้นหา **"Places API"**
+   - คลิก **"Enable"** (ถ้ายังไม่ได้เปิด)
+   - รอสักครู่ให้ API เปิดใช้งานเสร็จ
+
+2. **API Key Restrictions จำกัดไม่ให้ใช้ Places API**
+   - ไปที่ [Credentials](https://console.cloud.google.com/apis/credentials)
+   - คลิกที่ API Key ที่ใช้
+   - ตรวจสอบ **"API restrictions"**:
+     - ถ้าเลือก "Restrict key" → ต้องเลือก **"Places API"** ในรายการ
+     - หรือเปลี่ยนเป็น "Don't restrict key" (ชั่วคราวเพื่อทดสอบ)
+
+3. **Billing ยังไม่ได้เปิดใช้งาน**
+   - ไปที่ [Billing](https://console.cloud.google.com/billing)
+   - สร้าง Billing Account (ถ้ายังไม่มี)
+   - เชื่อมโยง Billing Account กับโปรเจค
+   - **ไม่ต้องกังวล**: Google ให้ $200 credit/เดือน (Free Tier)
+
+4. **API Key ไม่ถูกต้อง**
+   - ตรวจสอบว่า API Key ใน Railway ถูกต้อง (ไม่มี typo)
+   - Copy-paste มาจาก Google Cloud Console
+
+**วิธีแก้ไข (ทำตามลำดับ):**
+
+1. ✅ **เปิดใช้งาน Places API** (สำคัญที่สุด!)
+   - [คลิกที่นี่เพื่อเปิดใช้งาน Places API](https://console.cloud.google.com/apis/library/places-backend.googleapis.com)
+
+2. ✅ **ตรวจสอบ API Key Restrictions**
+   - ต้องอนุญาตให้ใช้ Places API
+
+3. ✅ **เปิดใช้งาน Billing**
+   - เชื่อมโยง Billing Account กับโปรเจค
+
+4. ✅ **Restart Railway Service**
+   - หลังจากแก้ไข → Railway จะ restart อัตโนมัติ หรือคลิก "Redeploy"
+
+5. ✅ **ทดสอบอีกครั้ง**
+   - รอ 1-2 นาทีให้ Railway restart
+   - ไปที่ `/ai-agent` → แท็บ "Google Maps" → คลิก "ทดสอบ API Key"
+
+**ดูรายละเอียดเพิ่มเติมใน**: `GOOGLE_MAPS_TROUBLESHOOTING.md`
 
 ### ปัญหา: "OVER_QUERY_LIMIT"
 
