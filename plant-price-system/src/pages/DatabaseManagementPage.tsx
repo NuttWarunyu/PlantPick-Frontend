@@ -2,6 +2,7 @@
 // ระบบจัดการข้อมูลแบบครบวงจร
 
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   Database, 
   Upload, 
@@ -16,13 +17,18 @@ import {
   Settings,
   BarChart3,
   Save,
-  RotateCcw
+  RotateCcw,
+  Camera,
+  Plus,
+  Store,
+  Link as LinkIcon
 } from 'lucide-react';
 import { databaseService, DatabaseStats, BulkUpdateResult, ImportResult, BackupData } from '../services/databaseService';
 import { testDataManager } from '../utils/testDataManager';
 import { useAdmin } from '../contexts/AdminContext';
 
 const DatabaseManagementPage: React.FC = () => {
+  const navigate = useNavigate();
   const { adminToken } = useAdmin();
   const [stats, setStats] = useState<DatabaseStats | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -310,6 +316,64 @@ const DatabaseManagementPage: React.FC = () => {
             <span>{message.text}</span>
           </div>
         )}
+      </div>
+
+      {/* Quick Actions for Admin */}
+      <div className="mb-8">
+        <h2 className="text-xl font-semibold text-gray-900 mb-4">Quick Actions</h2>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <button
+            onClick={() => navigate('/bill-scanner')}
+            className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-all text-left group"
+          >
+            <div className="flex items-center space-x-3 mb-2">
+              <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center group-hover:bg-blue-200 transition-colors">
+                <Camera className="h-5 w-5 text-blue-600" />
+              </div>
+              <span className="font-medium text-gray-900">สแกนใบเสร็จ</span>
+            </div>
+            <p className="text-xs text-gray-600">อัปเดตราคาล่าสุด</p>
+          </button>
+          
+          <button
+            onClick={() => navigate('/add-plant')}
+            className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-all text-left group"
+          >
+            <div className="flex items-center space-x-3 mb-2">
+              <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center group-hover:bg-green-200 transition-colors">
+                <Plus className="h-5 w-5 text-green-600" />
+              </div>
+              <span className="font-medium text-gray-900">เพิ่มต้นไม้</span>
+            </div>
+            <p className="text-xs text-gray-600">เพิ่มข้อมูลต้นไม้ใหม่</p>
+          </button>
+          
+          <button
+            onClick={() => navigate('/suppliers')}
+            className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-all text-left group"
+          >
+            <div className="flex items-center space-x-3 mb-2">
+              <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center group-hover:bg-purple-200 transition-colors">
+                <Store className="h-5 w-5 text-purple-600" />
+              </div>
+              <span className="font-medium text-gray-900">จัดการร้านค้า</span>
+            </div>
+            <p className="text-xs text-gray-600">เพิ่ม/แก้ไขร้านค้า</p>
+          </button>
+          
+          <button
+            onClick={() => navigate('/add-plant-supplier')}
+            className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-all text-left group"
+          >
+            <div className="flex items-center space-x-3 mb-2">
+              <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center group-hover:bg-orange-200 transition-colors">
+                <LinkIcon className="h-5 w-5 text-orange-600" />
+              </div>
+              <span className="font-medium text-gray-900">เชื่อมต่อ</span>
+            </div>
+            <p className="text-xs text-gray-600">เชื่อมต้นไม้-ร้านค้า</p>
+          </button>
+        </div>
       </div>
 
       {/* Stats Cards */}

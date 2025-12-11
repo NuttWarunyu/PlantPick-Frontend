@@ -68,28 +68,10 @@ function AppContent() {
                   <FolderOpen className="h-4 w-4" />
                   <span>โปรเจกต์</span>
                 </a>
-                <a href="/add-plant" className="flex items-center space-x-1 px-3 py-2 text-sm text-green-700 hover:text-green-900 hover:bg-green-50 rounded-md transition-colors">
-                  <Calculator className="h-4 w-4" />
-                  <span>เพิ่มต้นไม้</span>
-                </a>
-                <a href="/suppliers" className="flex items-center space-x-1 px-3 py-2 text-sm text-green-700 hover:text-green-900 hover:bg-green-50 rounded-md transition-colors">
-                  <Store className="h-4 w-4" />
-                  <span>ร้านค้า</span>
-                </a>
-                {/* Temporarily hidden - not in use yet
-                <a href="/price-analysis" className="flex items-center space-x-1 px-3 py-2 text-sm text-green-700 hover:text-green-900 hover:bg-green-50 rounded-md transition-colors">
-                  <TrendingUp className="h-4 w-4" />
-                  <span>วิเคราะห์</span>
-                </a>
-                */}
-                <a href="/bill-scanner" className="flex items-center space-x-1 px-3 py-2 text-sm text-green-700 hover:text-green-900 hover:bg-green-50 rounded-md transition-colors">
-                  <Camera className="h-4 w-4" />
-                  <span>สแกนบิล</span>
-                </a>
                 {isAdmin ? (
                   <>
                     <a href="/database" className="flex items-center space-x-1 px-3 py-2 text-sm text-green-700 hover:text-green-900 hover:bg-green-50 rounded-md transition-colors">
-                      <FileText className="h-4 w-4" />
+                      <Database className="h-4 w-4" />
                       <span>จัดการฐานข้อมูล</span>
                     </a>
                     <a href="/ai-agent" className="flex items-center space-x-1 px-3 py-2 text-sm text-green-700 hover:text-green-900 hover:bg-green-50 rounded-md transition-colors">
@@ -125,14 +107,6 @@ function AppContent() {
                   <a href="/search" className="flex flex-col items-center justify-center space-y-1 px-4 py-4 text-sm text-green-700 active:text-green-900 active:bg-green-50 rounded-xl transition-colors touch-manipulation" style={{ minHeight: '80px' }}>
                     <Search className="h-6 w-6" />
                     <span className="font-medium">ค้นหา</span>
-                  </a>
-                  <a href="/bill-scanner" className="flex flex-col items-center justify-center space-y-1 px-4 py-4 text-sm text-green-700 active:text-green-900 active:bg-green-50 rounded-xl transition-colors touch-manipulation" style={{ minHeight: '80px' }}>
-                    <Camera className="h-6 w-6" />
-                    <span className="font-medium">สแกนบิล</span>
-                  </a>
-                  <a href="/bill-list" className="flex flex-col items-center justify-center space-y-1 px-4 py-4 text-sm text-green-700 active:text-green-900 active:bg-green-50 rounded-xl transition-colors touch-manipulation" style={{ minHeight: '80px' }}>
-                    <FileText className="h-6 w-6" />
-                    <span className="font-medium">รายการบิล</span>
                   </a>
                   {isAdmin ? (
                     <>

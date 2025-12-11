@@ -1085,7 +1085,7 @@ app.post('/api/plants/bulk-import', upload.single('file'), async (req, res) => {
 // 📄 Bills API - บันทึกใบเสร็จและแยกข้อมูลอัตโนมัติ
 app.post('/api/bills', async (req, res) => {
   try {
-    const { supplierName, supplierPhone, supplierLocation, billDate, totalAmount, items, imageUrl } = req.body;
+    const { supplierName, supplierPhone, supplierLocation, billDate, totalAmount, items, imageUrl, applyToOtherSuppliers } = req.body;
 
     // Validate required fields
     if (!supplierName || !items || !Array.isArray(items) || items.length === 0) {
@@ -1194,12 +1194,34 @@ app.post('/api/bills', async (req, res) => {
         });
         console.log(`✅ บันทึกรายการ: ${plantName} x${itemQuantity} = ${itemPrice * itemQuantity} บาท`);
 
-        // 3.3 อัพเดทหรือเพิ่ม plant_supplier (ราคา)
+        // 3.3 อัพเดทหรือเพิ่ม plant_supplier (ราคา) สำหรับร้านที่สแกน
         await db.upsertPlantSupplier(plant.id, supplier.id, {
           price: itemPrice,
           size: itemSize
         });
         console.log(`✅ อัพเดทราคา: ${plant.name} ที่ ${supplier.name} = ${itemPrice} บาท`);
+
+        // 3.4 อัพเดตราคาให้ร้านค้าอื่นๆ ที่เลือก (ถ้ามี)
+        if (applyToOtherSuppliers && applyToOtherSuppliers[plant.id]) {
+          const otherSupplierIds = applyToOtherSuppliers[plant.id];
+          if (Array.isArray(otherSupplierIds) && otherSupplierIds.length > 0) {
+            for (const otherSupplierId of otherSupplierIds) {
+              // ข้ามร้านที่สแกน (อัพเดทไปแล้ว)
+              if (otherSupplierId === supplier.id) continue;
+              
+              try {
+                await db.upsertPlantSupplier(plant.id, otherSupplierId, {
+                  price: itemPrice,
+                  size: itemSize
+                });
+                console.log(`✅ อัพเดทราคาให้ร้านอื่น: ${plant.name} ที่ supplier ${otherSupplierId} = ${itemPrice} บาท`);
+              } catch (otherSupplierError) {
+                console.error(`❌ ไม่สามารถอัพเดตราคาให้ร้านอื่น (${otherSupplierId}):`, otherSupplierError.message);
+                errors.push(`ไม่สามารถอัพเดตราคาให้ร้านอื่น (${otherSupplierId}) สำหรับ ${plantName}`);
+              }
+            }
+          }
+        }
 
         processedItems.push({
           plantName,
@@ -1250,6 +1272,53 @@ app.post('/api/bills', async (req, res) => {
       success: false,
       data: null,
       message: `เกิดข้อผิดพลาดในการบันทึกใบเสร็จ: ${error.message}`
+    });
+  }
+});
+
+// Get other suppliers that have the same plant (for applying prices from bill scan)
+app.get('/api/plants/:plantId/other-suppliers', async (req, res) => {
+  try {
+    const { plantId } = req.params;
+    const { excludeSupplierId } = req.query;
+
+    // ดึงร้านค้าทั้งหมดที่มีต้นไม้นี้ (ยกเว้นร้านที่ exclude)
+    let query = `
+      SELECT DISTINCT
+        s.id,
+        s.name,
+        s.location,
+        s.phone,
+        ps.price as current_price,
+        ps.size,
+        ps.updated_at as price_updated_at
+      FROM suppliers s
+      INNER JOIN plant_suppliers ps ON s.id = ps.supplier_id
+      WHERE ps.plant_id = $1 AND ps.is_active = true
+    `;
+
+    const params = [plantId];
+    
+    if (excludeSupplierId) {
+      query += ` AND s.id != $2`;
+      params.push(excludeSupplierId);
+    }
+
+    query += ` ORDER BY s.name ASC`;
+
+    const result = await pool.query(query, params);
+
+    res.json({
+      success: true,
+      data: result.rows,
+      message: 'ดึงข้อมูลร้านค้าอื่นๆ สำเร็จ'
+    });
+  } catch (error) {
+    console.error('Error getting other suppliers:', error);
+    res.status(500).json({
+      success: false,
+      data: [],
+      message: `เกิดข้อผิดพลาดในการดึงข้อมูลร้านค้า: ${error.message}`
     });
   }
 });
