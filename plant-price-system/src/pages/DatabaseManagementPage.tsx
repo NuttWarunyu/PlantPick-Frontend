@@ -7,7 +7,6 @@ import {
   Database, 
   Upload, 
   Download, 
-  Trash2, 
   RefreshCw, 
   AlertTriangle,
   CheckCircle,
@@ -200,59 +199,6 @@ const DatabaseManagementPage: React.FC = () => {
       }
     } catch (error) {
       showMessage('error', `เกิดข้อผิดพลาด: ${error}`);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleClearAllData = async () => {
-    // ยืนยัน 2 ครั้งเพื่อความปลอดภัย
-    if (!window.confirm('⚠️ คำเตือน: คุณกำลังจะลบข้อมูลทั้งหมด!\n\n- ต้นไม้ทั้งหมด\n- ร้านค้าทั้งหมด\n- ความสัมพันธ์ plant-supplier\n- ใบเสร็จทั้งหมด\n\nการกระทำนี้ไม่สามารถย้อนกลับได้!')) {
-      return;
-    }
-    
-    const confirmText = prompt('กรุณาพิมพ์ "ลบทั้งหมด" เพื่อยืนยัน:');
-    if (confirmText !== 'ลบทั้งหมด') {
-      showMessage('info', 'ยกเลิกการลบข้อมูล');
-      return;
-    }
-
-    setIsLoading(true);
-    try {
-      // ลบข้อมูลใน backend database
-      const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:3002';
-      const backendUrl = apiUrl.replace(/\/api$/, '');
-      
-      const response = await fetch(`${backendUrl}/api/admin/data/clear-all`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${adminToken}`,
-          'x-admin-token': adminToken || ''
-        },
-        body: JSON.stringify({ confirm: 'DELETE_ALL_DATA' })
-      });
-
-      const data = await response.json();
-      
-      if (data.success) {
-        // ลบข้อมูลใน localStorage ด้วย
-        databaseService.clearAllData();
-        
-        showMessage('success', '✅ ลบข้อมูลทั้งหมดสำเร็จแล้ว! (ทั้งใน database และ localStorage)');
-        loadStats();
-        loadBackups();
-        
-        // Reload page เพื่อให้ UI อัพเดท
-        setTimeout(() => {
-          window.location.reload();
-        }, 2000);
-      } else {
-        showMessage('error', `❌ ลบข้อมูลล้มเหลว: ${data.message || 'ไม่ทราบสาเหตุ'}`);
-      }
-    } catch (error: any) {
-      console.error('Error clearing all data:', error);
-      showMessage('error', `❌ เกิดข้อผิดพลาด: ${error.message || 'ไม่ทราบสาเหตุ'}`);
     } finally {
       setIsLoading(false);
     }
@@ -645,15 +591,6 @@ const DatabaseManagementPage: React.FC = () => {
             >
               <BarChart3 className="h-4 w-4" />
               <span>รันการทดสอบทั้งหมด</span>
-            </button>
-
-            <button
-              onClick={handleClearAllData}
-              disabled={isLoading}
-              className="bg-red-600 text-white px-4 py-3 rounded-lg hover:bg-red-700 disabled:opacity-50 flex items-center justify-center space-x-2 font-bold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all"
-            >
-              <Trash2 className="h-5 w-5" />
-              <span>🗑️ ลบข้อมูลทั้งหมด (ต้นไม้ + ร้านค้า)</span>
             </button>
           </div>
         </div>
