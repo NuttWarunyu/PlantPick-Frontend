@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Camera, CheckCircle, AlertCircle, RefreshCw, Store, ChevronDown, ChevronUp } from 'lucide-react';
 import { aiService, BillScanResult } from '../services/aiService';
@@ -418,12 +418,6 @@ const BillScannerPage: React.FC = () => {
                   <h3 className="font-semibold text-gray-900">🌱 รายการต้นไม้</h3>
                   <div className="space-y-3">
                     {scanResult.items.map((item, index) => {
-                      const plantKey = `plant_${index}_${item.plantName}`;
-                      const isExpanded = expandedPlants[plantKey] || false;
-                      const plantOtherSuppliers = otherSuppliers[plantKey] || [];
-                      const plantSelectedSuppliers = selectedSuppliers[plantKey] || [];
-                      const isLoading = loadingOtherSuppliers[plantKey] || false;
-                      
                       return (
                         <div key={index} className="border border-gray-200 rounded-lg overflow-hidden">
                           {/* Plant Item Header */}

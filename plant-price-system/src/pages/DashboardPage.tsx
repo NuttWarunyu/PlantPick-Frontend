@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { 
   Upload,
   Image,
@@ -8,7 +7,6 @@ import {
 import { apiService } from '../services/api';
 
 const DashboardPage: React.FC = () => {
-  const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(true);
   const [statistics, setStatistics] = useState({
     totalPlants: 0,
