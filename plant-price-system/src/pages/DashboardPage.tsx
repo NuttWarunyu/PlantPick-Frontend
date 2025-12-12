@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   Upload,
   Image,
@@ -7,6 +8,8 @@ import {
 import { apiService } from '../services/api';
 
 const DashboardPage: React.FC = () => {
+  const navigate = useNavigate();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [statistics, setStatistics] = useState({
     totalPlants: 0,
@@ -35,9 +38,27 @@ const DashboardPage: React.FC = () => {
   };
 
   const handleImageUpload = () => {
-    // TODO: Navigate to garden design page or open upload modal
-    // For now, just show alert
-    alert('ฟีเจอร์นี้กำลังพัฒนา - อัปโหลดรูปหน้าบ้านเพื่อให้ AI ออกแบบสวนและเสนอราคา');
+    fileInputRef.current?.click();
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // ตรวจสอบประเภทไฟล์
+      if (!file.type.startsWith('image/')) {
+        alert('กรุณาเลือกไฟล์รูปภาพเท่านั้น');
+        return;
+      }
+
+      // ตรวจสอบขนาดไฟล์ (10MB)
+      if (file.size > 10 * 1024 * 1024) {
+        alert('ไฟล์มีขนาดใหญ่เกินไป (ขนาดสูงสุด 10MB)');
+        return;
+      }
+
+      // Navigate ไปหน้า Garden Analysis พร้อมส่งไฟล์
+      navigate('/garden-analysis', { state: { imageFile: file } });
+    }
   };
 
   if (isLoading) {
@@ -120,6 +141,14 @@ const DashboardPage: React.FC = () => {
               <p className="text-base sm:text-lg text-gray-600 mb-8 max-w-md mx-auto">
                 AI จะวิเคราะห์พื้นที่และออกแบบสวนให้คุณ พร้อมเสนอราคาจากร้านค้าจริง
               </p>
+              
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleFileSelect}
+                className="hidden"
+              />
               
               <button
                 onClick={handleImageUpload}

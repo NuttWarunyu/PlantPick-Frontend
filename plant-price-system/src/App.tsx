@@ -14,6 +14,7 @@ import AddPlantSupplierPage from './pages/AddPlantSupplierPage';
 import ProjectPage from './pages/ProjectPage';
 import BillScannerPage from './pages/BillScannerPage';
 import DashboardPage from './pages/DashboardPage';
+import GardenAnalysisPage from './pages/GardenAnalysisPage';
 // import PriceAnalysisPage from './pages/PriceAnalysisPage';
 // import RouteOptimizationPage from './pages/RouteOptimizationPage';
 // import CostAnalysisPage from './pages/CostAnalysisPage';

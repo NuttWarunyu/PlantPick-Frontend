@@ -850,6 +850,59 @@ app.post('/api/ai/scan-bill', async (req, res) => {
   }
 });
 
+// 🌿 AI Garden Analysis - วิเคราะห์รูปภาพสวน/บ้านเพื่อระบุต้นไม้
+app.post('/api/ai/analyze-garden', async (req, res) => {
+  try {
+    const { base64Image } = req.body;
+
+    if (!base64Image) {
+      return res.status(400).json({
+        success: false,
+        data: null,
+        message: 'ไม่พบรูปภาพที่ส่งมา'
+      });
+    }
+
+    // เรียก AI Service เพื่อวิเคราะห์รูปภาพสวน (API Key อยู่บน Backend - ปลอดภัย)
+    const analysisResult = await aiService.analyzeGardenImage(base64Image);
+
+    res.json({
+      success: true,
+      data: analysisResult,
+      message: 'วิเคราะห์รูปภาพสำเร็จ'
+    });
+
+  } catch (error) {
+    console.error('❌ AI Garden Analysis Error:', error);
+
+    // ตรวจสอบ error type เพื่อให้ error message ชัดเจนขึ้น
+    let errorMessage = 'เกิดข้อผิดพลาดในการวิเคราะห์รูปภาพ';
+
+    if (error.message) {
+      if (error.message.includes('API key')) {
+        errorMessage = '⚠️ ยังไม่ได้ตั้งค่า OPENAI_API_KEY ใน Railway. กรุณาเพิ่ม API Key ใน Railway Dashboard → Variables';
+      } else if (error.message.includes('401') || error.message.includes('unauthorized')) {
+        errorMessage = '⚠️ OpenAI API Key ไม่ถูกต้อง. กรุณาตรวจสอบ API Key ใน Railway';
+      } else if (error.message.includes('429') || error.message.includes('rate limit')) {
+        errorMessage = '⚠️ เกิน Rate Limit ของ OpenAI API. กรุณารอสักครู่แล้วลองใหม่';
+      } else if (error.message.includes('timeout')) {
+        errorMessage = '⚠️ การเชื่อมต่อกับ OpenAI API หมดเวลา. กรุณาลองใหม่อีกครั้ง';
+      } else if (error.message.includes('PayloadTooLargeError') || error.message.includes('entity too large')) {
+        errorMessage = '⚠️ รูปภาพมีขนาดใหญ่เกินไป. กรุณาลองลดขนาดรูปหรืออัพโหลดรูปที่มีขนาดเล็กกว่า (แนะนำ: < 5MB)';
+      } else {
+        errorMessage = `เกิดข้อผิดพลาด: ${error.message}`;
+      }
+    }
+
+    res.status(500).json({
+      success: false,
+      data: null,
+      message: errorMessage,
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+});
+
 // Orders
 app.get('/api/orders', async (req, res) => {
   try {

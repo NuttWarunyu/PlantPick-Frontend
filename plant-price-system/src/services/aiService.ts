@@ -57,6 +57,22 @@ export interface RouteStep {
   };
 }
 
+export interface GardenAnalysisResult {
+  plants: GardenPlant[];
+  totalPlants: number;
+  gardenType: string;
+  confidence: number;
+}
+
+export interface GardenPlant {
+  name: string;
+  scientificName?: string;
+  quantity: number;
+  size?: string;
+  location?: string;
+  notes?: string;
+}
+
 class AIService {
   // ⚠️ ไม่ใช้ API Key ใน Frontend อีกต่อไป - เรียกผ่าน Backend เพื่อความปลอดภัย
 
@@ -73,6 +89,56 @@ class AIService {
       };
       reader.onerror = error => reject(error);
     });
+  }
+
+  // 🌿 วิเคราะห์รูปภาพสวน/บ้านเพื่อระบุต้นไม้ (เรียกผ่าน Backend เพื่อความปลอดภัย)
+  async analyzeGardenImage(imageFile: File): Promise<GardenAnalysisResult> {
+    try {
+      // แปลงไฟล์เป็น Base64
+      const base64Image = await this.fileToBase64(imageFile);
+      
+      // เรียก Backend API แทนการเรียก OpenAI โดยตรง (ปลอดภัยกว่า - API Key อยู่บน Backend)
+      const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:3002';
+      const backendUrl = apiUrl.replace(/\/api$/, ''); // ลบ /api ถ้ามี
+      
+      const response = await fetch(`${backendUrl}/api/ai/analyze-garden`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          base64Image: base64Image
+        })
+      });
+
+      // ตรวจสอบ HTTP status
+      if (!response.ok) {
+        // อ่าน error message จาก backend
+        let errorMessage = `เกิดข้อผิดพลาด: ${response.status}`;
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.message || errorMessage;
+        } catch (e) {
+          // ถ้า parse JSON ไม่ได้ ให้ใช้ default message
+          errorMessage = `เกิดข้อผิดพลาดจาก Backend (Status: ${response.status})`;
+        }
+        throw new Error(errorMessage);
+      }
+
+      const data = await response.json();
+      
+      // ตรวจสอบว่า response สำเร็จหรือไม่
+      if (data.success && data.data) {
+        return data.data as GardenAnalysisResult;
+      } else {
+        // Backend ส่ง response มาว่าไม่สำเร็จ
+        throw new Error(data.message || 'ไม่สามารถวิเคราะห์รูปภาพได้');
+      }
+
+    } catch (error: any) {
+      console.error('Error analyzing garden image with AI:', error);
+      throw error;
+    }
   }
 
   // สแกนใบเสร็จด้วย ChatGPT Vision (เรียกผ่าน Backend เพื่อความปลอดภัย)

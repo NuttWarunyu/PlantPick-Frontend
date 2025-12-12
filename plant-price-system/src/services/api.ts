@@ -50,6 +50,54 @@ export interface StatisticsData {
 class MockApiService {
   private baseUrl = 'http://localhost:3002/api'; // พร้อมสำหรับ server จริง
 
+  // ค้นหาต้นไม้ (สำหรับ Garden Analysis)
+  async searchPlants(query: string): Promise<ApiResponse<PlantData[]>> {
+    try {
+      const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:3002';
+      const backendUrl = apiUrl.replace(/\/api$/, '');
+      
+      const response = await fetch(`${backendUrl}/api/plants?search=${encodeURIComponent(query)}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      
+      if (data.success && data.data) {
+        return {
+          success: true,
+          data: data.data,
+          message: 'ค้นหาต้นไม้สำเร็จ'
+        };
+      } else {
+        return {
+          success: false,
+          data: [],
+          message: data.message || 'ไม่พบข้อมูลต้นไม้'
+        };
+      }
+    } catch (error) {
+      console.error('Error searching plants:', error);
+      // Fallback to local search
+      const plants = this.getPlantsFromLocalStorage();
+      const filtered = plants.filter(plant => 
+        plant.name.toLowerCase().includes(query.toLowerCase()) ||
+        plant.scientificName?.toLowerCase().includes(query.toLowerCase())
+      );
+      return {
+        success: true,
+        data: filtered,
+        message: 'ค้นหาต้นไม้สำเร็จ (local)'
+      };
+    }
+  }
+
   // ดึงข้อมูลต้นไม้ทั้งหมด
   async getPlants(): Promise<ApiResponse<PlantData[]>> {
     try {

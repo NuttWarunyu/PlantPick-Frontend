@@ -358,6 +358,116 @@ class AIService {
     }
   }
 
+  // 🌿 วิเคราะห์รูปภาพสวน/บ้านเพื่อระบุต้นไม้ (GPT-4o Vision)
+  async analyzeGardenImage(base64Image) {
+    // ตรวจสอบว่ามี API Key หรือไม่
+    if (!this.apiKey) {
+      throw new Error('OpenAI API key not found. Please set OPENAI_API_KEY in Railway variables.');
+    }
+
+    try {
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${this.apiKey}`
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o',
+          messages: [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'text',
+                  text: `วิเคราะห์รูปภาพสวนหรือหน้าบ้านนี้และระบุต้นไม้ที่เห็น พร้อมจำนวนคร่าวๆ
+
+กรุณาตอบเป็น JSON format ตามโครงสร้างนี้:
+{
+  "plants": [
+    {
+      "name": "ชื่อต้นไม้ (ภาษาไทย)",
+      "scientificName": "ชื่อวิทยาศาสตร์ (ถ้ารู้)",
+      "quantity": จำนวนต้น (ประมาณ),
+      "size": "ขนาดคร่าวๆ (เช่น เล็ก, กลาง, ใหญ่, หรือความสูง)",
+      "location": "ตำแหน่งในภาพ (เช่น หน้าบ้าน, ริมรั้ว, กลางสวน)",
+      "notes": "หมายเหตุเพิ่มเติม (ถ้ามี)"
+    }
+  ],
+  "totalPlants": จำนวนต้นรวมทั้งหมด,
+  "gardenType": "ประเภทสวน (เช่น สวนหน้าบ้าน, สวนหลังบ้าน, สวนแนวตั้ง)",
+  "confidence": 0.95
+}
+
+คำแนะนำ:
+- ระบุเฉพาะต้นไม้ที่เห็นชัดเจน
+- ถ้าไม่แน่ใจชื่อต้นไม้ ให้ใช้ชื่อทั่วไป (เช่น "ไม้ประดับใบเขียว", "ไม้ดอกสีแดง")
+- จำนวนให้ประมาณคร่าวๆ (เช่น 5-10 ต้น, มากกว่า 20 ต้น)
+- ถ้าไม่เห็นต้นไม้เลย ให้ส่ง plants: [] และ totalPlants: 0
+
+กรุณาตอบเป็น JSON ล้วนๆ เท่านั้น ห้ามใส่โค้ดบล็อก (เช่น code fences) หรือคำอธิบายอื่นๆ`
+                },
+                {
+                  type: 'image_url',
+                  image_url: {
+                    url: `data:image/jpeg;base64,${base64Image}`
+                  }
+                }
+              ]
+            }
+          ],
+          max_tokens: 2000,
+          temperature: 0.1
+        })
+      });
+
+      // ตรวจสอบ HTTP status
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        let errorMessage = `OpenAI API error: ${response.status}`;
+        
+        // ตรวจสอบ error type
+        if (response.status === 401 || response.status === 403) {
+          errorMessage = 'OpenAI API key is invalid or unauthorized';
+        } else if (response.status === 429) {
+          errorMessage = 'OpenAI API rate limit exceeded';
+        } else if (errorData.error?.message) {
+          errorMessage = `OpenAI API error: ${errorData.error.message}`;
+        }
+        
+        throw new Error(errorMessage);
+      }
+
+      const data = await response.json();
+      const content = data.choices[0]?.message?.content;
+      
+      if (!content) {
+        throw new Error('No content received from OpenAI');
+      }
+
+      // แปลง JSON string เป็น object พร้อม sanitize
+      try {
+        // ตัด code fences ``` และ ```json ออก
+        let cleaned = content.replace(/```json|```/gi, '').trim();
+        
+        // ดึงส่วนที่เป็น JSON หลัก (จาก { ... } บล็อกแรก)
+        const match = cleaned.match(/\{[\s\S]*\}/);
+        if (match) {
+          cleaned = match[0];
+        }
+        
+        const result = JSON.parse(cleaned);
+        return result;
+      } catch (parseError) {
+        throw new Error(`Failed to parse OpenAI response: ${parseError.message}`);
+      }
+
+    } catch (error) {
+      console.error('❌ Error analyzing garden image with AI:', error);
+      throw error;
+    }
+  }
+
   // Mock data สำหรับ Bill Scan
   getMockBillScanResult() {
     return {
