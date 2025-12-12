@@ -24,6 +24,7 @@ const GardenAnalysisPage: React.FC = () => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisResult, setAnalysisResult] = useState<GardenAnalysisResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [plantPrices, setPlantPrices] = useState<Record<string, { hasPrice: boolean; minPrice?: number; suppliers?: any[] }>>({});
   const [plantPrices, setPlantPrices] = useState<Record<string, any[]>>({});
 
   // ตรวจสอบว่ามีรูปภาพจาก location state หรือไม่ (กรณี navigate จาก Dashboard)
@@ -77,11 +78,12 @@ const GardenAnalysisPage: React.FC = () => {
     setPlantPrices({});
 
     try {
-      // เรียก AI Service เพื่อวิเคราะห์รูปภาพ
+      // 1. เรียก AI Service เพื่อวิเคราะห์รูปภาพก่อน
       const result = await aiService.analyzeGardenImage(selectedImage);
       setAnalysisResult(result);
 
-      // ค้นหาราคาต้นไม้ที่พบจากฐานข้อมูล
+      // 2. ค้นหาราคาต้นไม้ที่พบจากฐานข้อมูล
+      // ถ้ามีราคาก็แสดง ถ้าไม่มีก็บอกว่ายังไม่มีราคา
       if (result.plants && result.plants.length > 0) {
         await loadPlantPrices(result.plants);
       }
@@ -95,7 +97,7 @@ const GardenAnalysisPage: React.FC = () => {
 
   const loadPlantPrices = async (plants: GardenPlant[]) => {
     try {
-      const prices: Record<string, any[]> = {};
+      const prices: Record<string, { hasPrice: boolean; minPrice?: number; suppliers?: any[] }> = {};
       
       // ค้นหาต้นไม้แต่ละชนิดจากฐานข้อมูล
       for (const plant of plants) {
@@ -105,11 +107,31 @@ const GardenAnalysisPage: React.FC = () => {
             // หาต้นไม้ที่ตรงกับชื่อมากที่สุด
             const matchedPlant = response.data[0];
             if (matchedPlant.suppliers && matchedPlant.suppliers.length > 0) {
-              prices[plant.name] = matchedPlant.suppliers;
+              // มีราคา - แสดงราคาต่ำสุด
+              const minPrice = Math.min(...matchedPlant.suppliers.map((s: any) => s.price));
+              prices[plant.name] = {
+                hasPrice: true,
+                minPrice: minPrice,
+                suppliers: matchedPlant.suppliers
+              };
+            } else {
+              // ไม่มีราคา
+              prices[plant.name] = {
+                hasPrice: false
+              };
             }
+          } else {
+            // ไม่พบต้นไม้ในฐานข้อมูล
+            prices[plant.name] = {
+              hasPrice: false
+            };
           }
         } catch (err) {
           console.error(`Error loading prices for ${plant.name}:`, err);
+          // ถ้าเกิด error ก็ถือว่าไม่มีราคา
+          prices[plant.name] = {
+            hasPrice: false
+          };
         }
       }
       
@@ -330,21 +352,36 @@ const GardenAnalysisPage: React.FC = () => {
                         </div>
                         
                         <div className="flex flex-col gap-2">
-                          <button
-                            onClick={() => handleSearchPlant(plant.name)}
-                            className="px-4 py-2 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center gap-2"
-                          >
-                            <Search className="w-4 h-4" />
-                            <span>ดูราคา</span>
-                          </button>
-                          
-                          {plantPrices[plant.name] && plantPrices[plant.name].length > 0 && (
-                            <div className="text-xs text-gray-600 text-center">
-                              <p className="font-semibold">ราคาเริ่มต้น:</p>
-                              <p className="text-green-600 font-bold">
-                                {Math.min(...plantPrices[plant.name].map((s: any) => s.price)).toLocaleString()} บาท
-                              </p>
-                            </div>
+                          {plantPrices[plant.name]?.hasPrice ? (
+                            <>
+                              <div className="text-xs text-gray-600 text-center mb-2">
+                                <p className="font-semibold text-green-700">ราคาเริ่มต้น:</p>
+                                <p className="text-lg font-bold text-green-600">
+                                  {plantPrices[plant.name].minPrice?.toLocaleString()} บาท
+                                </p>
+                              </div>
+                              <button
+                                onClick={() => handleSearchPlant(plant.name)}
+                                className="px-4 py-2 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center gap-2"
+                              >
+                                <Search className="w-4 h-4" />
+                                <span>ดูราคาทั้งหมด</span>
+                              </button>
+                            </>
+                          ) : (
+                            <>
+                              <div className="text-xs text-gray-500 text-center mb-2 px-2 py-1 bg-yellow-50 rounded border border-yellow-200">
+                                <p className="font-semibold text-yellow-700">⚠️ ยังไม่มีราคา</p>
+                                <p className="text-yellow-600">ในฐานข้อมูล</p>
+                              </div>
+                              <button
+                                onClick={() => handleSearchPlant(plant.name)}
+                                className="px-4 py-2 bg-gray-500 text-white font-semibold rounded-lg hover:bg-gray-600 transition-colors flex items-center justify-center gap-2"
+                              >
+                                <Search className="w-4 h-4" />
+                                <span>ค้นหาในระบบ</span>
+                              </button>
+                            </>
                           )}
                         </div>
                       </div>
