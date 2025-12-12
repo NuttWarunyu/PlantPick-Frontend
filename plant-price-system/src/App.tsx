@@ -206,6 +206,10 @@ function AppContent() {
                   path="/dashboard" 
                   element={<DashboardPage />} 
                 />
+                <Route 
+                  path="/garden-analysis" 
+                  element={<GardenAnalysisPage />} 
+                />
                 {/* Temporarily hidden - not in use yet
                 <Route 
                   path="/price-analysis" 
