@@ -369,6 +369,43 @@ class RealApiService {
     }
   }
 
+  async searchPlants(query: string): Promise<ApiResponse<PlantData[]>> {
+    try {
+      const response = await fetch(`${this.baseUrl}/api/plants?search=${encodeURIComponent(query)}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      
+      if (data.success && data.data) {
+        return {
+          success: true,
+          data: data.data,
+          message: 'ค้นหาต้นไม้สำเร็จ'
+        };
+      } else {
+        return {
+          success: false,
+          data: [],
+          message: data.message || 'ไม่พบข้อมูลต้นไม้'
+        };
+      }
+    } catch (error) {
+      return {
+        success: false,
+        data: [],
+        message: 'เกิดข้อผิดพลาดในการเชื่อมต่อ server'
+      };
+    }
+  }
+
   async addSupplier(request: any): Promise<ApiResponse<any>> {
     try {
       const response = await fetch(`${this.baseUrl}/api/suppliers`, {
