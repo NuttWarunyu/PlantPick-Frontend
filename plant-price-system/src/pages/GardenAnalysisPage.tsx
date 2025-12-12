@@ -25,6 +25,7 @@ const GardenAnalysisPage: React.FC = () => {
   const [analysisResult, setAnalysisResult] = useState<GardenAnalysisResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [plantPrices, setPlantPrices] = useState<Record<string, { hasPrice: boolean; minPrice?: number; suppliers?: any[] }>>({});
+  const [plantPrices, setPlantPrices] = useState<Record<string, any[]>>({});
 
   // ตรวจสอบว่ามีรูปภาพจาก location state หรือไม่ (กรณี navigate จาก Dashboard)
   React.useEffect(() => {
@@ -407,4 +408,3 @@ const GardenAnalysisPage: React.FC = () => {
 };
 
 export default GardenAnalysisPage;
-
