@@ -28,7 +28,6 @@ import { useAdmin } from '../contexts/AdminContext';
 
 const DatabaseManagementPage: React.FC = () => {
   const navigate = useNavigate();
-  const { adminToken } = useAdmin();
   const [stats, setStats] = useState<DatabaseStats | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error' | 'info', text: string } | null>(null);
