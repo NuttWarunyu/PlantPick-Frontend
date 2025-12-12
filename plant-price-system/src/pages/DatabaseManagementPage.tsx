@@ -24,7 +24,6 @@ import {
 } from 'lucide-react';
 import { databaseService, DatabaseStats, BulkUpdateResult, ImportResult, BackupData } from '../services/databaseService';
 import { testDataManager } from '../utils/testDataManager';
-import { useAdmin } from '../contexts/AdminContext';
 
 const DatabaseManagementPage: React.FC = () => {
   const navigate = useNavigate();
