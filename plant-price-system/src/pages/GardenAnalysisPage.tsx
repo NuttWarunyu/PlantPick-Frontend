@@ -16,7 +16,6 @@ import {
 } from 'lucide-react';
 import { aiService, GardenAnalysisResult, GardenPlant } from '../services/aiService';
 import { apiService } from '../services/api';
-import AnnotatedImage from '../components/AnnotatedImage';
 
 const GardenAnalysisPage: React.FC = () => {
   const navigate = useNavigate();
@@ -269,33 +268,20 @@ const GardenAnalysisPage: React.FC = () => {
         {/* Analysis Results */}
         {analysisResult && (
           <div className="space-y-6">
-            {/* Annotated Image - แสดงรูปภาพพร้อม markers */}
+            {/* Image Preview - แสดงรูปภาพที่อัพโหลด */}
             {imagePreview && (
               <div className="bg-white rounded-2xl shadow-lg p-6 border-2 border-green-200">
                 <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
                   <Image className="w-5 h-5 text-green-600" />
-                  รูปภาพพร้อมตำแหน่งองค์ประกอบ
+                  รูปภาพที่วิเคราะห์
                 </h3>
-                <AnnotatedImage
-                  imageSrc={imagePreview}
-                  analysisResult={analysisResult}
-                  onMarkerClick={(type: string, name: string, index: number) => {
-                    // Scroll to the corresponding section
-                    const elementId = type === 'plant' ? `plant-${index}` : 
-                                     type === 'lawn' ? 'lawn-section' :
-                                     type === 'pathway' ? `pathway-${index}` :
-                                     `other-${index}`;
-                    const element = document.getElementById(elementId);
-                    if (element) {
-                      element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                      // Highlight briefly
-                      element.classList.add('ring-4', 'ring-green-400');
-                      setTimeout(() => {
-                        element.classList.remove('ring-4', 'ring-green-400');
-                      }, 2000);
-                    }
-                  }}
-                />
+                <div className="flex justify-center">
+                  <img
+                    src={imagePreview}
+                    alt="Analyzed Garden"
+                    className="max-w-full max-h-96 rounded-xl shadow-md border-2 border-green-100"
+                  />
+                </div>
               </div>
             )}
 
