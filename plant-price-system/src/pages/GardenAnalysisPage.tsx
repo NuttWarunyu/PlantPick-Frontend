@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { aiService, GardenAnalysisResult, GardenPlant } from '../services/aiService';
 import { apiService } from '../services/api';
+import AnnotatedImage from '../components/AnnotatedImage';
 
 const GardenAnalysisPage: React.FC = () => {
   const navigate = useNavigate();
@@ -278,7 +279,7 @@ const GardenAnalysisPage: React.FC = () => {
                 <AnnotatedImage
                   imageSrc={imagePreview}
                   analysisResult={analysisResult}
-                  onMarkerClick={(type, name, index) => {
+                  onMarkerClick={(type: string, name: string, index: number) => {
                     // Scroll to the corresponding section
                     const elementId = type === 'plant' ? `plant-${index}` : 
                                      type === 'lawn' ? 'lawn-section' :
