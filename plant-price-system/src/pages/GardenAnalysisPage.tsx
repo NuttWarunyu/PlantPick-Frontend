@@ -10,7 +10,7 @@ import {
   AlertCircle,
   Search,
   Leaf,
-  Grass,
+  Circle,
   Square,
   Layers
 } from 'lucide-react';
@@ -310,7 +310,7 @@ const GardenAnalysisPage: React.FC = () => {
             {analysisResult.lawn && analysisResult.lawn.type && (
               <div className="bg-white rounded-2xl shadow-lg p-6 sm:p-8 border-2 border-green-200">
                 <h3 className="text-xl sm:text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
-                  <Grass className="w-6 h-6 text-green-600" />
+                  <Circle className="w-6 h-6 text-green-600" />
                   สนามหญ้า
                 </h3>
                 <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-5 border-2 border-green-100">
