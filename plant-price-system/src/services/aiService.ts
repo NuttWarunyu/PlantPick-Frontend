@@ -59,6 +59,12 @@ export interface RouteStep {
 
 export interface GardenAnalysisResult {
   plants: GardenPlant[];
+  lawn?: {
+    type: string | null;
+    area: string | null;
+  };
+  pathways?: Pathway[];
+  otherElements?: OtherElement[];
   totalPlants: number;
   gardenType: string;
   confidence: number;
@@ -71,6 +77,20 @@ export interface GardenPlant {
   size?: string;
   location?: string;
   notes?: string;
+}
+
+export interface Pathway {
+  material: string;
+  length?: string | null;
+  area?: string | null;
+  location?: string;
+}
+
+export interface OtherElement {
+  type: string;
+  description?: string;
+  quantity?: number;
+  location?: string;
 }
 
 class AIService {

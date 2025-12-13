@@ -9,7 +9,10 @@ import {
   CheckCircle2,
   AlertCircle,
   Search,
-  Leaf
+  Leaf,
+  Grass,
+  Square,
+  Layers
 } from 'lucide-react';
 import { aiService, GardenAnalysisResult, GardenPlant } from '../services/aiService';
 import { apiService } from '../services/api';
@@ -265,23 +268,6 @@ const GardenAnalysisPage: React.FC = () => {
         {/* Analysis Results */}
         {analysisResult && (
           <div className="space-y-6">
-            {/* Image Preview - แสดงรูปภาพค้างไว้ */}
-            {imagePreview && (
-              <div className="bg-white rounded-2xl shadow-lg p-6 border-2 border-green-200">
-                <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
-                  <Image className="w-5 h-5 text-green-600" />
-                  รูปภาพที่วิเคราะห์
-                </h3>
-                <div className="flex justify-center">
-                  <img
-                    src={imagePreview}
-                    alt="Analyzed Garden"
-                    className="max-w-full max-h-96 rounded-xl shadow-md border-2 border-green-100"
-                  />
-                </div>
-              </div>
-            )}
-
             {/* Summary Card */}
             <div className="bg-white rounded-2xl shadow-lg p-6 sm:p-8 border-2 border-green-200">
               <div className="flex items-center gap-3 mb-6">
@@ -319,6 +305,105 @@ const GardenAnalysisPage: React.FC = () => {
                 วิเคราะห์รูปใหม่
               </button>
             </div>
+
+            {/* Lawn Section */}
+            {analysisResult.lawn && analysisResult.lawn.type && (
+              <div className="bg-white rounded-2xl shadow-lg p-6 sm:p-8 border-2 border-green-200">
+                <h3 className="text-xl sm:text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
+                  <Grass className="w-6 h-6 text-green-600" />
+                  สนามหญ้า
+                </h3>
+                <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-5 border-2 border-green-100">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="text-lg font-bold text-gray-800 mb-2">{analysisResult.lawn.type}</h4>
+                      {analysisResult.lawn.area && (
+                        <p className="text-sm text-gray-600">
+                          <span className="font-semibold">ขนาดโดยประมาณ:</span> {analysisResult.lawn.area}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Pathways Section */}
+            {analysisResult.pathways && analysisResult.pathways.length > 0 && (
+              <div className="bg-white rounded-2xl shadow-lg p-6 sm:p-8 border-2 border-green-200">
+                <h3 className="text-xl sm:text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
+                  <Square className="w-6 h-6 text-green-600" />
+                  ทางเดิน/พื้นผิว ({analysisResult.pathways.length} จุด)
+                </h3>
+                <div className="space-y-4">
+                  {analysisResult.pathways.map((pathway, index) => (
+                    <div
+                      key={index}
+                      className="bg-gradient-to-r from-blue-50 to-cyan-50 rounded-xl p-5 border-2 border-blue-100"
+                    >
+                      <h4 className="text-lg font-bold text-gray-800 mb-2">{pathway.material}</h4>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm text-gray-600">
+                        {pathway.length && (
+                          <div className="flex items-center gap-2">
+                            <span className="font-semibold">ความยาว:</span>
+                            <span>{pathway.length}</span>
+                          </div>
+                        )}
+                        {pathway.area && (
+                          <div className="flex items-center gap-2">
+                            <span className="font-semibold">พื้นที่:</span>
+                            <span>{pathway.area}</span>
+                          </div>
+                        )}
+                        {pathway.location && (
+                          <div className="flex items-center gap-2">
+                            <span className="font-semibold">ตำแหน่ง:</span>
+                            <span>{pathway.location}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Other Elements Section */}
+            {analysisResult.otherElements && analysisResult.otherElements.length > 0 && (
+              <div className="bg-white rounded-2xl shadow-lg p-6 sm:p-8 border-2 border-green-200">
+                <h3 className="text-xl sm:text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
+                  <Layers className="w-6 h-6 text-green-600" />
+                  องค์ประกอบอื่นๆ ({analysisResult.otherElements.length} รายการ)
+                </h3>
+                <div className="space-y-4">
+                  {analysisResult.otherElements.map((element, index) => (
+                    <div
+                      key={index}
+                      className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl p-5 border-2 border-purple-100"
+                    >
+                      <h4 className="text-lg font-bold text-gray-800 mb-2">{element.type}</h4>
+                      {element.description && (
+                        <p className="text-sm text-gray-600 mb-2">{element.description}</p>
+                      )}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm text-gray-600">
+                        {element.quantity && (
+                          <div className="flex items-center gap-2">
+                            <span className="font-semibold">จำนวน:</span>
+                            <span>{element.quantity}</span>
+                          </div>
+                        )}
+                        {element.location && (
+                          <div className="flex items-center gap-2">
+                            <span className="font-semibold">ตำแหน่ง:</span>
+                            <span>{element.location}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Plants List */}
             {analysisResult.plants && analysisResult.plants.length > 0 ? (
