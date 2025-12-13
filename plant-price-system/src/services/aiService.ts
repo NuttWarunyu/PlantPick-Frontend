@@ -62,6 +62,7 @@ export interface GardenAnalysisResult {
   lawn?: {
     type: string | null;
     area: string | null;
+    position?: Position | null;
   };
   pathways?: Pathway[];
   otherElements?: OtherElement[];
@@ -70,12 +71,18 @@ export interface GardenAnalysisResult {
   confidence: number;
 }
 
+export interface Position {
+  x: number; // 0-100 (0=ซ้ายสุด, 100=ขวาสุด)
+  y: number; // 0-100 (0=บนสุด, 100=ล่างสุด)
+}
+
 export interface GardenPlant {
   name: string;
   scientificName?: string;
   quantity: number;
   size?: string;
   location?: string;
+  position?: Position;
   notes?: string;
 }
 
@@ -84,6 +91,7 @@ export interface Pathway {
   length?: string | null;
   area?: string | null;
   location?: string;
+  position?: Position;
 }
 
 export interface OtherElement {
@@ -91,6 +99,7 @@ export interface OtherElement {
   description?: string;
   quantity?: number;
   location?: string;
+  position?: Position;
 }
 
 class AIService {
