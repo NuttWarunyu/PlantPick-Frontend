@@ -247,31 +247,41 @@ class PlantNetService {
       ];
       formData.append('plant_details', JSON.stringify(plantDetails));
 
-      const response = await fetch(`${this.baseUrl}/identify/${this.project}?api-key=${this.apiKey}`, {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!response.ok) {
-        let errorData;
-        try {
-          errorData = await response.json();
-        } catch (e) {
-          const textResponse = await response.text();
-          errorData = { error: textResponse || `HTTP ${response.status}` };
+      // ใช้ axios แทน fetch
+      const response = await axios.post(
+        `${this.baseUrl}/identify/${this.project}?api-key=${this.apiKey}`,
+        formData,
+        {
+          headers: {
+            ...formData.getHeaders(),
+          },
+          maxContentLength: Infinity,
+          maxBodyLength: Infinity,
         }
-        throw new Error(`PlantNet API error: ${response.status} - ${errorData.error || 'Unknown error'}`);
-      }
+      );
 
-      const data = await response.json();
+      const data = response.data;
       return this.formatPlantNetResponse(data);
 
     } catch (error) {
-      console.error('❌ PlantNet API Error:', error);
-      throw error;
+      // Handle axios errors
+      if (error.response) {
+        const status = error.response.status;
+        const errorData = error.response.data || {};
+        console.error('❌ PlantNet API Error:', {
+          status: status,
+          errorData: errorData
+        });
+        throw new Error(`PlantNet API error: ${status} - ${errorData.error || 'Unknown error'}`);
+      } else if (error.request) {
+        console.error('❌ PlantNet API Request Error:', error.message);
+        throw new Error(`PlantNet API request failed: ${error.message}`);
+      } else {
+        console.error('❌ PlantNet API Error:', error.message);
+        throw error;
+      }
     }
   }
 }
 
 module.exports = new PlantNetService();
-
