@@ -15,6 +15,7 @@ const DashboardPage: React.FC = () => {
     totalPlants: 0,
     totalSuppliers: 0
   });
+  const [isLoadingStats, setIsLoadingStats] = useState(true);
 
   useEffect(() => {
     // โหลด statistics แบบ background (ไม่บล็อก UI)
@@ -23,6 +24,7 @@ const DashboardPage: React.FC = () => {
 
   const loadStatistics = async () => {
     try {
+      setIsLoadingStats(true);
       const statisticsResponse = await apiService.getStatistics();
       
       if (statisticsResponse.success) {
@@ -34,6 +36,8 @@ const DashboardPage: React.FC = () => {
     } catch (error) {
       console.error('Error loading statistics:', error);
       // ถ้า error ก็ไม่เป็นไร - แสดง 0 ไปก่อน
+    } finally {
+      setIsLoadingStats(false);
     }
   };
 
@@ -88,9 +92,15 @@ const DashboardPage: React.FC = () => {
                 <span className="text-2xl">🌿</span>
               </div>
               <p className="text-xs sm:text-sm font-medium text-gray-600 mb-1">ต้นไม้ทั้งหมด</p>
-              <p className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
-                {statistics.totalPlants.toLocaleString()}
-              </p>
+              {isLoadingStats ? (
+                <div className="animate-pulse">
+                  <div className="h-8 sm:h-10 w-20 sm:w-24 bg-gray-200 rounded-lg mx-auto"></div>
+                </div>
+              ) : (
+                <p className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
+                  {statistics.totalPlants.toLocaleString()}
+                </p>
+              )}
             </div>
           </div>
           
@@ -100,9 +110,15 @@ const DashboardPage: React.FC = () => {
                 <span className="text-2xl">🏪</span>
               </div>
               <p className="text-xs sm:text-sm font-medium text-gray-600 mb-1">ร้านค้า</p>
-              <p className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
-                {statistics.totalSuppliers}
-              </p>
+              {isLoadingStats ? (
+                <div className="animate-pulse">
+                  <div className="h-8 sm:h-10 w-16 sm:w-20 bg-gray-200 rounded-lg mx-auto"></div>
+                </div>
+              ) : (
+                <p className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
+                  {statistics.totalSuppliers.toLocaleString()}
+                </p>
+              )}
             </div>
           </div>
         </div>
