@@ -2,8 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   Upload,
-  Image,
-  Sparkles
+  Image
 } from 'lucide-react';
 import { apiService } from '../services/api';
 
@@ -74,11 +73,11 @@ const DashboardPage: React.FC = () => {
           <div className="flex items-center justify-center gap-3 mb-4">
             <div className="text-5xl sm:text-6xl animate-bounce">🌱</div>
             <div>
-              <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
-                ออกแบบสวนด้วย AI
+              <h1 className="text-4xl sm:text-5xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
+                PlantPick
               </h1>
-              <p className="text-base sm:text-lg text-gray-600 mt-2">
-                อัปโหลดรูปหน้าบ้านของคุณ เราเสนอราคาจากร้านค้าจริง
+              <p className="text-lg sm:text-xl text-gray-600 mt-3 font-medium">
+                Smart Analysis, Best Prices
               </p>
             </div>
           </div>
@@ -125,11 +124,6 @@ const DashboardPage: React.FC = () => {
 
         {/* Main Upload Button */}
         <div className="mb-8">
-          <div className="flex items-center justify-center gap-3 mb-6">
-            <Sparkles className="w-6 h-6 text-yellow-500" />
-            <h2 className="text-2xl sm:text-3xl font-bold text-gray-800">เริ่มต้นใช้งาน</h2>
-          </div>
-          
           <div className="bg-white rounded-3xl shadow-2xl p-8 sm:p-12 border-2 border-green-200">
             <div className="text-center">
               <div className="w-24 h-24 sm:w-32 sm:h-32 bg-gradient-to-br from-green-400 to-emerald-500 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-lg">
@@ -162,33 +156,6 @@ const DashboardPage: React.FC = () => {
               <p className="text-sm text-gray-500 mt-6">
                 รองรับไฟล์ JPG, PNG ขนาดไม่เกิน 10MB
               </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Info Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-5">
-          <div className="bg-white rounded-xl p-5 shadow-md border-2 border-green-100">
-            <div className="text-center">
-              <div className="text-4xl mb-3">🤖</div>
-              <h4 className="font-bold text-gray-800 mb-2">AI ออกแบบ</h4>
-              <p className="text-sm text-gray-600">AI วิเคราะห์พื้นที่และออกแบบสวนให้เหมาะกับคุณ</p>
-            </div>
-          </div>
-          
-          <div className="bg-white rounded-xl p-5 shadow-md border-2 border-blue-100">
-            <div className="text-center">
-              <div className="text-4xl mb-3">💰</div>
-              <h4 className="font-bold text-gray-800 mb-2">เสนอราคาจริง</h4>
-              <p className="text-sm text-gray-600">ราคาจากร้านค้าจริงที่มีในระบบ</p>
-            </div>
-          </div>
-          
-          <div className="bg-white rounded-xl p-5 shadow-md border-2 border-purple-100">
-            <div className="text-center">
-              <div className="text-4xl mb-3">⚡</div>
-              <h4 className="font-bold text-gray-800 mb-2">รวดเร็ว</h4>
-              <p className="text-sm text-gray-600">ได้ผลลัพธ์ในเวลาไม่กี่นาที</p>
             </div>
           </div>
         </div>
