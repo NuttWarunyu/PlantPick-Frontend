@@ -476,7 +476,27 @@ const GardenAnalysisPage: React.FC = () => {
                                 <span>{plant.location}</span>
                               </div>
                             )}
+                            {plant.plantNetConfidence && (
+                              <div className="flex items-center gap-2">
+                                <span className="font-semibold">ความแม่นยำ:</span>
+                                <span className="text-green-600 font-bold">{plant.plantNetConfidence}%</span>
+                              </div>
+                            )}
                           </div>
+                          
+                          {/* PlantNet Alternatives */}
+                          {plant.plantNetAlternatives && plant.plantNetAlternatives.length > 0 && (
+                            <div className="mt-3 pt-3 border-t border-gray-200">
+                              <p className="text-xs font-semibold text-gray-500 mb-2">ตัวเลือกอื่นๆ:</p>
+                              <div className="space-y-1">
+                                {plant.plantNetAlternatives.map((alt, idx) => (
+                                  <div key={idx} className="text-xs text-gray-600">
+                                    • {alt.thaiName || alt.englishName || alt.scientificName} ({alt.confidence}%)
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
                           
                           {plant.notes && (
                             <p className="text-sm text-gray-600 mt-2 italic">{plant.notes}</p>
