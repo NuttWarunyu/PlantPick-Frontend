@@ -1,5 +1,7 @@
 // 🌿 PlantNet API Service - สำหรับระบุพืชพันธุ์จากรูปภาพ
 
+const axios = require('axios');
+
 class PlantNetService {
   constructor() {
     this.apiKey = process.env.PLANTNET_API_KEY || '';
@@ -70,29 +72,79 @@ class PlantNetService {
         formData.append('nb-results', options.nbResults.toString());
       }
 
+      // Debug: ดู FormData headers และ fields
+      const formHeaders = formData.getHeaders();
       console.log(`🌿 เรียก PlantNet API: project=${this.project}, lang=th, organs=auto`);
+      console.log(`📋 FormData Headers:`, formHeaders);
+      console.log(`📋 FormData Content-Type:`, formHeaders['content-type']);
+      console.log(`📋 Image Buffer Size:`, imageBuffer.length, 'bytes');
+      console.log(`📋 FormData Fields:`, {
+        images: `Buffer(${imageBuffer.length} bytes)`,
+        organs: options.organs || 'auto',
+        lang: options.language || 'th',
+        plant_details: JSON.stringify(plantDetails),
+        'include-related-images': options.includeRelatedImages !== false ? 'true' : undefined,
+        'nb-results': options.nbResults?.toString() || undefined
+      });
+      
+      const url = `${this.baseUrl}/identify/${this.project}?api-key=${this.apiKey}`;
+      console.log(`🔗 Request URL:`, url.replace(this.apiKey, 'API_KEY_HIDDEN'));
 
-      const response = await fetch(`${this.baseUrl}/identify/${this.project}?api-key=${this.apiKey}`, {
-        method: 'POST',
-        body: formData, // ส่ง FormData (ไม่ต้องตั้ง Content-Type header - FormData จะตั้งให้เอง)
+      // ใช้ axios แทน fetch เพราะรองรับ FormData stream ได้ดีกว่า
+      const response = await axios.post(
+        url,
+        formData,
+        {
+          headers: {
+            ...formHeaders, // ใช้ getHeaders() เพื่อให้ axios รู้ Content-Type
+          },
+          maxContentLength: Infinity,
+          maxBodyLength: Infinity,
+        }
+      );
+
+      console.log(`✅ PlantNet API Response Status:`, response.status);
+      console.log(`📋 Response Headers:`, response.headers);
+      console.log(`📋 Response Data Keys:`, Object.keys(response.data || {}));
+
+      const data = response.data;
+      return this.formatPlantNetResponse(data);
+
+    } catch (error) {
+      // Handle axios errors with detailed debugging
+      console.error('❌ PlantNet API Error Caught:', {
+        message: error.message,
+        code: error.code,
+        name: error.name,
+        stack: error.stack?.split('\n').slice(0, 5).join('\n')
       });
 
-      if (!response.ok) {
-        let errorData;
-        try {
-          errorData = await response.json();
-        } catch (e) {
-          const textResponse = await response.text();
-          errorData = { error: textResponse || `HTTP ${response.status}` };
-        }
+      if (error.response) {
+        const status = error.response.status;
+        const errorData = error.response.data || {};
+        const responseHeaders = error.response.headers || {};
         
-        let errorMessage = `PlantNet API error: ${response.status}`;
+        console.error('❌ PlantNet API Error Response Details:', {
+          status: status,
+          statusText: error.response.statusText,
+          responseHeaders: responseHeaders,
+          errorData: errorData,
+          errorDataString: typeof errorData === 'string' ? errorData : JSON.stringify(errorData, null, 2)
+        });
         
-        if (response.status === 401 || response.status === 403) {
+        let errorMessage = `PlantNet API error: ${status}`;
+        
+        if (status === 401 || status === 403) {
           errorMessage = 'PlantNet API key is invalid or unauthorized';
-        } else if (response.status === 415) {
+        } else if (status === 415) {
           errorMessage = 'PlantNet API: Unsupported Media Type - รูปภาพอาจมีรูปแบบไม่ถูกต้อง';
-        } else if (response.status === 429) {
+          console.error('🔍 415 Error Debug Info:', {
+            contentType: responseHeaders['content-type'],
+            contentLength: responseHeaders['content-length'],
+            requestHeaders: error.config?.headers,
+            url: error.config?.url?.replace(this.apiKey, 'API_KEY_HIDDEN')
+          });
+        } else if (status === 429) {
           errorMessage = 'PlantNet API rate limit exceeded (500 requests/day)';
         } else if (errorData.error) {
           errorMessage = `PlantNet API error: ${errorData.error}`;
@@ -100,21 +152,22 @@ class PlantNetService {
           errorMessage = `PlantNet API error: ${errorData.message}`;
         }
         
-        console.error('❌ PlantNet API Error Details:', {
-          status: response.status,
-          statusText: response.statusText,
-          errorData: errorData
-        });
-        
         throw new Error(errorMessage);
+      } else if (error.request) {
+        console.error('❌ PlantNet API Request Error (No Response):', {
+          message: error.message,
+          code: error.code,
+          request: {
+            method: error.config?.method,
+            url: error.config?.url?.replace(this.apiKey, 'API_KEY_HIDDEN'),
+            headers: error.config?.headers
+          }
+        });
+        throw new Error(`PlantNet API request failed: ${error.message}`);
+      } else {
+        console.error('❌ PlantNet API Setup Error:', error.message);
+        throw error;
       }
-
-      const data = await response.json();
-      return this.formatPlantNetResponse(data);
-
-    } catch (error) {
-      console.error('❌ PlantNet API Error:', error);
-      throw error;
     }
   }
 
