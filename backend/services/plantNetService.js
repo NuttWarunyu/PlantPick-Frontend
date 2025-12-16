@@ -48,16 +48,33 @@ class PlantNetService {
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
+        let errorData;
+        try {
+          errorData = await response.json();
+        } catch (e) {
+          const textResponse = await response.text();
+          errorData = { error: textResponse || `HTTP ${response.status}` };
+        }
+        
         let errorMessage = `PlantNet API error: ${response.status}`;
         
         if (response.status === 401 || response.status === 403) {
           errorMessage = 'PlantNet API key is invalid or unauthorized';
+        } else if (response.status === 415) {
+          errorMessage = 'PlantNet API: Unsupported Media Type - รูปภาพอาจมีรูปแบบไม่ถูกต้อง';
         } else if (response.status === 429) {
           errorMessage = 'PlantNet API rate limit exceeded (500 requests/day)';
         } else if (errorData.error) {
           errorMessage = `PlantNet API error: ${errorData.error}`;
+        } else if (errorData.message) {
+          errorMessage = `PlantNet API error: ${errorData.message}`;
         }
+        
+        console.error('❌ PlantNet API Error Details:', {
+          status: response.status,
+          statusText: response.statusText,
+          errorData: errorData
+        });
         
         throw new Error(errorMessage);
       }
