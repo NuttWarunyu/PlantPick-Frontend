@@ -865,25 +865,38 @@ app.post('/api/ai/analyze-garden', async (req, res) => {
     if (plantNetService.apiKey && analysisResult.plants && analysisResult.plants.length > 0) {
       try {
         console.log(`🌿 ส่งรูปไป PlantNet เพื่อระบุชื่อต้นไม้ทั้งหมด (${analysisResult.plants.length} กลุ่ม)...`);
-        const plantNetResult = await plantNetService.identifyPlant(base64Image);
         
-        console.log(`📋 PlantNet Result:`, {
-          success: plantNetResult.success,
-          suggestionsCount: plantNetResult.suggestions?.length || 0,
-          bestMatch: plantNetResult.bestMatch ? {
-            scientificName: plantNetResult.bestMatch.scientificName,
-            thaiName: plantNetResult.bestMatch.thaiName,
-            englishName: plantNetResult.bestMatch.englishName,
-            confidence: plantNetResult.bestMatch.confidence
-          } : null
-        });
+        // เรียก PlantNet แยกสำหรับแต่ละกลุ่มต้นไม้ (แม้จะใช้รูปเดียวกัน)
+        // เพื่อให้ PlantNet สามารถ focus ที่ส่วนต่างกันของรูปได้
+        const plantNetResults = await Promise.all(
+          analysisResult.plants.map(async (plant, index) => {
+            try {
+              console.log(`  🔍 กลุ่ม ${index + 1}/${analysisResult.plants.length}: ${plant.description || 'ไม่ระบุ'}`);
+              const result = await plantNetService.identifyPlant(base64Image, {
+                language: 'th', // ใช้ภาษาไทย
+                includeRelatedImages: true
+              });
+              
+              if (result.success && result.bestMatch) {
+                console.log(`    ✅ พบ: ${result.bestMatch.scientificName} (Confidence: ${result.bestMatch.confidence}%)`);
+              } else {
+                console.log(`    ⚠️ ไม่พบต้นไม้`);
+              }
+              
+              return result;
+            } catch (error) {
+              console.error(`    ❌ Error สำหรับกลุ่ม ${index + 1}:`, error.message);
+              return { success: false, bestMatch: null, suggestions: [] };
+            }
+          })
+        );
         
-        if (plantNetResult.success && plantNetResult.bestMatch) {
-          const bestMatch = plantNetResult.bestMatch;
-          console.log(`✅ PlantNet พบ: ${bestMatch.scientificName} (${bestMatch.thaiName || bestMatch.englishName || 'ไม่มีชื่อไทย/อังกฤษ'}) - Confidence: ${bestMatch.confidence}%`);
+        // รวมข้อมูลจาก GPT-4o กับ PlantNet results
+        enhancedPlants = analysisResult.plants.map((plant, index) => {
+          const plantNetResult = plantNetResults[index];
           
-          // รวมข้อมูลจาก GPT-4o (จำนวน, ขนาด, ตำแหน่ง) กับ PlantNet (ชื่อ)
-          enhancedPlants = analysisResult.plants.map((plant, index) => {
+          if (plantNetResult.success && plantNetResult.bestMatch) {
+            const bestMatch = plantNetResult.bestMatch;
             // ใช้ชื่อจาก PlantNet - ถ้ามีชื่อไทยใช้เลย ถ้าไม่มีให้ใช้ภาษาอังกฤษ/ชื่อวิทยาศาสตร์
             let plantName = bestMatch.thaiName || bestMatch.englishName || bestMatch.scientificName;
             
@@ -891,23 +904,22 @@ app.post('/api/ai/analyze-garden', async (req, res) => {
               ...plant,
               name: plantName,
               scientificName: bestMatch.scientificName,
-              englishName: bestMatch.englishName, // เก็บไว้สำหรับแปล
+              englishName: bestMatch.englishName,
               plantNetConfidence: bestMatch.confidence,
               plantNetVerified: true,
-              plantNetAlternatives: plantNetResult.suggestions.slice(1, 4), // ตัวเลือกอื่นๆ
+              plantNetAlternatives: plantNetResult.suggestions?.slice(1, 4) || [], // ตัวเลือกอื่นๆ
               // ถ้าไม่มีชื่อไทย ให้ใช้ GPT-4o แปลง
               needsTranslation: !bestMatch.thaiName && (bestMatch.scientificName || bestMatch.englishName)
             };
-          });
-        } else {
-          console.warn(`⚠️ PlantNet ไม่พบต้นไม้ - ใช้คำอธิบายจาก GPT-4o`);
-          // ถ้า PlantNet ไม่พบ ให้ใช้ข้อมูลจาก GPT-4o โดยไม่มีชื่อ
-          enhancedPlants = analysisResult.plants.map(plant => ({
-            ...plant,
-            name: plant.description || 'ไม่สามารถระบุชื่อได้',
-            plantNetVerified: false
-          }));
-        }
+          } else {
+            // ถ้า PlantNet ไม่พบ ให้ใช้ข้อมูลจาก GPT-4o โดยไม่มีชื่อ
+            return {
+              ...plant,
+              name: plant.description || 'ไม่สามารถระบุชื่อได้',
+              plantNetVerified: false
+            };
+          }
+        });
       } catch (plantNetError) {
         console.error(`❌ PlantNet identification failed:`, plantNetError.message);
         console.error(`   Stack:`, plantNetError.stack);

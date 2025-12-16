@@ -6,7 +6,9 @@ class PlantNetService {
   constructor() {
     this.apiKey = process.env.PLANTNET_API_KEY || '';
     this.baseUrl = 'https://my-api.plantnet.org/v2';
-    this.project = 'all'; // 'all' = ทุกโครงการ (แนะนำ), 'world' = ทั่วโลก, 'asia' = เอเชีย
+    // ใช้ 'k-world-flora' หรือ 'asia' สำหรับเอเชีย (แม่นยำกว่า 'all')
+    // 'all' = ทุกโครงการ (กว้างเกินไป), 'k-world-flora' = World Flora (แนะนำ), 'asia' = เอเชีย
+    this.project = process.env.PLANTNET_PROJECT || 'k-world-flora';
   }
 
   /**
