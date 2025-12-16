@@ -903,6 +903,54 @@ app.post('/api/ai/analyze-garden', async (req, res) => {
   }
 });
 
+// 🌿 PlantNet API - ระบุพืชพันธุ์จากรูปภาพ
+app.post('/api/plants/identify', async (req, res) => {
+  try {
+    const { base64Image } = req.body;
+
+    if (!base64Image) {
+      return res.status(400).json({
+        success: false,
+        data: null,
+        message: 'ไม่พบรูปภาพที่ส่งมา'
+      });
+    }
+
+    const plantNetService = require('./services/plantNetService');
+    const result = await plantNetService.identifyPlant(base64Image);
+
+    res.json({
+      success: result.success,
+      data: result,
+      message: result.message || 'ระบุพืชพันธุ์สำเร็จ'
+    });
+
+  } catch (error) {
+    console.error('❌ PlantNet Identification Error:', error);
+
+    let errorMessage = 'เกิดข้อผิดพลาดในการระบุพืชพันธุ์';
+
+    if (error.message) {
+      if (error.message.includes('API key')) {
+        errorMessage = '⚠️ ยังไม่ได้ตั้งค่า PLANTNET_API_KEY ใน Railway. กรุณาเพิ่ม API Key ใน Railway Dashboard → Variables';
+      } else if (error.message.includes('401') || error.message.includes('unauthorized')) {
+        errorMessage = '⚠️ PlantNet API Key ไม่ถูกต้อง. กรุณาตรวจสอบ API Key ใน Railway';
+      } else if (error.message.includes('429') || error.message.includes('rate limit')) {
+        errorMessage = '⚠️ เกิน Rate Limit ของ PlantNet API (500 requests/day). กรุณารอสักครู่แล้วลองใหม่';
+      } else {
+        errorMessage = `เกิดข้อผิดพลาด: ${error.message}`;
+      }
+    }
+
+    res.status(500).json({
+      success: false,
+      data: null,
+      message: errorMessage,
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+});
+
 // Orders
 app.get('/api/orders', async (req, res) => {
   try {
