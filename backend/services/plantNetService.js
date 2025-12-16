@@ -4,12 +4,12 @@ class PlantNetService {
   constructor() {
     this.apiKey = process.env.PLANTNET_API_KEY || '';
     this.baseUrl = 'https://my-api.plantnet.org/v2';
-    this.project = 'world'; // หรือ 'asia' สำหรับเอเชีย
+    this.project = 'all'; // 'all' = ทุกโครงการ (แนะนำ), 'world' = ทั่วโลก, 'asia' = เอเชีย
   }
 
   /**
    * ระบุพืชพันธุ์จากรูปภาพ
-   * @param {string} base64Image - รูปภาพในรูปแบบ base64 (ไม่ต้องมี data:image prefix)
+   * @param {string} base64Image - รูปภาพในรูปแบบ base64 (อาจมี data:image prefix)
    * @param {Object} options - ตัวเลือกเพิ่มเติม
    * @returns {Promise<Object>} ผลลัพธ์การระบุพืชพันธุ์
    */
@@ -19,32 +19,62 @@ class PlantNetService {
     }
 
     try {
-      // PlantNet API ต้องการ base64 string โดยตรง (ไม่ใช่ data URL)
+      // PlantNet API ต้องการ FormData (multipart/form-data) ไม่ใช่ JSON
       // ตรวจสอบว่ามี prefix หรือไม่
       let cleanBase64 = base64Image;
       if (base64Image.includes(',')) {
         cleanBase64 = base64Image.split(',')[1]; // ลบ data:image/jpeg;base64, prefix
       }
 
+      // แปลง base64 เป็น Buffer
+      const imageBuffer = Buffer.from(cleanBase64, 'base64');
+
+      // สร้าง FormData
+      const FormData = require('form-data');
+      const formData = new FormData();
+      
+      // ส่งรูปภาพเป็น binary file
+      formData.append('images', imageBuffer, {
+        filename: 'image.jpg',
+        contentType: 'image/jpeg',
+      });
+      
+      // ระบุอวัยวะของพืช (auto = ให้ AI ระบุเอง)
+      formData.append('organs', options.organs || 'auto');
+      
+      // ภาษา (th = ไทย)
+      if (options.language) {
+        formData.append('lang', options.language);
+      } else {
+        formData.append('lang', 'th');
+      }
+
+      // plant_details เป็น JSON string
+      const plantDetails = options.plantDetails || [
+        'common_names',
+        'url',
+        'name_authority',
+        'wiki_description',
+        'synonyms',
+        'gbif_id'
+      ];
+      formData.append('plant_details', JSON.stringify(plantDetails));
+
+      // include-related-images
+      if (options.includeRelatedImages !== false) {
+        formData.append('include-related-images', 'true');
+      }
+
+      // nb-results (จำนวนผลลัพธ์สูงสุด)
+      if (options.nbResults) {
+        formData.append('nb-results', options.nbResults.toString());
+      }
+
+      console.log(`🌿 เรียก PlantNet API: project=${this.project}, lang=th, organs=auto`);
+
       const response = await fetch(`${this.baseUrl}/identify/${this.project}?api-key=${this.apiKey}`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          images: [cleanBase64], // ส่ง base64 string โดยตรง
-          modifiers: options.modifiers || ['crops_fast', 'similar_images'],
-          plant_details: options.plantDetails || [
-            'common_names',
-            'url',
-            'name_authority',
-            'wiki_description',
-            'synonyms',
-            'gbif_id'
-          ],
-          plant_language: options.language || 'th', // ภาษาไทย
-          include_related_images: options.includeRelatedImages !== false // รวมรูปที่เกี่ยวข้อง
-        })
+        body: formData, // ส่ง FormData (ไม่ต้องตั้ง Content-Type header - FormData จะตั้งให้เอง)
       });
 
       if (!response.ok) {
@@ -92,11 +122,31 @@ class PlantNetService {
    * จัดรูปแบบ response จาก PlantNet ให้เป็นรูปแบบที่ใช้งานง่าย
    */
   formatPlantNetResponse(data) {
+    // PlantNet API response structure:
+    // {
+    //   "bestMatch": "Scientific Name L.",
+    //   "results": [
+    //     {
+    //       "score": 0.90734,
+    //       "species": {
+    //         "scientificName": "Ajuga genevensis L.",
+    //         "scientificNameWithoutAuthor": "Ajuga genevensis",
+    //         "commonNames": [
+    //           { "lang": "en", "value": "Blue bugleweed" },
+    //           { "lang": "th", "value": "ชื่อไทย" }
+    //         ],
+    //         ...
+    //       }
+    //     }
+    //   ]
+    // }
+
     if (!data.results || data.results.length === 0) {
       return {
         success: false,
         message: 'ไม่พบพืชพันธุ์ที่ตรงกัน',
-        suggestions: []
+        suggestions: [],
+        bestMatch: null
       };
     }
 
@@ -105,6 +155,7 @@ class PlantNetService {
       const score = result.score || 0;
       
       // หาชื่อภาษาไทย (common_names)
+      // PlantNet commonNames เป็น array ของ objects: { lang: "th", value: "ชื่อไทย" }
       const thaiName = species.commonNames?.find(name => 
         name.lang === 'th' || name.lang === 'th-TH'
       )?.value || null;
@@ -125,18 +176,21 @@ class PlantNetService {
         score: score,
         wikiUrl: species.url,
         wikiDescription: species.wikiDescription,
-        gbifId: species.gbifId,
+        gbifId: result.gbif?.id || species.gbifId,
         synonyms: species.synonyms || [],
         images: result.images || []
       };
     });
 
+    const bestMatch = suggestions[0];
+
     return {
       success: true,
       message: `พบ ${suggestions.length} ชนิดพืชพันธุ์`,
       suggestions: suggestions,
-      bestMatch: suggestions[0], // ตัวเลือกที่ดีที่สุด
-      totalResults: suggestions.length
+      bestMatch: bestMatch, // ตัวเลือกที่ดีที่สุด
+      totalResults: suggestions.length,
+      bestMatchName: data.bestMatch || bestMatch?.scientificName // ชื่อวิทยาศาสตร์จาก PlantNet
     };
   }
 
@@ -153,35 +207,59 @@ class PlantNetService {
     }
 
     try {
-      // PlantNet API ต้องการ base64 string โดยตรง (ไม่ใช่ data URL)
-      const imageDataArray = images.map(img => {
+      // PlantNet API ต้องการ FormData
+      const FormData = require('form-data');
+      const formData = new FormData();
+
+      // ส่งรูปภาพหลายรูป (1-5 รูป)
+      images.forEach((img, index) => {
+        let cleanBase64 = img;
         if (img.includes(',')) {
-          return img.split(',')[1]; // ลบ data:image/jpeg;base64, prefix
+          cleanBase64 = img.split(',')[1];
         }
-        return img;
+        const imageBuffer = Buffer.from(cleanBase64, 'base64');
+        formData.append('images', imageBuffer, {
+          filename: `image${index + 1}.jpg`,
+          contentType: 'image/jpeg',
+        });
       });
+
+      // ระบุอวัยวะของพืช (ต้องมีจำนวนเท่ากับจำนวนรูป)
+      const organs = options.organs || images.map(() => 'auto');
+      organs.forEach(organ => {
+        formData.append('organs', organ);
+      });
+
+      // ภาษา
+      if (options.language) {
+        formData.append('lang', options.language);
+      } else {
+        formData.append('lang', 'th');
+      }
+
+      // plant_details
+      const plantDetails = options.plantDetails || [
+        'common_names',
+        'url',
+        'name_authority',
+        'wiki_description',
+        'synonyms'
+      ];
+      formData.append('plant_details', JSON.stringify(plantDetails));
 
       const response = await fetch(`${this.baseUrl}/identify/${this.project}?api-key=${this.apiKey}`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          images: imageDataArray,
-          modifiers: options.modifiers || ['crops_fast', 'similar_images'],
-          plant_details: options.plantDetails || [
-            'common_names',
-            'url',
-            'name_authority',
-            'wiki_description',
-            'synonyms'
-          ],
-          plant_language: options.language || 'th'
-        })
+        body: formData,
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
+        let errorData;
+        try {
+          errorData = await response.json();
+        } catch (e) {
+          const textResponse = await response.text();
+          errorData = { error: textResponse || `HTTP ${response.status}` };
+        }
         throw new Error(`PlantNet API error: ${response.status} - ${errorData.error || 'Unknown error'}`);
       }
 
