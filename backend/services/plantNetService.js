@@ -44,38 +44,30 @@ class PlantNetService {
       // ระบุอวัยวะของพืช (auto = ให้ AI ระบุเอง)
       formData.append('organs', options.organs || 'auto');
       
-      // หมายเหตุ: PlantNet API v2 ไม่รองรับ 'lang' ใน FormData
-      // ใช้ query parameter แทน (หรือไม่ส่งเลย - API จะใช้ default language)
-
-      // plant_details เป็น JSON string
-      const plantDetails = options.plantDetails || [
-        'common_names',
-        'url',
-        'name_authority',
-        'wiki_description',
-        'synonyms',
-        'gbif_id'
-      ];
-      formData.append('plant_details', JSON.stringify(plantDetails));
-
-      // include-related-images
-      if (options.includeRelatedImages !== false) {
-        formData.append('include-related-images', 'true');
-      }
-
-      // nb-results (จำนวนผลลัพธ์สูงสุด)
-      if (options.nbResults) {
-        formData.append('nb-results', options.nbResults.toString());
-      }
+      // หมายเหตุ: PlantNet API v2 FormData รองรับเฉพาะ:
+      // - images (binary file) - ต้องมี
+      // - organs (auto, leaf, flower, fruit, bark) - ต้องมี
+      // Parameters อื่นๆ ต้องใช้ query parameter แทน
 
       // Debug: ดู FormData headers และ fields
       const formHeaders = formData.getHeaders();
+      
       // สร้าง URL พร้อม query parameters
       let url = `${this.baseUrl}/identify/${this.project}?api-key=${this.apiKey}`;
       
-      // เพิ่ม lang เป็น query parameter (ถ้ามี)
+      // เพิ่ม query parameters (ถ้ามี)
+      const queryParams = [];
       if (options.language) {
-        url += `&lang=${options.language}`;
+        queryParams.push(`lang=${options.language}`);
+      }
+      if (options.includeRelatedImages !== false) {
+        queryParams.push('include-related-images=true');
+      }
+      if (options.nbResults) {
+        queryParams.push(`nb-results=${options.nbResults}`);
+      }
+      if (queryParams.length > 0) {
+        url += '&' + queryParams.join('&');
       }
       
       console.log(`🌿 เรียก PlantNet API: project=${this.project}, organs=auto`);
@@ -84,11 +76,9 @@ class PlantNetService {
       console.log(`📋 Image Buffer Size:`, imageBuffer.length, 'bytes');
       console.log(`📋 FormData Fields:`, {
         images: `Buffer(${imageBuffer.length} bytes)`,
-        organs: options.organs || 'auto',
-        plant_details: JSON.stringify(plantDetails),
-        'include-related-images': options.includeRelatedImages !== false ? 'true' : undefined,
-        'nb-results': options.nbResults?.toString() || undefined
+        organs: options.organs || 'auto'
       });
+      console.log(`📋 Query Parameters:`, queryParams.length > 0 ? queryParams.join(', ') : 'none');
       console.log(`🔗 Request URL:`, url.replace(this.apiKey, 'API_KEY_HIDDEN'));
 
       // ใช้ axios แทน fetch เพราะรองรับ FormData stream ได้ดีกว่า
@@ -284,23 +274,25 @@ class PlantNetService {
         formData.append('organs', organ);
       });
 
-      // หมายเหตุ: PlantNet API v2 ไม่รองรับ 'lang' ใน FormData
-      // ใช้ query parameter แทน
-
-      // plant_details
-      const plantDetails = options.plantDetails || [
-        'common_names',
-        'url',
-        'name_authority',
-        'wiki_description',
-        'synonyms'
-      ];
-      formData.append('plant_details', JSON.stringify(plantDetails));
+      // หมายเหตุ: PlantNet API v2 FormData รองรับเฉพาะ:
+      // - images (binary file) - ต้องมี
+      // - organs (auto, leaf, flower, fruit, bark) - ต้องมี
+      // Parameters อื่นๆ ต้องใช้ query parameter แทน
 
       // สร้าง URL พร้อม query parameters
       let url = `${this.baseUrl}/identify/${this.project}?api-key=${this.apiKey}`;
+      const queryParams = [];
       if (options.language) {
-        url += `&lang=${options.language}`;
+        queryParams.push(`lang=${options.language}`);
+      }
+      if (options.includeRelatedImages !== false) {
+        queryParams.push('include-related-images=true');
+      }
+      if (options.nbResults) {
+        queryParams.push(`nb-results=${options.nbResults}`);
+      }
+      if (queryParams.length > 0) {
+        url += '&' + queryParams.join('&');
       }
 
       // ใช้ axios แทน fetch
