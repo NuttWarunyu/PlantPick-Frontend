@@ -863,53 +863,103 @@ app.post('/api/ai/analyze-garden', async (req, res) => {
       });
     }
 
-    // 1. เรียก AI Service เพื่อวิเคราะห์รูปภาพสวน (API Key อยู่บน Backend - ปลอดภัย)
+    // 1. เรียก AI Service เพื่อวิเคราะห์องค์ประกอบอื่นๆ (สนามหญ้า, ทางเดิน) และข้อมูลต้นไม้ (จำนวน, ขนาด, ตำแหน่ง)
     const analysisResult = await aiService.analyzeGardenImage(base64Image);
 
-    // 2. ตรวจสอบต้นไม้ที่ไม่แน่ใจและส่งไป PlantNet
+    // 2. ใช้ PlantNet ระบุชื่อต้นไม้ทั้งหมด
     const plantNetService = require('./services/plantNetService');
-    const enhancedPlants = await Promise.all(
-      (analysisResult.plants || []).map(async (plant, index) => {
-        // ถ้าไม่แน่ใจ (confidence < 0.7 หรือ needsVerification = true) ให้ส่งไป PlantNet
-        const needsVerification = plant.needsVerification || 
-                                 (plant.confidence && plant.confidence < 0.7) ||
-                                 !plant.scientificName;
+    let enhancedPlants = [];
+    
+    if (plantNetService.apiKey && analysisResult.plants && analysisResult.plants.length > 0) {
+      try {
+        console.log(`🌿 ส่งรูปไป PlantNet เพื่อระบุชื่อต้นไม้ทั้งหมด (${analysisResult.plants.length} กลุ่ม)...`);
+        const plantNetResult = await plantNetService.identifyPlant(base64Image);
         
-        if (needsVerification && plantNetService.apiKey) {
+        if (plantNetResult.success && plantNetResult.bestMatch) {
+          const bestMatch = plantNetResult.bestMatch;
+          console.log(`✅ PlantNet พบ: ${bestMatch.scientificName} (${bestMatch.thaiName || bestMatch.englishName}) - Confidence: ${bestMatch.confidence}%`);
+          
+          // รวมข้อมูลจาก GPT-4o (จำนวน, ขนาด, ตำแหน่ง) กับ PlantNet (ชื่อ)
+          enhancedPlants = analysisResult.plants.map((plant, index) => {
+            // ถ้ามีหลายกลุ่มต้นไม้ ให้ใช้ PlantNet result แรก (หรืออาจจะต้องส่งหลายรูป)
+            // สำหรับตอนนี้ใช้ bestMatch สำหรับทุกกลุ่ม
+            return {
+              ...plant,
+              name: bestMatch.thaiName || bestMatch.englishName || bestMatch.scientificName,
+              scientificName: bestMatch.scientificName,
+              plantNetConfidence: bestMatch.confidence,
+              plantNetVerified: true,
+              plantNetAlternatives: plantNetResult.suggestions.slice(1, 4), // ตัวเลือกอื่นๆ
+              // ถ้าไม่มีชื่อไทย ให้ใช้ GPT-4o แปลง
+              needsTranslation: !bestMatch.thaiName
+            };
+          });
+        } else {
+          // ถ้า PlantNet ไม่พบ ให้ใช้ข้อมูลจาก GPT-4o โดยไม่มีชื่อ
+          enhancedPlants = analysisResult.plants.map(plant => ({
+            ...plant,
+            name: plant.description || 'ไม่สามารถระบุชื่อได้',
+            plantNetVerified: false
+          }));
+        }
+      } catch (plantNetError) {
+        console.error(`⚠️ PlantNet identification failed:`, plantNetError.message);
+        // ถ้า PlantNet error ก็ใช้ผลลัพธ์จาก GPT-4o โดยไม่มีชื่อ
+        enhancedPlants = analysisResult.plants.map(plant => ({
+          ...plant,
+          name: plant.description || 'ไม่สามารถระบุชื่อได้',
+          plantNetVerified: false
+        }));
+      }
+    } else {
+      // ถ้าไม่มี PlantNet API key ให้ใช้ข้อมูลจาก GPT-4o โดยไม่มีชื่อ
+      enhancedPlants = analysisResult.plants.map(plant => ({
+        ...plant,
+        name: plant.description || 'ไม่สามารถระบุชื่อได้',
+        plantNetVerified: false
+      }));
+    }
+
+    // 3. แปลงชื่อเป็นภาษาไทยถ้ายังไม่มี (ใช้ GPT-4o)
+    const finalPlants = await Promise.all(
+      enhancedPlants.map(async (plant) => {
+        if (plant.needsTranslation && plant.scientificName) {
           try {
-            console.log(`🔍 ส่งต้นไม้ "${plant.name}" ไป PlantNet เพื่อยืนยัน...`);
-            const plantNetResult = await plantNetService.identifyPlant(base64Image);
+            console.log(`🔄 แปลงชื่อ "${plant.scientificName}" เป็นภาษาไทย...`);
+            const translationPrompt = `แปลงชื่อพืชพันธุ์ต่อไปนี้เป็นภาษาไทย:
+- ชื่อวิทยาศาสตร์: ${plant.scientificName}
+- ชื่อภาษาอังกฤษ: ${plant.englishName || 'N/A'}
+
+กรุณาตอบเป็น JSON format:
+{
+  "thaiName": "ชื่อภาษาไทย",
+  "commonName": "ชื่อสามัญภาษาไทย (ถ้ามี)"
+}
+
+ตอบเป็น JSON ล้วนๆ เท่านั้น`;
+
+            const translationResult = await aiService.analyzeText(translationPrompt);
+            const translation = typeof translationResult === 'string' ? JSON.parse(translationResult) : translationResult;
             
-            if (plantNetResult.success && plantNetResult.bestMatch) {
-              const bestMatch = plantNetResult.bestMatch;
-              console.log(`✅ PlantNet พบ: ${bestMatch.scientificName} (${bestMatch.thaiName || bestMatch.englishName}) - Confidence: ${bestMatch.confidence}%`);
-              
-              // อัพเดทข้อมูลด้วยผลลัพธ์จาก PlantNet
+            if (translation.thaiName) {
               return {
                 ...plant,
-                name: bestMatch.thaiName || plant.name || bestMatch.englishName || bestMatch.scientificName,
-                scientificName: bestMatch.scientificName,
-                originalName: plant.name, // เก็บชื่อเดิมไว้
-                plantNetConfidence: bestMatch.confidence,
-                plantNetVerified: true,
-                plantNetAlternatives: plantNetResult.suggestions.slice(1, 4), // ตัวเลือกอื่นๆ
-                confidence: Math.max(plant.confidence || 0.5, bestMatch.confidence / 100)
+                name: translation.thaiName,
+                needsTranslation: false
               };
             }
-          } catch (plantNetError) {
-            console.error(`⚠️ PlantNet verification failed for "${plant.name}":`, plantNetError.message);
-            // ถ้า PlantNet error ก็ใช้ผลลัพธ์จาก GPT-4o
+          } catch (translationError) {
+            console.error(`⚠️ Translation failed for "${plant.scientificName}":`, translationError.message);
           }
         }
-        
         return plant;
       })
     );
 
-    // 3. อัพเดทผลลัพธ์ด้วยข้อมูลที่ยืนยันแล้ว
+    // 4. อัพเดทผลลัพธ์ด้วยข้อมูลที่ยืนยันแล้ว
     const enhancedResult = {
       ...analysisResult,
-      plants: enhancedPlants
+      plants: finalPlants
     };
 
     res.json({

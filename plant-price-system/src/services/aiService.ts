@@ -83,9 +83,7 @@ export interface GardenPlant {
   size?: string;
   location?: string;
   position?: Position;
-  confidence?: number;
-  needsVerification?: boolean;
-  originalName?: string; // ชื่อเดิมก่อน PlantNet verification
+  description?: string; // ลักษณะต้นไม้ (เช่น พุ่มกลม, ต้นสูง)
   plantNetConfidence?: number;
   plantNetVerified?: boolean;
   plantNetAlternatives?: Array<{
@@ -94,6 +92,7 @@ export interface GardenPlant {
     englishName?: string;
     confidence: number;
   }>;
+  needsTranslation?: boolean;
   notes?: string;
 }
 
