@@ -866,13 +866,29 @@ app.post('/api/ai/analyze-garden', async (req, res) => {
       try {
         console.log(`🌿 ส่งรูปไป PlantNet เพื่อระบุชื่อต้นไม้ทั้งหมด (${analysisResult.plants.length} กลุ่ม)...`);
         
-        // เรียก PlantNet แยกสำหรับแต่ละกลุ่มต้นไม้ (แม้จะใช้รูปเดียวกัน)
-        // เพื่อให้ PlantNet สามารถ focus ที่ส่วนต่างกันของรูปได้
+        // เรียก PlantNet แยกสำหรับแต่ละกลุ่มต้นไม้
+        // ถ้ามี position ให้ crop รูปก่อนส่งไป PlantNet เพื่อให้แม่นยำขึ้น
         const plantNetResults = await Promise.all(
           analysisResult.plants.map(async (plant, index) => {
             try {
               console.log(`  🔍 กลุ่ม ${index + 1}/${analysisResult.plants.length}: ${plant.description || 'ไม่ระบุ'}`);
-              const result = await plantNetService.identifyPlant(base64Image, {
+              
+              // ถ้ามี position ให้ crop รูปก่อน
+              let imageToUse = base64Image;
+              if (plant.position && plant.position.x !== undefined && plant.position.y !== undefined) {
+                console.log(`    📍 Position: x=${plant.position.x}%, y=${plant.position.y}%`);
+                try {
+                  // Crop รูปตามตำแหน่ง (ใช้ 30% ของรูปเป็น crop area)
+                  imageToUse = await plantNetService.cropImage(base64Image, plant.position, 30);
+                } catch (cropError) {
+                  console.warn(`    ⚠️ Crop failed, using original image:`, cropError.message);
+                  imageToUse = base64Image;
+                }
+              } else {
+                console.log(`    ⚠️ No position data, using full image`);
+              }
+              
+              const result = await plantNetService.identifyPlant(imageToUse, {
                 language: 'th', // ใช้ภาษาไทย
                 includeRelatedImages: true
               });

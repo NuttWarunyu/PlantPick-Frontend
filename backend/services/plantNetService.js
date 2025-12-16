@@ -1,6 +1,7 @@
 // 🌿 PlantNet API Service - สำหรับระบุพืชพันธุ์จากรูปภาพ
 
 const axios = require('axios');
+const sharp = require('sharp');
 
 class PlantNetService {
   constructor() {
@@ -9,6 +10,60 @@ class PlantNetService {
     // ใช้ 'k-world-flora' หรือ 'asia' สำหรับเอเชีย (แม่นยำกว่า 'all')
     // 'all' = ทุกโครงการ (กว้างเกินไป), 'k-world-flora' = World Flora (แนะนำ), 'asia' = เอเชีย
     this.project = process.env.PLANTNET_PROJECT || 'k-world-flora';
+  }
+
+  /**
+   * Crop รูปภาพตามตำแหน่งที่ระบุ
+   * @param {string} base64Image - รูปภาพในรูปแบบ base64
+   * @param {Object} position - ตำแหน่ง { x: 0-100, y: 0-100 }
+   * @param {number} cropSizePercent - ขนาดของ crop area (เปอร์เซ็นต์, default: 30)
+   * @returns {Promise<string>} รูปภาพที่ crop แล้วในรูปแบบ base64
+   */
+  async cropImage(base64Image, position, cropSizePercent = 30) {
+    try {
+      // ลบ data URL prefix ถ้ามี
+      let cleanBase64 = base64Image;
+      if (base64Image.includes(',')) {
+        cleanBase64 = base64Image.split(',')[1];
+      }
+
+      // แปลง base64 เป็น Buffer
+      const imageBuffer = Buffer.from(cleanBase64, 'base64');
+
+      // ดึงข้อมูลรูปภาพ (width, height)
+      const metadata = await sharp(imageBuffer).metadata();
+      const width = metadata.width;
+      const height = metadata.height;
+
+      // คำนวณ crop area
+      const cropWidth = Math.floor((width * cropSizePercent) / 100);
+      const cropHeight = Math.floor((height * cropSizePercent) / 100);
+
+      // คำนวณตำแหน่งเริ่มต้น (แปลงจาก 0-100 เป็น pixel)
+      const left = Math.max(0, Math.min(width - cropWidth, Math.floor((width * position.x) / 100) - cropWidth / 2));
+      const top = Math.max(0, Math.min(height - cropHeight, Math.floor((height * position.y) / 100) - cropHeight / 2));
+
+      // Crop รูปภาพ
+      const croppedBuffer = await sharp(imageBuffer)
+        .extract({
+          left: Math.floor(left),
+          top: Math.floor(top),
+          width: cropWidth,
+          height: cropHeight
+        })
+        .toBuffer();
+
+      // แปลงกลับเป็น base64
+      const croppedBase64 = croppedBuffer.toString('base64');
+      
+      console.log(`  ✂️ Cropped image: ${cropWidth}x${cropHeight}px at (${Math.floor(left)}, ${Math.floor(top)}) from ${width}x${height}px`);
+
+      return croppedBase64;
+    } catch (error) {
+      console.error('❌ Error cropping image:', error.message);
+      // ถ้า crop ไม่ได้ ให้ส่งรูปเดิมกลับไป
+      return base64Image;
+    }
   }
 
   /**
