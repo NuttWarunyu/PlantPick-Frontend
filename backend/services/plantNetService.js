@@ -19,9 +19,12 @@ class PlantNetService {
     }
 
     try {
-      // แปลง base64 เป็น data URL สำหรับ PlantNet API
-      // PlantNet API ต้องการรูปแบบ: "data:image/jpeg;base64,{base64}"
-      const imageData = `data:image/jpeg;base64,${base64Image}`;
+      // PlantNet API ต้องการ base64 string โดยตรง (ไม่ใช่ data URL)
+      // ตรวจสอบว่ามี prefix หรือไม่
+      let cleanBase64 = base64Image;
+      if (base64Image.includes(',')) {
+        cleanBase64 = base64Image.split(',')[1]; // ลบ data:image/jpeg;base64, prefix
+      }
 
       const response = await fetch(`${this.baseUrl}/identify/${this.project}?api-key=${this.apiKey}`, {
         method: 'POST',
@@ -29,7 +32,7 @@ class PlantNetService {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          images: [imageData],
+          images: [cleanBase64], // ส่ง base64 string โดยตรง
           modifiers: options.modifiers || ['crops_fast', 'similar_images'],
           plant_details: options.plantDetails || [
             'common_names',
@@ -133,7 +136,13 @@ class PlantNetService {
     }
 
     try {
-      const imageDataArray = images.map(img => `data:image/jpeg;base64,${img}`);
+      // PlantNet API ต้องการ base64 string โดยตรง (ไม่ใช่ data URL)
+      const imageDataArray = images.map(img => {
+        if (img.includes(',')) {
+          return img.split(',')[1]; // ลบ data:image/jpeg;base64, prefix
+        }
+        return img;
+      });
 
       const response = await fetch(`${this.baseUrl}/identify/${this.project}?api-key=${this.apiKey}`, {
         method: 'POST',
