@@ -10,13 +10,14 @@ import { apiService } from '../services/api';
 const DashboardPage: React.FC = () => {
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  // ไม่ต้องรอ statistics - แสดง UI ทันที
   const [statistics, setStatistics] = useState({
     totalPlants: 0,
     totalSuppliers: 0
   });
 
   useEffect(() => {
+    // โหลด statistics แบบ background (ไม่บล็อก UI)
     loadStatistics();
   }, []);
 
@@ -32,8 +33,7 @@ const DashboardPage: React.FC = () => {
       }
     } catch (error) {
       console.error('Error loading statistics:', error);
-    } finally {
-      setIsLoading(false);
+      // ถ้า error ก็ไม่เป็นไร - แสดง 0 ไปก่อน
     }
   };
 
@@ -61,22 +61,7 @@ const DashboardPage: React.FC = () => {
     }
   };
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-green-50 via-blue-50 to-purple-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="relative">
-            <div className="animate-spin rounded-full h-16 w-16 border-4 border-green-200 border-t-green-500 mx-auto"></div>
-            <div className="absolute inset-0 flex items-center justify-center">
-              <span className="text-2xl">🌱</span>
-            </div>
-          </div>
-          <p className="mt-6 text-lg text-gray-600 font-medium">กำลังโหลดข้อมูล...</p>
-        </div>
-      </div>
-    );
-  }
-
+  // ไม่ต้องรอ loading - แสดง UI ทันที
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 via-blue-50 to-purple-50 pb-8">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-8">

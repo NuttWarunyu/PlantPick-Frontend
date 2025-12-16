@@ -402,65 +402,50 @@ app.delete('/api/suppliers/:id', async (req, res) => {
   }
 });
 
-// 📊 Statistics Endpoint - ดึงข้อมูลสถิติ
+// 📊 Statistics Endpoint - ดึงข้อมูลสถิติ (Optimized - ใช้ COUNT แทนการดึงข้อมูลทั้งหมด)
 app.get('/api/statistics', async (req, res) => {
   try {
-    // ตรวจสอบว่าตารางมีอยู่หรือไม่
-    const plantsTableCheck = await pool.query(`
-      SELECT EXISTS (
-        SELECT FROM information_schema.tables 
-        WHERE table_schema = 'public' 
-        AND table_name = 'plants'
-      );
-    `);
-    const suppliersTableCheck = await pool.query(`
-      SELECT EXISTS (
-        SELECT FROM information_schema.tables 
-        WHERE table_schema = 'public' 
-        AND table_name = 'suppliers'
-      );
-    `);
+    // ใช้ COUNT() query แทนการดึงข้อมูลทั้งหมด - เร็วกว่ามาก!
+    const [plantsCountResult, suppliersCountResult] = await Promise.all([
+      pool.query('SELECT COUNT(*) as count FROM plants').catch(() => ({ rows: [{ count: '0' }] })),
+      pool.query('SELECT COUNT(*) as count FROM suppliers').catch(() => ({ rows: [{ count: '0' }] }))
+    ]);
 
-    if (!plantsTableCheck.rows[0].exists || !suppliersTableCheck.rows[0].exists) {
-      console.log('⚠️ ตารางบางตารางไม่มี กำลังสร้าง...');
-      await initializeDatabase();
-    }
+    const totalPlants = parseInt(plantsCountResult.rows[0]?.count || '0', 10);
+    const totalSuppliers = parseInt(suppliersCountResult.rows[0]?.count || '0', 10);
 
-    let plants = [];
-    let suppliers = [];
+    // ดึง category และ plantType count แบบ parallel (ถ้าต้องการ)
+    const [categoryCountResult, plantTypeCountResult] = await Promise.all([
+      pool.query(`
+        SELECT category, COUNT(*) as count 
+        FROM plants 
+        WHERE category IS NOT NULL 
+        GROUP BY category
+      `).catch(() => ({ rows: [] })),
+      pool.query(`
+        SELECT plant_type, COUNT(*) as count 
+        FROM plants 
+        WHERE plant_type IS NOT NULL 
+        GROUP BY plant_type
+      `).catch(() => ({ rows: [] }))
+    ]);
 
-    try {
-      plants = await db.getPlants();
-    } catch (error) {
-      console.error('Error getting plants:', error);
-      // ถ้า error ให้ใช้ array ว่าง
-    }
-
-    try {
-      suppliers = await db.getAllSuppliers();
-    } catch (error) {
-      console.error('Error getting suppliers:', error);
-      // ถ้า error ให้ใช้ array ว่าง
-    }
-
-    // นับจำนวนต้นไม้ตามหมวดหมู่
+    // แปลงผลลัพธ์เป็น object
     const categoryCount = {};
-    const plantTypeCount = {};
+    categoryCountResult.rows.forEach(row => {
+      categoryCount[row.category] = parseInt(row.count, 10);
+    });
 
-    plants.forEach(plant => {
-      if (plant.category) {
-        categoryCount[plant.category] = (categoryCount[plant.category] || 0) + 1;
-      }
-      if (plant.plantType) {
-        plantTypeCount[plant.plantType] = (plantTypeCount[plant.plantType] || 0) + 1;
-      }
+    const plantTypeCount = {};
+    plantTypeCountResult.rows.forEach(row => {
+      plantTypeCount[row.plant_type] = parseInt(row.count, 10);
     });
 
     res.json({
       success: true,
       data: {
-        totalPlants: plants.length,
-        totalSuppliers: suppliers.length,
+        totalPlants,
+        totalSuppliers,
         categoryCount,
         plantTypeCount
       },
