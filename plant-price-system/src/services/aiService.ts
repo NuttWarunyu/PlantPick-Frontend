@@ -83,6 +83,17 @@ export interface GardenPlant {
   size?: string;
   location?: string;
   position?: Position;
+  confidence?: number;
+  needsVerification?: boolean;
+  originalName?: string; // ชื่อเดิมก่อน PlantNet verification
+  plantNetConfidence?: number;
+  plantNetVerified?: boolean;
+  plantNetAlternatives?: Array<{
+    scientificName: string;
+    thaiName?: string;
+    englishName?: string;
+    confidence: number;
+  }>;
   notes?: string;
 }
 

@@ -863,12 +863,58 @@ app.post('/api/ai/analyze-garden', async (req, res) => {
       });
     }
 
-    // เรียก AI Service เพื่อวิเคราะห์รูปภาพสวน (API Key อยู่บน Backend - ปลอดภัย)
+    // 1. เรียก AI Service เพื่อวิเคราะห์รูปภาพสวน (API Key อยู่บน Backend - ปลอดภัย)
     const analysisResult = await aiService.analyzeGardenImage(base64Image);
+
+    // 2. ตรวจสอบต้นไม้ที่ไม่แน่ใจและส่งไป PlantNet
+    const plantNetService = require('./services/plantNetService');
+    const enhancedPlants = await Promise.all(
+      (analysisResult.plants || []).map(async (plant, index) => {
+        // ถ้าไม่แน่ใจ (confidence < 0.7 หรือ needsVerification = true) ให้ส่งไป PlantNet
+        const needsVerification = plant.needsVerification || 
+                                 (plant.confidence && plant.confidence < 0.7) ||
+                                 !plant.scientificName;
+        
+        if (needsVerification && plantNetService.apiKey) {
+          try {
+            console.log(`🔍 ส่งต้นไม้ "${plant.name}" ไป PlantNet เพื่อยืนยัน...`);
+            const plantNetResult = await plantNetService.identifyPlant(base64Image);
+            
+            if (plantNetResult.success && plantNetResult.bestMatch) {
+              const bestMatch = plantNetResult.bestMatch;
+              console.log(`✅ PlantNet พบ: ${bestMatch.scientificName} (${bestMatch.thaiName || bestMatch.englishName}) - Confidence: ${bestMatch.confidence}%`);
+              
+              // อัพเดทข้อมูลด้วยผลลัพธ์จาก PlantNet
+              return {
+                ...plant,
+                name: bestMatch.thaiName || plant.name || bestMatch.englishName || bestMatch.scientificName,
+                scientificName: bestMatch.scientificName,
+                originalName: plant.name, // เก็บชื่อเดิมไว้
+                plantNetConfidence: bestMatch.confidence,
+                plantNetVerified: true,
+                plantNetAlternatives: plantNetResult.suggestions.slice(1, 4), // ตัวเลือกอื่นๆ
+                confidence: Math.max(plant.confidence || 0.5, bestMatch.confidence / 100)
+              };
+            }
+          } catch (plantNetError) {
+            console.error(`⚠️ PlantNet verification failed for "${plant.name}":`, plantNetError.message);
+            // ถ้า PlantNet error ก็ใช้ผลลัพธ์จาก GPT-4o
+          }
+        }
+        
+        return plant;
+      })
+    );
+
+    // 3. อัพเดทผลลัพธ์ด้วยข้อมูลที่ยืนยันแล้ว
+    const enhancedResult = {
+      ...analysisResult,
+      plants: enhancedPlants
+    };
 
     res.json({
       success: true,
-      data: analysisResult,
+      data: enhancedResult,
       message: 'วิเคราะห์รูปภาพสำเร็จ'
     });
 

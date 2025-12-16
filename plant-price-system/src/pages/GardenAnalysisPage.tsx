@@ -439,10 +439,24 @@ const GardenAnalysisPage: React.FC = () => {
                       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                         <div className="flex-1">
                           <div className="flex items-start gap-3 mb-2">
-                            <h4 className="text-lg sm:text-xl font-bold text-gray-800">{plant.name}</h4>
-                            {plant.scientificName && (
-                              <span className="text-sm text-gray-500 italic">({plant.scientificName})</span>
-                            )}
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2">
+                                <h4 className="text-lg sm:text-xl font-bold text-gray-800">{plant.name}</h4>
+                                {plant.plantNetVerified && (
+                                  <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs font-semibold rounded-full">
+                                    ✓ ยืนยันแล้ว
+                                  </span>
+                                )}
+                              </div>
+                              {plant.scientificName && (
+                                <span className="text-sm text-gray-500 italic">({plant.scientificName})</span>
+                              )}
+                              {plant.originalName && plant.originalName !== plant.name && (
+                                <p className="text-xs text-gray-400 mt-1">
+                                  เดิม: {plant.originalName}
+                                </p>
+                              )}
+                            </div>
                           </div>
                           
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm text-gray-600">
