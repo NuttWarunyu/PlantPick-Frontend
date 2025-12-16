@@ -79,6 +79,7 @@ export interface Position {
 export interface GardenPlant {
   name: string;
   scientificName?: string;
+  englishName?: string; // ชื่อภาษาอังกฤษจาก PlantNet
   quantity: number;
   size?: string;
   location?: string;

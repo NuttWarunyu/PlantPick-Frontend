@@ -899,18 +899,19 @@ app.post('/api/ai/analyze-garden', async (req, res) => {
           
           // รวมข้อมูลจาก GPT-4o (จำนวน, ขนาด, ตำแหน่ง) กับ PlantNet (ชื่อ)
           enhancedPlants = analysisResult.plants.map((plant, index) => {
-            // ใช้ชื่อจาก PlantNet
+            // ใช้ชื่อจาก PlantNet - ถ้ามีชื่อไทยใช้เลย ถ้าไม่มีให้ใช้ภาษาอังกฤษ/ชื่อวิทยาศาสตร์
             let plantName = bestMatch.thaiName || bestMatch.englishName || bestMatch.scientificName;
             
             return {
               ...plant,
               name: plantName,
               scientificName: bestMatch.scientificName,
+              englishName: bestMatch.englishName, // เก็บไว้สำหรับแปล
               plantNetConfidence: bestMatch.confidence,
               plantNetVerified: true,
               plantNetAlternatives: plantNetResult.suggestions.slice(1, 4), // ตัวเลือกอื่นๆ
               // ถ้าไม่มีชื่อไทย ให้ใช้ GPT-4o แปลง
-              needsTranslation: !bestMatch.thaiName && bestMatch.scientificName
+              needsTranslation: !bestMatch.thaiName && (bestMatch.scientificName || bestMatch.englishName)
             };
           });
         } else {
@@ -945,12 +946,16 @@ app.post('/api/ai/analyze-garden', async (req, res) => {
     // 3. แปลงชื่อเป็นภาษาไทยถ้ายังไม่มี (ใช้ GPT-4o)
     const finalPlants = await Promise.all(
       enhancedPlants.map(async (plant) => {
-        if (plant.needsTranslation && plant.scientificName) {
+        // ถ้ายังไม่มีชื่อไทย (ตรวจสอบว่าชื่อปัจจุบันไม่มีตัวอักษรไทย) และมีชื่อวิทยาศาสตร์/ภาษาอังกฤษ
+        const hasThaiChars = /[ก-๙]/.test(plant.name);
+        const needsTranslation = plant.needsTranslation && !hasThaiChars && (plant.scientificName || plant.englishName);
+        
+        if (needsTranslation) {
           try {
-            console.log(`🔄 แปลงชื่อ "${plant.scientificName}" เป็นภาษาไทย...`);
+            console.log(`🔄 แปลงชื่อ "${plant.scientificName || plant.englishName}" (${plant.name}) เป็นภาษาไทย...`);
             const translationPrompt = `แปลงชื่อพืชพันธุ์ต่อไปนี้เป็นภาษาไทย:
-- ชื่อวิทยาศาสตร์: ${plant.scientificName}
-- ชื่อภาษาอังกฤษ: ${plant.englishName || 'N/A'}
+- ชื่อวิทยาศาสตร์: ${plant.scientificName || 'N/A'}
+- ชื่อภาษาอังกฤษ: ${plant.englishName || plant.name || 'N/A'}
 
 กรุณาตอบเป็น JSON format:
 {
@@ -958,20 +963,38 @@ app.post('/api/ai/analyze-garden', async (req, res) => {
   "commonName": "ชื่อสามัญภาษาไทย (ถ้ามี)"
 }
 
-ตอบเป็น JSON ล้วนๆ เท่านั้น`;
+⚠️ สำคัญ: ตอบเป็น JSON ล้วนๆ เท่านั้น ห้ามใส่โค้ดบล็อก (เช่น code fences) หรือคำอธิบายอื่นๆ`;
 
             const translationResult = await aiService.analyzeText(translationPrompt);
-            const translation = typeof translationResult === 'string' ? JSON.parse(translationResult) : translationResult;
+            
+            // Parse JSON response
+            let translation;
+            if (typeof translationResult === 'string') {
+              try {
+                // ลบ code fences ถ้ามี
+                const cleaned = translationResult.replace(/```json|```/gi, '').trim();
+                const match = cleaned.match(/\{[\s\S]*\}/);
+                translation = JSON.parse(match ? match[0] : cleaned);
+              } catch (e) {
+                console.error(`⚠️ Failed to parse translation JSON:`, e.message);
+                translation = {};
+              }
+            } else {
+              translation = translationResult;
+            }
             
             if (translation.thaiName) {
+              console.log(`✅ แปลงสำเร็จ: ${translation.thaiName}`);
               return {
                 ...plant,
                 name: translation.thaiName,
                 needsTranslation: false
               };
+            } else {
+              console.warn(`⚠️ ไม่พบ thaiName ใน translation result`);
             }
           } catch (translationError) {
-            console.error(`⚠️ Translation failed for "${plant.scientificName}":`, translationError.message);
+            console.error(`⚠️ Translation failed for "${plant.scientificName || plant.name}":`, translationError.message);
           }
         }
         return plant;
