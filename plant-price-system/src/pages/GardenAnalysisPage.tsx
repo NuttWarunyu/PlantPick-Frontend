@@ -451,11 +451,6 @@ const GardenAnalysisPage: React.FC = () => {
                               {plant.scientificName && (
                                 <span className="text-sm text-gray-500 italic">({plant.scientificName})</span>
                               )}
-                              {plant.originalName && plant.originalName !== plant.name && (
-                                <p className="text-xs text-gray-400 mt-1">
-                                  เดิม: {plant.originalName}
-                                </p>
-                              )}
                             </div>
                           </div>
                           
