@@ -870,31 +870,51 @@ app.post('/api/ai/analyze-garden', async (req, res) => {
     const plantNetService = require('./services/plantNetService');
     let enhancedPlants = [];
     
+    console.log(`🔍 PlantNet API Key: ${plantNetService.apiKey ? 'Found' : 'NOT FOUND'}`);
+    console.log(`📊 Plants from GPT-4o: ${analysisResult.plants?.length || 0} groups`);
+    
+    if (!plantNetService.apiKey) {
+      console.warn('⚠️ PLANTNET_API_KEY ไม่ได้ตั้งค่า - จะใช้คำอธิบายจาก GPT-4o แทน');
+    }
+    
     if (plantNetService.apiKey && analysisResult.plants && analysisResult.plants.length > 0) {
       try {
         console.log(`🌿 ส่งรูปไป PlantNet เพื่อระบุชื่อต้นไม้ทั้งหมด (${analysisResult.plants.length} กลุ่ม)...`);
         const plantNetResult = await plantNetService.identifyPlant(base64Image);
         
+        console.log(`📋 PlantNet Result:`, {
+          success: plantNetResult.success,
+          suggestionsCount: plantNetResult.suggestions?.length || 0,
+          bestMatch: plantNetResult.bestMatch ? {
+            scientificName: plantNetResult.bestMatch.scientificName,
+            thaiName: plantNetResult.bestMatch.thaiName,
+            englishName: plantNetResult.bestMatch.englishName,
+            confidence: plantNetResult.bestMatch.confidence
+          } : null
+        });
+        
         if (plantNetResult.success && plantNetResult.bestMatch) {
           const bestMatch = plantNetResult.bestMatch;
-          console.log(`✅ PlantNet พบ: ${bestMatch.scientificName} (${bestMatch.thaiName || bestMatch.englishName}) - Confidence: ${bestMatch.confidence}%`);
+          console.log(`✅ PlantNet พบ: ${bestMatch.scientificName} (${bestMatch.thaiName || bestMatch.englishName || 'ไม่มีชื่อไทย/อังกฤษ'}) - Confidence: ${bestMatch.confidence}%`);
           
           // รวมข้อมูลจาก GPT-4o (จำนวน, ขนาด, ตำแหน่ง) กับ PlantNet (ชื่อ)
           enhancedPlants = analysisResult.plants.map((plant, index) => {
-            // ถ้ามีหลายกลุ่มต้นไม้ ให้ใช้ PlantNet result แรก (หรืออาจจะต้องส่งหลายรูป)
-            // สำหรับตอนนี้ใช้ bestMatch สำหรับทุกกลุ่ม
+            // ใช้ชื่อจาก PlantNet
+            let plantName = bestMatch.thaiName || bestMatch.englishName || bestMatch.scientificName;
+            
             return {
               ...plant,
-              name: bestMatch.thaiName || bestMatch.englishName || bestMatch.scientificName,
+              name: plantName,
               scientificName: bestMatch.scientificName,
               plantNetConfidence: bestMatch.confidence,
               plantNetVerified: true,
               plantNetAlternatives: plantNetResult.suggestions.slice(1, 4), // ตัวเลือกอื่นๆ
               // ถ้าไม่มีชื่อไทย ให้ใช้ GPT-4o แปลง
-              needsTranslation: !bestMatch.thaiName
+              needsTranslation: !bestMatch.thaiName && bestMatch.scientificName
             };
           });
         } else {
+          console.warn(`⚠️ PlantNet ไม่พบต้นไม้ - ใช้คำอธิบายจาก GPT-4o`);
           // ถ้า PlantNet ไม่พบ ให้ใช้ข้อมูลจาก GPT-4o โดยไม่มีชื่อ
           enhancedPlants = analysisResult.plants.map(plant => ({
             ...plant,
@@ -903,7 +923,8 @@ app.post('/api/ai/analyze-garden', async (req, res) => {
           }));
         }
       } catch (plantNetError) {
-        console.error(`⚠️ PlantNet identification failed:`, plantNetError.message);
+        console.error(`❌ PlantNet identification failed:`, plantNetError.message);
+        console.error(`   Stack:`, plantNetError.stack);
         // ถ้า PlantNet error ก็ใช้ผลลัพธ์จาก GPT-4o โดยไม่มีชื่อ
         enhancedPlants = analysisResult.plants.map(plant => ({
           ...plant,
@@ -912,10 +933,11 @@ app.post('/api/ai/analyze-garden', async (req, res) => {
         }));
       }
     } else {
-      // ถ้าไม่มี PlantNet API key ให้ใช้ข้อมูลจาก GPT-4o โดยไม่มีชื่อ
-      enhancedPlants = analysisResult.plants.map(plant => ({
+      // ถ้าไม่มี PlantNet API key หรือไม่มีต้นไม้ ให้ใช้ข้อมูลจาก GPT-4o โดยไม่มีชื่อ
+      console.warn(`⚠️ ไม่สามารถใช้ PlantNet - ใช้คำอธิบายจาก GPT-4o`);
+      enhancedPlants = (analysisResult.plants || []).map(plant => ({
         ...plant,
-        name: plant.description || 'ไม่สามารถระบุชื่อได้',
+        name: plant.description || plant.name || 'ไม่สามารถระบุชื่อได้',
         plantNetVerified: false
       }));
     }
