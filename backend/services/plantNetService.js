@@ -44,12 +44,8 @@ class PlantNetService {
       // ระบุอวัยวะของพืช (auto = ให้ AI ระบุเอง)
       formData.append('organs', options.organs || 'auto');
       
-      // ภาษา (th = ไทย)
-      if (options.language) {
-        formData.append('lang', options.language);
-      } else {
-        formData.append('lang', 'th');
-      }
+      // หมายเหตุ: PlantNet API v2 ไม่รองรับ 'lang' ใน FormData
+      // ใช้ query parameter แทน (หรือไม่ส่งเลย - API จะใช้ default language)
 
       // plant_details เป็น JSON string
       const plantDetails = options.plantDetails || [
@@ -74,20 +70,25 @@ class PlantNetService {
 
       // Debug: ดู FormData headers และ fields
       const formHeaders = formData.getHeaders();
-      console.log(`🌿 เรียก PlantNet API: project=${this.project}, lang=th, organs=auto`);
+      // สร้าง URL พร้อม query parameters
+      let url = `${this.baseUrl}/identify/${this.project}?api-key=${this.apiKey}`;
+      
+      // เพิ่ม lang เป็น query parameter (ถ้ามี)
+      if (options.language) {
+        url += `&lang=${options.language}`;
+      }
+      
+      console.log(`🌿 เรียก PlantNet API: project=${this.project}, organs=auto`);
       console.log(`📋 FormData Headers:`, formHeaders);
       console.log(`📋 FormData Content-Type:`, formHeaders['content-type']);
       console.log(`📋 Image Buffer Size:`, imageBuffer.length, 'bytes');
       console.log(`📋 FormData Fields:`, {
         images: `Buffer(${imageBuffer.length} bytes)`,
         organs: options.organs || 'auto',
-        lang: options.language || 'th',
         plant_details: JSON.stringify(plantDetails),
         'include-related-images': options.includeRelatedImages !== false ? 'true' : undefined,
         'nb-results': options.nbResults?.toString() || undefined
       });
-      
-      const url = `${this.baseUrl}/identify/${this.project}?api-key=${this.apiKey}`;
       console.log(`🔗 Request URL:`, url.replace(this.apiKey, 'API_KEY_HIDDEN'));
 
       // ใช้ axios แทน fetch เพราะรองรับ FormData stream ได้ดีกว่า
@@ -283,12 +284,8 @@ class PlantNetService {
         formData.append('organs', organ);
       });
 
-      // ภาษา
-      if (options.language) {
-        formData.append('lang', options.language);
-      } else {
-        formData.append('lang', 'th');
-      }
+      // หมายเหตุ: PlantNet API v2 ไม่รองรับ 'lang' ใน FormData
+      // ใช้ query parameter แทน
 
       // plant_details
       const plantDetails = options.plantDetails || [
@@ -300,9 +297,15 @@ class PlantNetService {
       ];
       formData.append('plant_details', JSON.stringify(plantDetails));
 
+      // สร้าง URL พร้อม query parameters
+      let url = `${this.baseUrl}/identify/${this.project}?api-key=${this.apiKey}`;
+      if (options.language) {
+        url += `&lang=${options.language}`;
+      }
+
       // ใช้ axios แทน fetch
       const response = await axios.post(
-        `${this.baseUrl}/identify/${this.project}?api-key=${this.apiKey}`,
+        url,
         formData,
         {
           headers: {
