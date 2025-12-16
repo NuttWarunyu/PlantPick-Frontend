@@ -851,18 +851,17 @@ app.post('/api/ai/analyze-garden', async (req, res) => {
     // 1. เรียก AI Service เพื่อวิเคราะห์องค์ประกอบอื่นๆ (สนามหญ้า, ทางเดิน) และข้อมูลต้นไม้ (จำนวน, ขนาด, ตำแหน่ง)
     const analysisResult = await aiService.analyzeGardenImage(base64Image);
 
-    // 2. ใช้ PlantNet ระบุชื่อต้นไม้ทั้งหมด
+    // 2. ใช้ GPT-4o เป็น primary (PlantNet เก็บไว้สำหรับทดสอบในอนาคต)
+    // TODO: สามารถเปิดใช้ PlantNet ได้ในอนาคตถ้าต้องการ
+    const USE_PLANTNET = false; // ปิดการใช้งาน PlantNet ชั่วคราว - ใช้ GPT-4o แทน
+    
     const plantNetService = require('./services/plantNetService');
     let enhancedPlants = [];
     
-    console.log(`🔍 PlantNet API Key: ${plantNetService.apiKey ? 'Found' : 'NOT FOUND'}`);
     console.log(`📊 Plants from GPT-4o: ${analysisResult.plants?.length || 0} groups`);
+    console.log(`🌿 PlantNet: ${USE_PLANTNET ? 'Enabled' : 'Disabled (using GPT-4o only)'}`);
     
-    if (!plantNetService.apiKey) {
-      console.warn('⚠️ PLANTNET_API_KEY ไม่ได้ตั้งค่า - จะใช้คำอธิบายจาก GPT-4o แทน');
-    }
-    
-    if (plantNetService.apiKey && analysisResult.plants && analysisResult.plants.length > 0) {
+    if (USE_PLANTNET && plantNetService.apiKey && analysisResult.plants && analysisResult.plants.length > 0) {
       try {
         console.log(`🌿 ส่งรูปไป PlantNet เพื่อระบุชื่อต้นไม้ทั้งหมด (${analysisResult.plants.length} กลุ่ม)...`);
         
@@ -889,7 +888,7 @@ app.post('/api/ai/analyze-garden', async (req, res) => {
               }
               
               const result = await plantNetService.identifyPlant(imageToUse, {
-                language: 'th', // ใช้ภาษาไทย
+                language: 'en', // ใช้ภาษาอังกฤษ (PlantNet ไม่รองรับ th)
                 includeRelatedImages: true
               });
               
@@ -939,19 +938,19 @@ app.post('/api/ai/analyze-garden', async (req, res) => {
       } catch (plantNetError) {
         console.error(`❌ PlantNet identification failed:`, plantNetError.message);
         console.error(`   Stack:`, plantNetError.stack);
-        // ถ้า PlantNet error ก็ใช้ผลลัพธ์จาก GPT-4o โดยไม่มีชื่อ
+        // ถ้า PlantNet error ก็ใช้ผลลัพธ์จาก GPT-4o
         enhancedPlants = analysisResult.plants.map(plant => ({
           ...plant,
-          name: plant.description || 'ไม่สามารถระบุชื่อได้',
+          name: plant.name || plant.description || 'ไม่สามารถระบุชื่อได้',
           plantNetVerified: false
         }));
       }
     } else {
-      // ถ้าไม่มี PlantNet API key หรือไม่มีต้นไม้ ให้ใช้ข้อมูลจาก GPT-4o โดยไม่มีชื่อ
-      console.warn(`⚠️ ไม่สามารถใช้ PlantNet - ใช้คำอธิบายจาก GPT-4o`);
+      // ใช้ GPT-4o เป็น primary (ไม่ใช้ PlantNet)
+      console.log(`✅ ใช้ GPT-4o สำหรับระบุชื่อต้นไม้`);
       enhancedPlants = (analysisResult.plants || []).map(plant => ({
         ...plant,
-        name: plant.description || plant.name || 'ไม่สามารถระบุชื่อได้',
+        name: plant.name || plant.description || 'ไม่สามารถระบุชื่อได้',
         plantNetVerified: false
       }));
     }
