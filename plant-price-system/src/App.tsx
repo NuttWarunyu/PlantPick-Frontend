@@ -61,10 +61,6 @@ function AppContent() {
                   <BarChart3 className="h-4 w-4" />
                   <span>หน้าหลัก</span>
                 </a>
-                <a href="/search" className="flex items-center space-x-1 px-3 py-2 text-sm text-green-700 hover:text-green-900 hover:bg-green-50 rounded-md transition-colors">
-                  <Search className="h-4 w-4" />
-                  <span>ค้นหา</span>
-                </a>
                 <a href="/project" className="flex items-center space-x-1 px-3 py-2 text-sm text-green-700 hover:text-green-900 hover:bg-green-50 rounded-md transition-colors">
                   <FolderOpen className="h-4 w-4" />
                   <span>โปรเจกต์</span>
@@ -104,10 +100,6 @@ function AppContent() {
                   <a href="/dashboard" className="flex flex-col items-center justify-center space-y-1 px-4 py-4 text-sm text-green-700 active:text-green-900 active:bg-green-50 rounded-xl transition-colors touch-manipulation" style={{ minHeight: '80px' }}>
                     <BarChart3 className="h-6 w-6" />
                     <span className="font-medium">หน้าหลัก</span>
-                  </a>
-                  <a href="/search" className="flex flex-col items-center justify-center space-y-1 px-4 py-4 text-sm text-green-700 active:text-green-900 active:bg-green-50 rounded-xl transition-colors touch-manipulation" style={{ minHeight: '80px' }}>
-                    <Search className="h-6 w-6" />
-                    <span className="font-medium">ค้นหา</span>
                   </a>
                   {isAdmin ? (
                     <>
@@ -245,14 +237,10 @@ function AppContent() {
 
         {/* Bottom Navigation - Mobile Only (Simplified) */}
         <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-green-200 shadow-lg z-50">
-          <div className="grid grid-cols-3 h-16">
+          <div className="grid grid-cols-2 h-16">
             <a href="/dashboard" className="flex flex-col items-center justify-center space-y-1 text-green-700 active:text-green-900 active:bg-green-50 transition-colors touch-manipulation">
               <BarChart3 className="h-5 w-5" />
               <span className="text-xs font-medium">หน้าหลัก</span>
-            </a>
-            <a href="/search" className="flex flex-col items-center justify-center space-y-1 text-green-700 active:text-green-900 active:bg-green-50 transition-colors touch-manipulation">
-              <Search className="h-5 w-5" />
-              <span className="text-xs font-medium">ค้นหา</span>
             </a>
             <a href="/bill-scanner" className="flex flex-col items-center justify-center space-y-1 text-green-700 active:text-green-900 active:bg-green-50 transition-colors touch-manipulation">
               <Camera className="h-6 w-6" />
