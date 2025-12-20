@@ -188,86 +188,7 @@ const GardenAnalysisPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Upload Section */}
-        {!analysisResult && (
-          <div className="bg-white rounded-3xl shadow-2xl p-8 sm:p-12 border-2 border-green-200 mb-8">
-            {!imagePreview ? (
-              <div className="text-center">
-                <div className="w-24 h-24 sm:w-32 sm:h-32 bg-gradient-to-br from-green-400 to-emerald-500 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-lg">
-                  <Image className="w-12 h-12 sm:w-16 sm:h-16 text-white" />
-                </div>
-                
-                <h3 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-4">
-                  อัปโหลดรูปภาพสวนหรือหน้าบ้าน
-                </h3>
-                <p className="text-base sm:text-lg text-gray-600 mb-8 max-w-md mx-auto">
-                  รองรับไฟล์ JPG, PNG ขนาดไม่เกิน 10MB
-                </p>
-                
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  onChange={handleFileInputChange}
-                  className="hidden"
-                />
-                
-                <button
-                  onClick={() => fileInputRef.current?.click()}
-                  className="group relative inline-flex items-center justify-center px-8 py-4 sm:px-12 sm:py-5 bg-gradient-to-r from-green-500 to-emerald-600 text-white text-lg sm:text-xl font-bold rounded-2xl shadow-lg hover:shadow-2xl transform hover:scale-105 transition-all duration-300"
-                >
-                  <Upload className="w-6 h-6 sm:w-7 sm:h-7 mr-3 group-hover:animate-bounce" />
-                  <span>เลือกรูปภาพ</span>
-                </button>
-              </div>
-            ) : (
-              <div className="text-center">
-                <div className="mb-6">
-                  <img
-                    src={imagePreview}
-                    alt="Preview"
-                    className="max-w-full max-h-96 mx-auto rounded-2xl shadow-lg border-4 border-green-200"
-                  />
-                </div>
-                
-                <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                  <button
-                    onClick={() => {
-                      setSelectedImage(null);
-                      setImagePreview(null);
-                      if (fileInputRef.current) {
-                        fileInputRef.current.value = '';
-                      }
-                    }}
-                    className="px-6 py-3 bg-gray-200 text-gray-800 font-semibold rounded-xl hover:bg-gray-300 transition-colors"
-                  >
-                    เปลี่ยนรูปภาพ
-                  </button>
-                  
-                  <button
-                    onClick={handleAnalyze}
-                    disabled={isAnalyzing}
-                    className="px-8 py-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white font-bold rounded-xl shadow-lg hover:shadow-2xl transform hover:scale-105 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center gap-2"
-                  >
-                    {isAnalyzing ? (
-                      <>
-                        <Loader2 className="w-5 h-5 animate-spin" />
-                        <span>กำลังวิเคราะห์...</span>
-                      </>
-                    ) : (
-                      <>
-                        <Sparkles className="w-5 h-5" />
-                        <span>เริ่มวิเคราะห์</span>
-                      </>
-                    )}
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Loading Animation */}
+        {/* Loading Animation - แสดงข้างบนเมื่อกำลังวิเคราะห์ */}
         {isAnalyzing && (
           <div className="bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50 rounded-2xl shadow-2xl p-8 mb-8 border-2 border-green-200 relative overflow-hidden">
             {/* Animated Background */}
@@ -334,6 +255,88 @@ const GardenAnalysisPage: React.FC = () => {
                 </div>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* Upload Section */}
+        {!analysisResult && (
+          <div className="bg-white rounded-3xl shadow-2xl p-8 sm:p-12 border-2 border-green-200 mb-8">
+            {!imagePreview ? (
+              <div className="text-center">
+                <div className="w-24 h-24 sm:w-32 sm:h-32 bg-gradient-to-br from-green-400 to-emerald-500 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-lg">
+                  <Image className="w-12 h-12 sm:w-16 sm:h-16 text-white" />
+                </div>
+                
+                <h3 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-4">
+                  อัปโหลดรูปภาพสวนหรือหน้าบ้าน
+                </h3>
+                <p className="text-base sm:text-lg text-gray-600 mb-8 max-w-md mx-auto">
+                  รองรับไฟล์ JPG, PNG ขนาดไม่เกิน 10MB
+                </p>
+                
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleFileInputChange}
+                  className="hidden"
+                />
+                
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  className="group relative inline-flex items-center justify-center px-8 py-4 sm:px-12 sm:py-5 bg-gradient-to-r from-green-500 to-emerald-600 text-white text-lg sm:text-xl font-bold rounded-2xl shadow-lg hover:shadow-2xl transform hover:scale-105 transition-all duration-300"
+                >
+                  <Upload className="w-6 h-6 sm:w-7 sm:h-7 mr-3 group-hover:animate-bounce" />
+                  <span>เลือกรูปภาพ</span>
+                </button>
+              </div>
+            ) : (
+              <div className="text-center">
+                {/* ซ่อนรูปภาพเมื่อกำลังวิเคราะห์ */}
+                {!isAnalyzing && (
+                  <div className="mb-6">
+                    <img
+                      src={imagePreview}
+                      alt="Preview"
+                      className="max-w-full max-h-96 mx-auto rounded-2xl shadow-lg border-4 border-green-200"
+                    />
+                  </div>
+                )}
+                
+                <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                  <button
+                    onClick={() => {
+                      setSelectedImage(null);
+                      setImagePreview(null);
+                      if (fileInputRef.current) {
+                        fileInputRef.current.value = '';
+                      }
+                    }}
+                    className="px-6 py-3 bg-gray-200 text-gray-800 font-semibold rounded-xl hover:bg-gray-300 transition-colors"
+                  >
+                    เปลี่ยนรูปภาพ
+                  </button>
+                  
+                  <button
+                    onClick={handleAnalyze}
+                    disabled={isAnalyzing}
+                    className="px-8 py-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white font-bold rounded-xl shadow-lg hover:shadow-2xl transform hover:scale-105 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center gap-2"
+                  >
+                    {isAnalyzing ? (
+                      <>
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                        <span>กำลังวิเคราะห์...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="w-5 h-5" />
+                        <span>เริ่มวิเคราะห์</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -407,6 +410,103 @@ const GardenAnalysisPage: React.FC = () => {
                 วิเคราะห์รูปใหม่
               </button>
             </div>
+
+            {/* Plants List - แสดงก่อนวัสดุ/หิน/อื่นๆ */}
+            {analysisResult.plants && analysisResult.plants.length > 0 ? (
+              <div className="bg-white rounded-2xl shadow-lg p-6 sm:p-8 border-2 border-green-200">
+                <h3 className="text-xl sm:text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
+                  <Leaf className="w-6 h-6 text-green-600" />
+                  ต้นไม้ที่พบ ({analysisResult.plants.length} ชนิด)
+                </h3>
+                
+                <div className="space-y-4">
+                  {analysisResult.plants.map((plant, index) => {
+                    const plantPriceInfo = plantPrices[plant.name] || { hasPrice: false };
+                    return (
+                      <div
+                        key={index}
+                        className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-5 border-2 border-green-100 hover:shadow-md transition-shadow"
+                      >
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                          <div className="flex-1">
+                            <div className="flex items-start gap-3 mb-2">
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2">
+                                  <h4 className="text-lg sm:text-xl font-bold text-gray-800">{plant.name}</h4>
+                                  {plant.fallbackUsed && (
+                                    <span className="px-2 py-0.5 bg-yellow-100 text-yellow-800 text-xs font-semibold rounded-full">
+                                      จากคลังต้นไม้ยอดนิยม
+                                    </span>
+                                  )}
+                                  {plant.plantNetVerified && (
+                                    <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs font-semibold rounded-full">
+                                      ✓ ยืนยันแล้ว
+                                    </span>
+                                  )}
+                                </div>
+                                {plant.scientificName && (
+                                  <span className="text-sm text-gray-500 italic">({plant.scientificName})</span>
+                                )}
+                              </div>
+                            </div>
+                            
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm text-gray-600">
+                              <div className="flex items-center gap-2">
+                                <span className="font-semibold">จำนวน:</span>
+                                <span>{plant.quantity} ต้น</span>
+                              </div>
+                              {plant.size && (
+                                <div className="flex items-center gap-2">
+                                  <span className="font-semibold">ขนาด:</span>
+                                  <span>{plant.size}</span>
+                                </div>
+                              )}
+                              {plant.location && (
+                                <div className="flex items-center gap-2">
+                                  <span className="font-semibold">ตำแหน่ง:</span>
+                                  <span>{plant.location}</span>
+                                </div>
+                              )}
+                            </div>
+                            {plant.description && (
+                              <p className="text-sm text-gray-600 mt-2">{plant.description}</p>
+                            )}
+                          </div>
+                          <div className="flex flex-col items-end gap-2">
+                            {plantPriceInfo.hasPrice ? (
+                              <>
+                                <div className="text-right">
+                                  <p className="text-xs text-gray-500">ราคาเริ่มต้น</p>
+                                  <p className="text-lg font-bold text-green-600">
+                                    {plantPriceInfo.minPrice?.toLocaleString()} บาท
+                                  </p>
+                                </div>
+                                <button
+                                  onClick={() => navigate(`/search?q=${encodeURIComponent(plant.name)}`)}
+                                  className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors text-sm"
+                                >
+                                  ดูราคาทั้งหมด
+                                </button>
+                              </>
+                            ) : (
+                              <div className="text-right">
+                                <p className="text-xs text-gray-500">ราคาเริ่มต้น</p>
+                                <p className="text-lg font-bold text-gray-400">0 บาท</p>
+                                <p className="text-xs text-gray-500 mt-1">ยังไม่มีราคา</p>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : (
+              <div className="bg-white rounded-2xl shadow-lg p-6 sm:p-8 border-2 border-green-200">
+                <p className="text-gray-600 text-center">ไม่พบต้นไม้ในภาพ</p>
+              </div>
+            )}
 
             {/* Lawn Section */}
             {analysisResult.lawn && analysisResult.lawn.type && (
@@ -503,132 +603,6 @@ const GardenAnalysisPage: React.FC = () => {
                       </div>
                     </div>
                   ))}
-                </div>
-              </div>
-            )}
-
-            {/* Plants List */}
-            {analysisResult.plants && analysisResult.plants.length > 0 ? (
-              <div className="bg-white rounded-2xl shadow-lg p-6 sm:p-8 border-2 border-green-200">
-                <h3 className="text-xl sm:text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
-                  <Leaf className="w-6 h-6 text-green-600" />
-                  ต้นไม้ที่พบ ({analysisResult.plants.length} ชนิด)
-                </h3>
-                
-                <div className="space-y-4">
-                  {analysisResult.plants.map((plant, index) => (
-                    <div
-                      key={index}
-                      className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-5 border-2 border-green-100 hover:shadow-md transition-shadow"
-                    >
-                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                        <div className="flex-1">
-                          <div className="flex items-start gap-3 mb-2">
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2">
-                                <h4 className="text-lg sm:text-xl font-bold text-gray-800">{plant.name}</h4>
-                                {plant.plantNetVerified && (
-                                  <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs font-semibold rounded-full">
-                                    ✓ ยืนยันแล้ว
-                                  </span>
-                                )}
-                              </div>
-                              {plant.scientificName && (
-                                <span className="text-sm text-gray-500 italic">({plant.scientificName})</span>
-                              )}
-                            </div>
-                          </div>
-                          
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm text-gray-600">
-                            <div className="flex items-center gap-2">
-                              <span className="font-semibold">จำนวน:</span>
-                              <span>{plant.quantity} ต้น</span>
-                            </div>
-                            {plant.size && (
-                              <div className="flex items-center gap-2">
-                                <span className="font-semibold">ขนาด:</span>
-                                <span>{plant.size}</span>
-                              </div>
-                            )}
-                            {plant.location && (
-                              <div className="flex items-center gap-2">
-                                <span className="font-semibold">ตำแหน่ง:</span>
-                                <span>{plant.location}</span>
-                              </div>
-                            )}
-                            {plant.plantNetConfidence && (
-                              <div className="flex items-center gap-2">
-                                <span className="font-semibold">ความแม่นยำ:</span>
-                                <span className="text-green-600 font-bold">{plant.plantNetConfidence}%</span>
-                              </div>
-                            )}
-                          </div>
-                          
-                          {/* PlantNet Alternatives */}
-                          {plant.plantNetAlternatives && plant.plantNetAlternatives.length > 0 && (
-                            <div className="mt-3 pt-3 border-t border-gray-200">
-                              <p className="text-xs font-semibold text-gray-500 mb-2">ตัวเลือกอื่นๆ:</p>
-                              <div className="space-y-1">
-                                {plant.plantNetAlternatives.map((alt, idx) => (
-                                  <div key={idx} className="text-xs text-gray-600">
-                                    • {alt.thaiName || alt.englishName || alt.scientificName} ({alt.confidence}%)
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-                          
-                          {plant.notes && (
-                            <p className="text-sm text-gray-600 mt-2 italic">{plant.notes}</p>
-                          )}
-                        </div>
-                        
-                        <div className="flex flex-col gap-2">
-                          {plantPrices[plant.name]?.hasPrice ? (
-                            <>
-                              <div className="text-xs text-gray-600 text-center mb-2">
-                                <p className="font-semibold text-green-700">ราคาเริ่มต้น:</p>
-                                <p className="text-lg font-bold text-green-600">
-                                  {plantPrices[plant.name].minPrice?.toLocaleString()} บาท
-                                </p>
-                              </div>
-                              <button
-                                onClick={() => handleSearchPlant(plant.name)}
-                                className="px-4 py-2 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center gap-2"
-                              >
-                                <Search className="w-4 h-4" />
-                                <span>ดูราคาทั้งหมด</span>
-                              </button>
-                            </>
-                          ) : (
-                            <>
-                              <div className="text-xs text-gray-500 text-center mb-2 px-2 py-1 bg-yellow-50 rounded border border-yellow-200">
-                                <p className="font-semibold text-yellow-700">⚠️ ยังไม่มีราคา</p>
-                                <p className="text-yellow-600">ในฐานข้อมูล</p>
-                              </div>
-                              <button
-                                onClick={() => handleSearchPlant(plant.name)}
-                                className="px-4 py-2 bg-gray-500 text-white font-semibold rounded-lg hover:bg-gray-600 transition-colors flex items-center justify-center gap-2"
-                              >
-                                <Search className="w-4 h-4" />
-                                <span>ค้นหาในระบบ</span>
-                              </button>
-                            </>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ) : (
-              <div className="bg-yellow-50 border-2 border-yellow-200 rounded-2xl p-6">
-                <div className="flex items-start gap-3">
-                  <AlertCircle className="w-6 h-6 text-yellow-600 flex-shrink-0 mt-0.5" />
-                  <div>
-                    <h3 className="font-bold text-yellow-800 mb-1">ไม่พบต้นไม้</h3>
-                    <p className="text-yellow-700">AI ไม่สามารถระบุต้นไม้ในรูปภาพนี้ได้ กรุณาลองอัปโหลดรูปภาพอื่น</p>
-                  </div>
                 </div>
               </div>
             )}

@@ -1029,15 +1029,44 @@ app.post('/api/ai/analyze-garden', async (req, res) => {
       })
     );
 
-    // 4. อัพเดทผลลัพธ์ด้วยข้อมูลที่ยืนยันแล้ว
-    const enhancedResult = {
+    // 4. ใช้คลังต้นไม้ยอดนิยมเป็น fallback สำหรับต้นไม้ที่ไม่ชัวร์
+    const popularPlantsService = require('./services/popularPlants');
+    const enhancedWithFallback = await Promise.all(finalPlants.map(async (plant) => {
+      // ถ้าชื่อต้นไม้ดูไม่ชัวร์ (มีคำว่า "คาดว่า", "น่าจะ", หรือชื่อแปลกๆ)
+      const name = plant.name || '';
+      const isUncertain = name.includes('คาดว่า') || name.includes('น่าจะ') || 
+                         name.includes('อาจเป็น') || name.includes('ไม่แน่ใจ') ||
+                         !/[ก-๙]/.test(name); // ไม่มีตัวอักษรไทย
+      
+      if (isUncertain && plant.category) {
+        // หาต้นไม้ที่ใกล้เคียงจากคลัง (ดึงจากฐานข้อมูล)
+        const similarPlant = await popularPlantsService.findSimilarPlant(name, plant.category);
+        if (similarPlant) {
+          console.log(`🔄 แทนที่ "${name}" ด้วย "${similarPlant}" จากคลังต้นไม้ยอดนิยม (ฐานข้อมูล)`);
+          return {
+            ...plant,
+            name: similarPlant,
+            fallbackUsed: true,
+            originalName: name
+          };
+        }
+      }
+      return plant;
+    }));
+
+    // 5. เรียงผลลัพธ์: ต้นไม้มาก่อน, วัสดุ/หิน/อื่นๆ ตามหลัง
+    const sortedResult = {
       ...analysisResult,
-      plants: finalPlants
+      plants: enhancedWithFallback, // ต้นไม้มาก่อน (อยู่แล้วใน plants array)
+      // วัสดุ/หิน/อื่นๆ ตามหลัง (pathways, otherElements, lawn)
+      pathways: analysisResult.pathways || [],
+      otherElements: analysisResult.otherElements || [],
+      lawn: analysisResult.lawn || null
     };
 
     res.json({
       success: true,
-      data: enhancedResult,
+      data: sortedResult,
       message: 'วิเคราะห์รูปภาพสำเร็จ'
     });
 

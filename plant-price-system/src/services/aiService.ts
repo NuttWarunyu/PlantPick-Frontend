@@ -78,6 +78,7 @@ export interface Position {
 
 export interface GardenPlant {
   name: string;
+  category?: string; // หมวดหมู่ต้นไม้ (focal_tree, columnar, round_shrub, etc.)
   scientificName?: string;
   englishName?: string; // ชื่อภาษาอังกฤษจาก PlantNet
   quantity: number;
@@ -94,6 +95,8 @@ export interface GardenPlant {
     confidence: number;
   }>;
   needsTranslation?: boolean;
+  fallbackUsed?: boolean; // ใช้ต้นไม้จากคลังยอดนิยมหรือไม่
+  originalName?: string; // ชื่อเดิมก่อนใช้ fallback
   notes?: string;
 }
 

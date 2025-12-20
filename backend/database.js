@@ -523,6 +523,126 @@ const db = {
       itemData.notes || null
     ]);
     return result.rows[0];
+  },
+
+  // ดึงต้นไม้ยอดนิยมตามหมวดหมู่ (เรียงตามจำนวน suppliers)
+  // category สามารถเป็น category หรือ plant_type ในฐานข้อมูล
+  async getPopularPlantsByCategory(category, limit = 10) {
+    const query = `
+      SELECT 
+        p.id,
+        p.name,
+        p.scientific_name as "scientificName",
+        p.category,
+        p.plant_type as "plantType",
+        COUNT(DISTINCT ps.supplier_id) as supplier_count,
+        COUNT(DISTINCT ps.id) as price_count,
+        MIN(ps.price) as min_price,
+        MAX(ps.price) as max_price,
+        AVG(ps.price) as avg_price
+      FROM plants p
+      LEFT JOIN plant_suppliers ps ON p.id = ps.plant_id
+      WHERE p.category = $1 OR p.plant_type = $1
+      GROUP BY p.id, p.name, p.scientific_name, p.category, p.plant_type
+      HAVING COUNT(DISTINCT ps.supplier_id) > 0
+      ORDER BY supplier_count DESC, price_count DESC, p.name ASC
+      LIMIT $2
+    `;
+    const result = await pool.query(query, [category, limit]);
+    return result.rows.map(row => ({
+      id: row.id,
+      name: row.name,
+      scientificName: row.scientific_name,
+      category: row.category,
+      plantType: row.plant_type,
+      popularity: {
+        supplierCount: parseInt(row.supplier_count) || 0,
+        priceCount: parseInt(row.price_count) || 0,
+        minPrice: parseFloat(row.min_price) || null,
+        maxPrice: parseFloat(row.max_price) || null,
+        avgPrice: parseFloat(row.avg_price) || null
+      }
+    }));
+  },
+
+  // ดึงต้นไม้ยอดนิยมตามหลายหมวดหมู่ (สำหรับ AI category mapping)
+  async getPopularPlantsByCategories(categories, limit = 10) {
+    if (!categories || categories.length === 0) return [];
+    
+    const placeholders = categories.map((_, i) => `$${i + 1}`).join(', ');
+    const query = `
+      SELECT 
+        p.id,
+        p.name,
+        p.scientific_name as "scientificName",
+        p.category,
+        p.plant_type as "plantType",
+        COUNT(DISTINCT ps.supplier_id) as supplier_count,
+        COUNT(DISTINCT ps.id) as price_count,
+        MIN(ps.price) as min_price,
+        MAX(ps.price) as max_price,
+        AVG(ps.price) as avg_price
+      FROM plants p
+      LEFT JOIN plant_suppliers ps ON p.id = ps.plant_id
+      WHERE p.category = ANY($1::text[]) OR p.plant_type = ANY($1::text[])
+      GROUP BY p.id, p.name, p.scientific_name, p.category, p.plant_type
+      HAVING COUNT(DISTINCT ps.supplier_id) > 0
+      ORDER BY supplier_count DESC, price_count DESC, p.name ASC
+      LIMIT $2
+    `;
+    const result = await pool.query(query, [categories, limit]);
+    return result.rows.map(row => ({
+      id: row.id,
+      name: row.name,
+      scientificName: row.scientific_name,
+      category: row.category,
+      plantType: row.plant_type,
+      popularity: {
+        supplierCount: parseInt(row.supplier_count) || 0,
+        priceCount: parseInt(row.price_count) || 0,
+        minPrice: parseFloat(row.min_price) || null,
+        maxPrice: parseFloat(row.max_price) || null,
+        avgPrice: parseFloat(row.avg_price) || null
+      }
+    }));
+  },
+
+  // ดึงต้นไม้ยอดนิยมทั้งหมด (เรียงตามจำนวน suppliers)
+  async getPopularPlants(limit = 50) {
+    const query = `
+      SELECT 
+        p.id,
+        p.name,
+        p.scientific_name as "scientificName",
+        p.category,
+        p.plant_type as "plantType",
+        COUNT(DISTINCT ps.supplier_id) as supplier_count,
+        COUNT(DISTINCT ps.id) as price_count,
+        MIN(ps.price) as min_price,
+        MAX(ps.price) as max_price,
+        AVG(ps.price) as avg_price
+      FROM plants p
+      LEFT JOIN plant_suppliers ps ON p.id = ps.plant_id
+      GROUP BY p.id, p.name, p.scientific_name, p.category, p.plant_type
+      HAVING COUNT(DISTINCT ps.supplier_id) > 0
+      ORDER BY supplier_count DESC, price_count DESC
+      LIMIT $1
+    `;
+    const result = await pool.query(query, [limit]);
+    return result.rows.map(row => ({
+      id: row.id,
+      name: row.name,
+      scientificName: row.scientific_name,
+      category: row.category,
+      plantType: row.plant_type,
+      popularity: {
+        supplierCount: parseInt(row.supplier_count) || 0,
+        priceCount: parseInt(row.price_count) || 0,
+        minPrice: parseFloat(row.min_price) || null,
+        maxPrice: parseFloat(row.max_price) || null,
+        avgPrice: parseFloat(row.avg_price) || null
+      }
+    }));
   }
 };
 
