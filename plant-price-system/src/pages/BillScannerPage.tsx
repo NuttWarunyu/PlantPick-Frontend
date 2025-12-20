@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { ArrowLeft, Camera, CheckCircle, AlertCircle, RefreshCw, Store, ChevronDown, ChevronUp } from 'lucide-react';
 import { aiService, BillScanResult } from '../services/aiService';
 
@@ -17,6 +17,7 @@ interface OtherSupplier {
 
 const BillScannerPage: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [image, setImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isScanning, setIsScanning] = useState(false);
@@ -29,6 +30,15 @@ const BillScannerPage: React.FC = () => {
   const [expandedPlants, setExpandedPlants] = useState<Record<string, boolean>>({});
   const [loadingOtherSuppliers, setLoadingOtherSuppliers] = useState<Record<string, boolean>>({});
   const [scannedSupplierId, setScannedSupplierId] = useState<string | null>(null);
+
+  // รับไฟล์จาก Dashboard ถ้ามี
+  useEffect(() => {
+    const imageFile = (location.state as any)?.imageFile;
+    if (imageFile && imageFile instanceof File) {
+      setImage(imageFile);
+      setImagePreview(URL.createObjectURL(imageFile));
+    }
+  }, [location.state]);
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
