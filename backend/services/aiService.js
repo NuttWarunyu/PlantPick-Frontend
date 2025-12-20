@@ -372,7 +372,7 @@ class AIService {
     try {
       // สร้าง AbortController สำหรับ timeout
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 วินาที timeout
+      const timeoutId = setTimeout(() => controller.abort(), 90000); // 90 วินาที timeout (เพิ่มจาก 60 เป็น 90 เพื่อรองรับ mobile)
 
       console.log('📡 กำลังส่ง request ไปยัง OpenAI API...');
       const apiStartTime = Date.now();

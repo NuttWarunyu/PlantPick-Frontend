@@ -119,6 +119,60 @@ export interface OtherElement {
 class AIService {
   // ⚠️ ไม่ใช้ API Key ใน Frontend อีกต่อไป - เรียกผ่าน Backend เพื่อความปลอดภัย
 
+  // บีบอัดรูปภาพสำหรับ mobile (ลดขนาดไฟล์เพื่อเพิ่มความเร็ว)
+  private async compressImage(file: File, maxWidth: number = 1920, quality: number = 0.85): Promise<File> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          let width = img.width;
+          let height = img.height;
+
+          // คำนวณขนาดใหม่ถ้าใหญ่เกิน maxWidth
+          if (width > maxWidth) {
+            height = (height * maxWidth) / width;
+            width = maxWidth;
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+
+          const ctx = canvas.getContext('2d');
+          if (!ctx) {
+            reject(new Error('ไม่สามารถสร้าง canvas context ได้'));
+            return;
+          }
+
+          ctx.drawImage(img, 0, 0, width, height);
+
+          // แปลงเป็น blob
+          canvas.toBlob(
+            (blob) => {
+              if (!blob) {
+                reject(new Error('ไม่สามารถบีบอัดรูปภาพได้'));
+                return;
+              }
+              // สร้าง File object ใหม่
+              const compressedFile = new File([blob], file.name, {
+                type: file.type || 'image/jpeg',
+                lastModified: Date.now(),
+              });
+              resolve(compressedFile);
+            },
+            file.type || 'image/jpeg',
+            quality
+          );
+        };
+        img.onerror = () => reject(new Error('ไม่สามารถโหลดรูปภาพได้'));
+        img.src = e.target?.result as string;
+      };
+      reader.onerror = () => reject(new Error('ไม่สามารถอ่านไฟล์ได้'));
+    });
+  }
+
   // แปลงไฟล์เป็น Base64
   private async fileToBase64(file: File): Promise<string> {
     return new Promise((resolve, reject) => {
@@ -135,14 +189,32 @@ class AIService {
   }
 
   // 🌿 วิเคราะห์รูปภาพสวน/บ้านเพื่อระบุต้นไม้ (เรียกผ่าน Backend เพื่อความปลอดภัย)
-  async analyzeGardenImage(imageFile: File): Promise<GardenAnalysisResult> {
+  async analyzeGardenImage(imageFile: File, retryCount: number = 0): Promise<GardenAnalysisResult> {
+    const MAX_RETRIES = 2; // retry สูงสุด 2 ครั้ง
+    
     try {
+      // บีบอัดรูปภาพสำหรับ mobile (ลดขนาดไฟล์เพื่อเพิ่มความเร็ว)
+      let processedFile = imageFile;
+      if (imageFile.size > 2 * 1024 * 1024) { // ถ้าไฟล์ใหญ่กว่า 2MB ให้บีบอัด
+        try {
+          processedFile = await this.compressImage(imageFile, 1920, 0.85);
+          console.log(`📦 บีบอัดรูปภาพ: ${(imageFile.size / 1024 / 1024).toFixed(2)}MB → ${(processedFile.size / 1024 / 1024).toFixed(2)}MB`);
+        } catch (compressError) {
+          console.warn('⚠️ ไม่สามารถบีบอัดรูปภาพได้ ใช้รูปเดิม:', compressError);
+          processedFile = imageFile;
+        }
+      }
+      
       // แปลงไฟล์เป็น Base64
-      const base64Image = await this.fileToBase64(imageFile);
+      const base64Image = await this.fileToBase64(processedFile);
       
       // เรียก Backend API แทนการเรียก OpenAI โดยตรง (ปลอดภัยกว่า - API Key อยู่บน Backend)
       const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:3002';
       const backendUrl = apiUrl.replace(/\/api$/, ''); // ลบ /api ถ้ามี
+      
+      // สร้าง AbortController สำหรับ timeout (90 วินาที - ให้เวลา backend ทำงาน)
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 90000); // 90 วินาที
       
       const response = await fetch(`${backendUrl}/api/ai/analyze-garden`, {
         method: 'POST',
@@ -151,8 +223,12 @@ class AIService {
         },
         body: JSON.stringify({
           base64Image: base64Image
-        })
+        }),
+        signal: controller.signal // เพิ่ม signal สำหรับ timeout
       });
+      
+      // Clear timeout เมื่อ response กลับมาแล้ว
+      clearTimeout(timeoutId);
 
       // ตรวจสอบ HTTP status
       if (!response.ok) {
@@ -180,19 +256,55 @@ class AIService {
 
     } catch (error: any) {
       console.error('Error analyzing garden image with AI:', error);
+      
+      // ตรวจสอบว่าเป็น timeout error หรือไม่
+      if (error.name === 'AbortError' || error.message?.includes('aborted')) {
+        throw new Error('Request timeout: การวิเคราะห์ใช้เวลานานเกินไป (เกิน 90 วินาที). กรุณาลองใหม่อีกครั้ง หรือเลือกรูปภาพที่มีขนาดเล็กลง');
+      }
+      
+      // Retry mechanism สำหรับ network errors
+      if (retryCount < MAX_RETRIES && (
+        error.message?.includes('network') || 
+        error.message?.includes('fetch') ||
+        error.message?.includes('Failed to fetch') ||
+        error.message?.includes('NetworkError')
+      )) {
+        console.log(`🔄 Retry ${retryCount + 1}/${MAX_RETRIES}...`);
+        await new Promise(resolve => setTimeout(resolve, 1000 * (retryCount + 1))); // Exponential backoff
+        return this.analyzeGardenImage(imageFile, retryCount + 1);
+      }
+      
       throw error;
     }
   }
 
   // สแกนใบเสร็จด้วย ChatGPT Vision (เรียกผ่าน Backend เพื่อความปลอดภัย)
-  async scanBill(imageFile: File): Promise<BillScanResult> {
+  async scanBill(imageFile: File, retryCount: number = 0): Promise<BillScanResult> {
+    const MAX_RETRIES = 2; // retry สูงสุด 2 ครั้ง
+    
     try {
+      // บีบอัดรูปภาพสำหรับ mobile (ลดขนาดไฟล์เพื่อเพิ่มความเร็ว)
+      let processedFile = imageFile;
+      if (imageFile.size > 2 * 1024 * 1024) { // ถ้าไฟล์ใหญ่กว่า 2MB ให้บีบอัด
+        try {
+          processedFile = await this.compressImage(imageFile, 1920, 0.85);
+          console.log(`📦 บีบอัดรูปภาพ: ${(imageFile.size / 1024 / 1024).toFixed(2)}MB → ${(processedFile.size / 1024 / 1024).toFixed(2)}MB`);
+        } catch (compressError) {
+          console.warn('⚠️ ไม่สามารถบีบอัดรูปภาพได้ ใช้รูปเดิม:', compressError);
+          processedFile = imageFile;
+        }
+      }
+      
       // แปลงไฟล์เป็น Base64
-      const base64Image = await this.fileToBase64(imageFile);
+      const base64Image = await this.fileToBase64(processedFile);
       
       // เรียก Backend API แทนการเรียก OpenAI โดยตรง (ปลอดภัยกว่า - API Key อยู่บน Backend)
       const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:3002';
       const backendUrl = apiUrl.replace(/\/api$/, ''); // ลบ /api ถ้ามี
+      
+      // สร้าง AbortController สำหรับ timeout (60 วินาที)
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 วินาที
       
       const response = await fetch(`${backendUrl}/api/ai/scan-bill`, {
         method: 'POST',
@@ -201,8 +313,12 @@ class AIService {
         },
         body: JSON.stringify({
           base64Image: base64Image
-        })
+        }),
+        signal: controller.signal // เพิ่ม signal สำหรับ timeout
       });
+      
+      // Clear timeout เมื่อ response กลับมาแล้ว
+      clearTimeout(timeoutId);
 
       // ตรวจสอบ HTTP status
       if (!response.ok) {
@@ -228,13 +344,31 @@ class AIService {
         throw new Error(data.message || 'ไม่สามารถสแกนใบเสร็จได้');
       }
 
-    } catch (error: any) {
-      console.error('Error scanning bill with AI:', error);
-      // ⚠️ ไม่ใช้ Mock Data อีกต่อไป - throw error ต่อให้ UI จัดการ
-      // ให้ UI แสดง error message ที่ชัดเจนแทน
-      throw error;
+      } catch (error: any) {
+        console.error('Error scanning bill with AI:', error);
+        
+        // ตรวจสอบว่าเป็น timeout error หรือไม่
+        if (error.name === 'AbortError' || error.message?.includes('aborted')) {
+          throw new Error('Request timeout: การสแกนใช้เวลานานเกินไป (เกิน 60 วินาที). กรุณาลองใหม่อีกครั้ง หรือเลือกรูปภาพที่มีขนาดเล็กลง');
+        }
+        
+        // Retry mechanism สำหรับ network errors
+        if (retryCount < MAX_RETRIES && (
+          error.message?.includes('network') || 
+          error.message?.includes('fetch') ||
+          error.message?.includes('Failed to fetch') ||
+          error.message?.includes('NetworkError')
+        )) {
+          console.log(`🔄 Retry ${retryCount + 1}/${MAX_RETRIES}...`);
+          await new Promise(resolve => setTimeout(resolve, 1000 * (retryCount + 1))); // Exponential backoff
+          return this.scanBill(imageFile, retryCount + 1);
+        }
+        
+        // ⚠️ ไม่ใช้ Mock Data อีกต่อไป - throw error ต่อให้ UI จัดการ
+        // ให้ UI แสดง error message ที่ชัดเจนแทน
+        throw error;
+      }
     }
-  }
 
   // วิเคราะห์ราคาด้วย AI (ใช้ Mock Data ชั่วคราว - สามารถปรับให้เรียกผ่าน Backend ทีหลัง)
   async analyzePrice(plantId: string, plantName: string, currentPrice: number, historicalPrices: number[]): Promise<PriceAnalysis> {
