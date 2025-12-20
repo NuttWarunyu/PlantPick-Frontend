@@ -8,7 +8,6 @@ import {
   Loader2,
   CheckCircle2,
   AlertCircle,
-  Search,
   Leaf,
   Circle,
   Square,
@@ -156,10 +155,6 @@ const GardenAnalysisPage: React.FC = () => {
     } catch (err) {
       console.error('Error loading plant prices:', err);
     }
-  };
-
-  const handleSearchPlant = (plantName: string) => {
-    navigate(`/search?q=${encodeURIComponent(plantName)}`);
   };
 
   return (
