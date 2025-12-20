@@ -25,6 +25,7 @@ const GardenAnalysisPage: React.FC = () => {
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analysisProgress, setAnalysisProgress] = useState<string>('');
   const [analysisResult, setAnalysisResult] = useState<GardenAnalysisResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [plantPrices, setPlantPrices] = useState<Record<string, { hasPrice: boolean; minPrice?: number; suppliers?: any[] }>>({});
@@ -78,10 +79,18 @@ const GardenAnalysisPage: React.FC = () => {
     setError(null);
     setAnalysisResult(null);
     setPlantPrices({});
+    setAnalysisProgress('กำลังเตรียมรูปภาพ...');
 
     try {
+      // Simulate progress steps
+      setTimeout(() => setAnalysisProgress('กำลังส่งรูปภาพไปยัง AI...'), 500);
+      setTimeout(() => setAnalysisProgress('กำลังวิเคราะห์ต้นไม้...'), 1500);
+      setTimeout(() => setAnalysisProgress('กำลังวิเคราะห์องค์ประกอบสวน...'), 3000);
+      setTimeout(() => setAnalysisProgress('กำลังประมวลผลผลลัพธ์...'), 5000);
+
       // 1. เรียก AI Service เพื่อวิเคราะห์รูปภาพก่อน
       const result = await aiService.analyzeGardenImage(selectedImage);
+      setAnalysisProgress('กำลังค้นหาราคาต้นไม้...');
       setAnalysisResult(result);
 
       // 2. ค้นหาราคาต้นไม้ที่พบจากฐานข้อมูล
@@ -89,11 +98,17 @@ const GardenAnalysisPage: React.FC = () => {
       if (result.plants && result.plants.length > 0) {
         await loadPlantPrices(result.plants);
       }
+      
+      setAnalysisProgress('เสร็จสิ้น!');
+      setTimeout(() => {
+        setIsAnalyzing(false);
+        setAnalysisProgress('');
+      }, 500);
     } catch (err: any) {
       console.error('Error analyzing garden:', err);
       setError(err.message || 'เกิดข้อผิดพลาดในการวิเคราะห์รูปภาพ');
-    } finally {
       setIsAnalyzing(false);
+      setAnalysisProgress('');
     }
   };
 
@@ -249,6 +264,76 @@ const GardenAnalysisPage: React.FC = () => {
                 </div>
               </div>
             )}
+          </div>
+        )}
+
+        {/* Loading Animation */}
+        {isAnalyzing && (
+          <div className="bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50 rounded-2xl shadow-2xl p-8 mb-8 border-2 border-green-200 relative overflow-hidden">
+            {/* Animated Background */}
+            <div className="absolute inset-0 opacity-20">
+              <div className="absolute top-0 left-0 w-72 h-72 bg-green-400 rounded-full mix-blend-multiply filter blur-xl animate-blob"></div>
+              <div className="absolute top-0 right-0 w-72 h-72 bg-emerald-400 rounded-full mix-blend-multiply filter blur-xl animate-blob animation-delay-2000"></div>
+              <div className="absolute bottom-0 left-1/2 w-72 h-72 bg-teal-400 rounded-full mix-blend-multiply filter blur-xl animate-blob animation-delay-4000"></div>
+            </div>
+
+            <div className="relative z-10">
+              {/* Main Loading Content */}
+              <div className="flex flex-col items-center justify-center space-y-6">
+                {/* Animated Icon */}
+                <div className="relative">
+                  <div className="w-24 h-24 rounded-full bg-gradient-to-r from-green-400 to-emerald-500 flex items-center justify-center shadow-lg animate-pulse">
+                    <Leaf className="w-12 h-12 text-white animate-bounce" />
+                  </div>
+                  {/* Rotating Rings */}
+                  <div className="absolute inset-0 border-4 border-green-300 rounded-full animate-spin-slow opacity-50"></div>
+                  <div className="absolute inset-2 border-4 border-emerald-300 rounded-full animate-spin-slow-reverse opacity-30"></div>
+                </div>
+
+                {/* Progress Text */}
+                <div className="text-center space-y-2">
+                  <h3 className="text-2xl font-bold text-gray-800 animate-pulse">
+                    {analysisProgress || 'กำลังวิเคราะห์...'}
+                  </h3>
+                  <p className="text-gray-600">กรุณารอสักครู่ ระบบกำลังวิเคราะห์รูปภาพสวนของคุณ</p>
+                </div>
+
+                {/* Progress Steps */}
+                <div className="w-full max-w-md space-y-3">
+                  <div className="flex items-center gap-3 text-sm">
+                    <div className={`w-2 h-2 rounded-full ${analysisProgress.includes('เตรียม') ? 'bg-green-500 animate-pulse' : 'bg-gray-300'}`}></div>
+                    <span className={analysisProgress.includes('เตรียม') ? 'text-green-700 font-semibold' : 'text-gray-500'}>เตรียมรูปภาพ</span>
+                  </div>
+                  <div className="flex items-center gap-3 text-sm">
+                    <div className={`w-2 h-2 rounded-full ${analysisProgress.includes('ส่ง') ? 'bg-green-500 animate-pulse' : 'bg-gray-300'}`}></div>
+                    <span className={analysisProgress.includes('ส่ง') ? 'text-green-700 font-semibold' : 'text-gray-500'}>ส่งรูปภาพไปยัง AI</span>
+                  </div>
+                  <div className="flex items-center gap-3 text-sm">
+                    <div className={`w-2 h-2 rounded-full ${analysisProgress.includes('วิเคราะห์ต้นไม้') ? 'bg-green-500 animate-pulse' : 'bg-gray-300'}`}></div>
+                    <span className={analysisProgress.includes('วิเคราะห์ต้นไม้') ? 'text-green-700 font-semibold' : 'text-gray-500'}>วิเคราะห์ต้นไม้</span>
+                  </div>
+                  <div className="flex items-center gap-3 text-sm">
+                    <div className={`w-2 h-2 rounded-full ${analysisProgress.includes('วิเคราะห์องค์ประกอบ') ? 'bg-green-500 animate-pulse' : 'bg-gray-300'}`}></div>
+                    <span className={analysisProgress.includes('วิเคราะห์องค์ประกอบ') ? 'text-green-700 font-semibold' : 'text-gray-500'}>วิเคราะห์องค์ประกอบสวน</span>
+                  </div>
+                  <div className="flex items-center gap-3 text-sm">
+                    <div className={`w-2 h-2 rounded-full ${analysisProgress.includes('ประมวลผล') ? 'bg-green-500 animate-pulse' : 'bg-gray-300'}`}></div>
+                    <span className={analysisProgress.includes('ประมวลผล') ? 'text-green-700 font-semibold' : 'text-gray-500'}>ประมวลผลผลลัพธ์</span>
+                  </div>
+                  <div className="flex items-center gap-3 text-sm">
+                    <div className={`w-2 h-2 rounded-full ${analysisProgress.includes('ค้นหา') ? 'bg-green-500 animate-pulse' : 'bg-gray-300'}`}></div>
+                    <span className={analysisProgress.includes('ค้นหา') ? 'text-green-700 font-semibold' : 'text-gray-500'}>ค้นหาราคาต้นไม้</span>
+                  </div>
+                </div>
+
+                {/* Progress Bar */}
+                <div className="w-full max-w-md">
+                  <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                    <div className="h-full bg-gradient-to-r from-green-400 via-emerald-500 to-teal-500 rounded-full animate-progress"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         )}
 

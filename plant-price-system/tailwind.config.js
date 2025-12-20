@@ -30,7 +30,38 @@ module.exports = {
           800: '#065f46',
           900: '#064e3b',
         }
-      }
+      },
+      animation: {
+        'blob': 'blob 7s infinite',
+        'spin-slow': 'spin 3s linear infinite',
+        'spin-slow-reverse': 'spin-reverse 3s linear infinite',
+        'progress': 'progress 2s ease-in-out infinite',
+      },
+      keyframes: {
+        blob: {
+          '0%': {
+            transform: 'translate(0px, 0px) scale(1)',
+          },
+          '33%': {
+            transform: 'translate(30px, -50px) scale(1.1)',
+          },
+          '66%': {
+            transform: 'translate(-20px, 20px) scale(0.9)',
+          },
+          '100%': {
+            transform: 'translate(0px, 0px) scale(1)',
+          },
+        },
+        'spin-reverse': {
+          '0%': { transform: 'rotate(0deg)' },
+          '100%': { transform: 'rotate(-360deg)' },
+        },
+        progress: {
+          '0%': { width: '0%' },
+          '50%': { width: '70%' },
+          '100%': { width: '100%' },
+        },
+      },
     },
   },
   plugins: [
