@@ -1,44 +1,13 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   Upload,
   Image
 } from 'lucide-react';
-import { apiService } from '../services/api';
 
 const DashboardPage: React.FC = () => {
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  // ไม่ต้องรอ statistics - แสดง UI ทันที
-  const [statistics, setStatistics] = useState({
-    totalPlants: 0,
-    totalSuppliers: 0
-  });
-  const [isLoadingStats, setIsLoadingStats] = useState(true);
-
-  useEffect(() => {
-    // โหลด statistics แบบ background (ไม่บล็อก UI)
-    loadStatistics();
-  }, []);
-
-  const loadStatistics = async () => {
-    try {
-      setIsLoadingStats(true);
-      const statisticsResponse = await apiService.getStatistics();
-      
-      if (statisticsResponse.success) {
-        setStatistics({
-          totalPlants: statisticsResponse.data.totalPlants,
-          totalSuppliers: statisticsResponse.data.totalSuppliers
-        });
-      }
-    } catch (error) {
-      console.error('Error loading statistics:', error);
-      // ถ้า error ก็ไม่เป็นไร - แสดง 0 ไปก่อน
-    } finally {
-      setIsLoadingStats(false);
-    }
-  };
 
   const handleImageUpload = () => {
     fileInputRef.current?.click();
@@ -64,99 +33,52 @@ const DashboardPage: React.FC = () => {
     }
   };
 
-  // ไม่ต้องรอ loading - แสดง UI ทันที
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 via-blue-50 to-purple-50 pb-8">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
-        {/* Header */}
-        <div className="mb-12 text-center">
-          <div className="flex items-center justify-center gap-3 mb-4">
-            <div className="text-5xl sm:text-6xl animate-bounce">🌱</div>
-            <div>
-              <h1 className="text-4xl sm:text-5xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
-                PlantPick
-              </h1>
-              <p className="text-lg sm:text-xl text-gray-600 mt-3 font-medium">
-                Smart Analysis, Best Prices
-              </p>
-            </div>
-          </div>
+    <div className="min-h-screen bg-gradient-to-br from-green-50 via-blue-50 to-purple-50 flex items-center justify-center px-4 sm:px-6 py-8">
+      <div className="max-w-2xl w-full">
+        {/* Header - เล็กลงและเรียบง่าย */}
+        <div className="mb-8 text-center">
+          <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent mb-2">
+            PlantPick
+          </h1>
+          <p className="text-sm sm:text-base text-gray-600">
+            Smart Analysis, Best Prices
+          </p>
         </div>
 
-        {/* Statistics Cards - Simple */}
-        <div className="grid grid-cols-2 gap-4 sm:gap-6 mb-12">
-          <div className="bg-white rounded-2xl shadow-lg p-5 sm:p-6 border-2 border-green-100">
-            <div className="flex flex-col items-center text-center">
-              <div className="w-14 h-14 sm:w-16 sm:h-16 bg-gradient-to-br from-green-400 to-emerald-500 rounded-2xl flex items-center justify-center mb-3 shadow-md">
-                <span className="text-2xl">🌿</span>
-              </div>
-              <p className="text-xs sm:text-sm font-medium text-gray-600 mb-1">ต้นไม้ทั้งหมด</p>
-              {isLoadingStats ? (
-                <div className="animate-pulse">
-                  <div className="h-8 sm:h-10 w-20 sm:w-24 bg-gray-200 rounded-lg mx-auto"></div>
-                </div>
-              ) : (
-                <p className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
-                  {statistics.totalPlants.toLocaleString()}
-                </p>
-              )}
+        {/* Main Upload Button - โฟกัสหลัก */}
+        <div className="bg-white rounded-3xl shadow-xl p-8 sm:p-12 border border-green-100">
+          <div className="text-center">
+            <div className="w-20 h-20 sm:w-24 sm:h-24 bg-gradient-to-br from-green-400 to-emerald-500 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-md">
+              <Image className="w-10 h-10 sm:w-12 sm:h-12 text-white" />
             </div>
-          </div>
-          
-          <div className="bg-white rounded-2xl shadow-lg p-5 sm:p-6 border-2 border-blue-100">
-            <div className="flex flex-col items-center text-center">
-              <div className="w-14 h-14 sm:w-16 sm:h-16 bg-gradient-to-br from-blue-400 to-cyan-500 rounded-2xl flex items-center justify-center mb-3 shadow-md">
-                <span className="text-2xl">🏪</span>
-              </div>
-              <p className="text-xs sm:text-sm font-medium text-gray-600 mb-1">ร้านค้า</p>
-              {isLoadingStats ? (
-                <div className="animate-pulse">
-                  <div className="h-8 sm:h-10 w-16 sm:w-20 bg-gray-200 rounded-lg mx-auto"></div>
-                </div>
-              ) : (
-                <p className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
-                  {statistics.totalSuppliers.toLocaleString()}
-                </p>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Main Upload Button */}
-        <div className="mb-8">
-          <div className="bg-white rounded-3xl shadow-2xl p-8 sm:p-12 border-2 border-green-200">
-            <div className="text-center">
-              <div className="w-24 h-24 sm:w-32 sm:h-32 bg-gradient-to-br from-green-400 to-emerald-500 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-lg">
-                <Image className="w-12 h-12 sm:w-16 sm:h-16 text-white" />
-              </div>
-              
-              <h3 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-4">
-                อัปโหลดรูปหน้าบ้านของคุณ
-              </h3>
-              <p className="text-base sm:text-lg text-gray-600 mb-8 max-w-md mx-auto">
-                AI จะวิเคราะห์พื้นที่และออกแบบสวนให้คุณ พร้อมเสนอราคาจากร้านค้าจริง
-              </p>
-              
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                onChange={handleFileSelect}
-                className="hidden"
-              />
-              
-              <button
-                onClick={handleImageUpload}
-                className="group relative inline-flex items-center justify-center px-8 py-4 sm:px-12 sm:py-5 bg-gradient-to-r from-green-500 to-emerald-600 text-white text-lg sm:text-xl font-bold rounded-2xl shadow-lg hover:shadow-2xl transform hover:scale-105 transition-all duration-300"
-              >
-                <Upload className="w-6 h-6 sm:w-7 sm:h-7 mr-3 group-hover:animate-bounce" />
-                <span>อัปโหลดรูปภาพ</span>
-              </button>
-              
-              <p className="text-sm text-gray-500 mt-6">
-                รองรับไฟล์ JPG, PNG ขนาดไม่เกิน 10MB
-              </p>
-            </div>
+            
+            <h3 className="text-xl sm:text-2xl font-bold text-gray-800 mb-3">
+              อัปโหลดรูปหน้าบ้านของคุณ
+            </h3>
+            <p className="text-sm sm:text-base text-gray-600 mb-8 max-w-md mx-auto">
+              AI จะวิเคราะห์พื้นที่และออกแบบสวนให้คุณ พร้อมเสนอราคาจากร้านค้าจริง
+            </p>
+            
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleFileSelect}
+              className="hidden"
+            />
+            
+            <button
+              onClick={handleImageUpload}
+              className="group relative inline-flex items-center justify-center px-8 py-4 sm:px-12 sm:py-5 bg-gradient-to-r from-green-500 to-emerald-600 text-white text-lg sm:text-xl font-bold rounded-2xl shadow-lg hover:shadow-2xl transform hover:scale-105 transition-all duration-300"
+            >
+              <Upload className="w-6 h-6 sm:w-7 sm:h-7 mr-3 group-hover:animate-bounce" />
+              <span>อัปโหลดรูปภาพ</span>
+            </button>
+            
+            <p className="text-xs sm:text-sm text-gray-500 mt-6">
+              รองรับไฟล์ JPG, PNG ขนาดไม่เกิน 10MB
+            </p>
           </div>
         </div>
       </div>
