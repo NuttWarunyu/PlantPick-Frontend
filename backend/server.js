@@ -837,6 +837,13 @@ app.post('/api/ai/scan-bill', async (req, res) => {
 
 // 🌿 AI Garden Analysis - วิเคราะห์รูปภาพสวน/บ้านเพื่อระบุต้นไม้
 app.post('/api/ai/analyze-garden', async (req, res) => {
+  // ตรวจสอบว่า request ถูก abort หรือไม่
+  req.on('close', () => {
+    if (!res.headersSent) {
+      console.log('⚠️ Client closed connection before response');
+    }
+  });
+
   try {
     const { base64Image } = req.body;
 
@@ -845,6 +852,15 @@ app.post('/api/ai/analyze-garden', async (req, res) => {
         success: false,
         data: null,
         message: 'ไม่พบรูปภาพที่ส่งมา'
+      });
+    }
+
+    // ตรวจสอบว่า request ยัง active อยู่หรือไม่
+    if (req.aborted) {
+      return res.status(499).json({
+        success: false,
+        data: null,
+        message: 'Request was cancelled'
       });
     }
 
@@ -1028,6 +1044,25 @@ app.post('/api/ai/analyze-garden', async (req, res) => {
   } catch (error) {
     console.error('❌ AI Garden Analysis Error:', error);
 
+    // ตรวจสอบว่า request ถูก abort หรือไม่
+    if (req.aborted || error.message?.includes('aborted') || error.name === 'AbortError') {
+      // ถ้า request ถูก abort แล้ว ไม่ต้องส่ง response
+      if (!res.headersSent) {
+        return res.status(499).json({
+          success: false,
+          data: null,
+          message: 'Request was cancelled by client'
+        });
+      }
+      return;
+    }
+
+    // ตรวจสอบว่า response ถูกส่งไปแล้วหรือยัง
+    if (res.headersSent) {
+      console.error('⚠️ Response already sent, cannot send error response');
+      return;
+    }
+
     // ตรวจสอบ error type เพื่อให้ error message ชัดเจนขึ้น
     let errorMessage = 'เกิดข้อผิดพลาดในการวิเคราะห์รูปภาพ';
 
@@ -1038,8 +1073,8 @@ app.post('/api/ai/analyze-garden', async (req, res) => {
         errorMessage = '⚠️ OpenAI API Key ไม่ถูกต้อง. กรุณาตรวจสอบ API Key ใน Railway';
       } else if (error.message.includes('429') || error.message.includes('rate limit')) {
         errorMessage = '⚠️ เกิน Rate Limit ของ OpenAI API. กรุณารอสักครู่แล้วลองใหม่';
-      } else if (error.message.includes('timeout')) {
-        errorMessage = '⚠️ การเชื่อมต่อกับ OpenAI API หมดเวลา. กรุณาลองใหม่อีกครั้ง';
+      } else if (error.message.includes('timeout') || error.message.includes('Request timeout')) {
+        errorMessage = '⚠️ การวิเคราะห์ใช้เวลานานเกินไป (เกิน 60 วินาที). กรุณาลองใหม่อีกครั้ง';
       } else if (error.message.includes('PayloadTooLargeError') || error.message.includes('entity too large')) {
         errorMessage = '⚠️ รูปภาพมีขนาดใหญ่เกินไป. กรุณาลองลดขนาดรูปหรืออัพโหลดรูปที่มีขนาดเล็กกว่า (แนะนำ: < 5MB)';
       } else {
