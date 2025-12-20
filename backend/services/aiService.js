@@ -547,9 +547,9 @@ class AIService {
               ]
             }
           ],
-          max_tokens: 1200, // ลดจาก 1500 เป็น 1200 เพื่อเพิ่มความเร็วในการตอบกลับ
+          max_tokens: 1000, // ลดจาก 1200 เป็น 1000 เพื่อเพิ่มความเร็ว (ยังคงเพียงพอสำหรับข้อมูลต้นไม้ 6-10 ชนิด)
           temperature: 0.1,
-          response_format: { type: "json_object" } // บังคับให้ตอบเป็น JSON เท่านั้น
+          response_format: { type: "json_object" } // บังคับให้ตอบเป็น JSON เท่านั้น (ช่วยให้เร็วขึ้น)
         })
       }).catch((fetchError) => {
         // Clear timeout เมื่อเกิด error

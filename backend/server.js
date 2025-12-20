@@ -971,12 +971,17 @@ app.post('/api/ai/analyze-garden', async (req, res) => {
       }));
     }
 
-    // 3. แปลงชื่อเป็นภาษาไทยถ้ายังไม่มี (ใช้ GPT-4o)
+    // 3. แปลงชื่อเป็นภาษาไทยถ้ายังไม่มี (ใช้ GPT-4o) - ข้ามถ้า GPT-4o ตอบชื่อไทยมาแล้ว
     const finalPlants = await Promise.all(
       enhancedPlants.map(async (plant) => {
         // ถ้ายังไม่มีชื่อไทย (ตรวจสอบว่าชื่อปัจจุบันไม่มีตัวอักษรไทย) และมีชื่อวิทยาศาสตร์/ภาษาอังกฤษ
         const hasThaiChars = /[ก-๙]/.test(plant.name);
         const needsTranslation = plant.needsTranslation && !hasThaiChars && (plant.scientificName || plant.englishName);
+        
+        // ข้าม translation ถ้า GPT-4o ตอบชื่อไทยมาแล้ว (ประหยัดเวลา)
+        if (!needsTranslation) {
+          return plant;
+        }
         
         if (needsTranslation) {
           try {
