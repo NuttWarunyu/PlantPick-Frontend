@@ -15,6 +15,12 @@ require('dotenv').config();
 const app = express();
 const PORT = process.env.PORT || 3002;
 
+// เพิ่ม server timeout สำหรับ long-running requests (120 วินาที)
+const server = require('http').createServer(app);
+server.timeout = 120000; // 120 วินาที
+server.keepAliveTimeout = 120000; // 120 วินาที
+server.headersTimeout = 120000; // 120 วินาที
+
 // Middleware
 app.use(helmet());
 app.use(cors({
@@ -25,6 +31,13 @@ app.use(morgan('combined'));
 // เพิ่ม body size limit สำหรับรองรับ base64 image (50MB)
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+
+// เพิ่ม keep-alive headers สำหรับ long-running requests
+app.use((req, res, next) => {
+  res.setHeader('Connection', 'keep-alive');
+  res.setHeader('Keep-Alive', 'timeout=120');
+  next();
+});
 
 // Configure multer for file uploads
 const upload = multer({
@@ -837,11 +850,26 @@ app.post('/api/ai/scan-bill', async (req, res) => {
 
 // 🌿 AI Garden Analysis - วิเคราะห์รูปภาพสวน/บ้านเพื่อระบุต้นไม้
 app.post('/api/ai/analyze-garden', async (req, res) => {
+  // ตั้งค่า timeout สำหรับ request นี้ (120 วินาที)
+  req.setTimeout(120000); // 120 วินาที
+  
   // ตรวจสอบว่า request ถูก abort หรือไม่
   req.on('close', () => {
     if (!res.headersSent) {
       console.log('⚠️ Client closed connection before response');
     }
+  });
+
+  // ส่ง keep-alive response ทุก 30 วินาทีเพื่อป้องกัน Railway timeout
+  const keepAliveInterval = setInterval(() => {
+    if (!res.headersSent) {
+      res.write(' '); // ส่ง whitespace เพื่อ keep connection alive
+    }
+  }, 30000); // ทุก 30 วินาที
+
+  // Clear interval เมื่อ response ส่งเสร็จ
+  res.on('finish', () => {
+    clearInterval(keepAliveInterval);
   });
 
   try {
@@ -1105,6 +1133,9 @@ app.post('/api/ai/analyze-garden', async (req, res) => {
       lawn: analysisResult.lawn || null
     };
 
+    // Clear keep-alive interval ก่อนส่ง response
+    clearInterval(keepAliveInterval);
+
     res.json({
       success: true,
       data: sortedResult,
@@ -1112,6 +1143,9 @@ app.post('/api/ai/analyze-garden', async (req, res) => {
     });
 
   } catch (error) {
+    // Clear keep-alive interval เมื่อเกิด error
+    clearInterval(keepAliveInterval);
+    
     console.error('❌ AI Garden Analysis Error:', error);
 
     // ตรวจสอบว่า request ถูก abort หรือไม่
@@ -3182,10 +3216,11 @@ async function initializeDatabase() {
 }
 
 // Start server
-app.listen(PORT, async () => {
+server.listen(PORT, async () => {
   console.log(`🌱 Plant Price API Server running on port ${PORT}`);
   console.log(`📊 Health check: http://localhost:${PORT}/api/health`);
   console.log(`🌿 Plants API: http://localhost:${PORT}/api/plants`);
+  console.log(`⏱️ Server timeout: ${server.timeout}ms (${server.timeout / 1000}s)`);
 
   // Initialize database tables
   await initializeDatabase();
