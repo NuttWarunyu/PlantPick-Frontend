@@ -119,6 +119,65 @@ export interface OtherElement {
 class AIService {
   // ⚠️ ไม่ใช้ API Key ใน Frontend อีกต่อไป - เรียกผ่าน Backend เพื่อความปลอดภัย
 
+  // แปลง HEIF/HEIC เป็น JPEG/PNG (OpenAI ไม่รองรับ HEIF)
+  private async convertHeifToJpeg(file: File): Promise<File> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = (e) => {
+        const img = new Image();
+        
+        // ตั้งค่า timeout สำหรับการโหลดรูปภาพ (10 วินาที)
+        const timeoutId = setTimeout(() => {
+          reject(new Error('การแปลงรูปภาพใช้เวลานานเกินไป - Browser อาจไม่รองรับ HEIF/HEIC'));
+        }, 10000);
+        
+        img.onload = () => {
+          clearTimeout(timeoutId);
+          
+          const canvas = document.createElement('canvas');
+          canvas.width = img.width;
+          canvas.height = img.height;
+
+          const ctx = canvas.getContext('2d');
+          if (!ctx) {
+            reject(new Error('ไม่สามารถสร้าง canvas context ได้'));
+            return;
+          }
+
+          ctx.drawImage(img, 0, 0);
+
+          // แปลงเป็น JPEG (OpenAI รองรับ)
+          canvas.toBlob(
+            (blob) => {
+              if (!blob) {
+                reject(new Error('ไม่สามารถแปลงรูปภาพได้'));
+                return;
+              }
+              // สร้าง File object ใหม่เป็น JPEG
+              const jpegFile = new File([blob], file.name.replace(/\.(heic|heif)$/i, '.jpg'), {
+                type: 'image/jpeg',
+                lastModified: Date.now(),
+              });
+              console.log(`🔄 แปลง HEIF/HEIC เป็น JPEG: ${file.name} → ${jpegFile.name} (${(blob.size / 1024 / 1024).toFixed(2)}MB)`);
+              resolve(jpegFile);
+            },
+            'image/jpeg',
+            0.92 // quality สูงเพื่อรักษาคุณภาพ
+          );
+        };
+        
+        img.onerror = () => {
+          clearTimeout(timeoutId);
+          reject(new Error('Browser ไม่รองรับการแสดงผล HEIF/HEIC - กรุณาใช้ Safari บน iOS/macOS หรือแปลงรูปภาพเป็น JPEG/PNG ก่อนอัปโหลด'));
+        };
+        
+        img.src = e.target?.result as string;
+      };
+      reader.onerror = () => reject(new Error('ไม่สามารถอ่านไฟล์ได้'));
+    });
+  }
+
   // บีบอัดรูปภาพสำหรับ mobile (ลดขนาดไฟล์เพื่อเพิ่มความเร็ว)
   private async compressImage(file: File, maxWidth: number = 1920, quality: number = 0.85): Promise<File> {
     return new Promise((resolve, reject) => {
@@ -193,15 +252,30 @@ class AIService {
     const MAX_RETRIES = 2; // retry สูงสุด 2 ครั้ง
     
     try {
-      // บีบอัดรูปภาพสำหรับ mobile (ลดขนาดไฟล์เพื่อเพิ่มความเร็ว)
+      // ตรวจสอบและแปลง HEIF/HEIC เป็น JPEG (OpenAI ไม่รองรับ HEIF)
       let processedFile = imageFile;
-      if (imageFile.size > 2 * 1024 * 1024) { // ถ้าไฟล์ใหญ่กว่า 2MB ให้บีบอัด
+      const isHeif = imageFile.type === 'image/heic' || 
+                     imageFile.type === 'image/heif' ||
+                     /\.(heic|heif)$/i.test(imageFile.name);
+      
+      if (isHeif) {
         try {
-          processedFile = await this.compressImage(imageFile, 1920, 0.85);
+          processedFile = await this.convertHeifToJpeg(imageFile);
+          console.log(`🔄 แปลง HEIF/HEIC เป็น JPEG: ${imageFile.name} → ${processedFile.name}`);
+        } catch (convertError) {
+          console.error('❌ ไม่สามารถแปลง HEIF ได้:', convertError);
+          throw new Error('ไม่สามารถแปลงรูปภาพ HEIF/HEIC ได้ กรุณาใช้รูปภาพรูปแบบอื่น (JPEG, PNG, GIF, WebP)');
+        }
+      }
+      
+      // บีบอัดรูปภาพสำหรับ mobile (ลดขนาดไฟล์เพื่อเพิ่มความเร็ว)
+      if (processedFile.size > 2 * 1024 * 1024) { // ถ้าไฟล์ใหญ่กว่า 2MB ให้บีบอัด
+        try {
+          processedFile = await this.compressImage(processedFile, 1920, 0.85);
           console.log(`📦 บีบอัดรูปภาพ: ${(imageFile.size / 1024 / 1024).toFixed(2)}MB → ${(processedFile.size / 1024 / 1024).toFixed(2)}MB`);
         } catch (compressError) {
           console.warn('⚠️ ไม่สามารถบีบอัดรูปภาพได้ ใช้รูปเดิม:', compressError);
-          processedFile = imageFile;
+          // ไม่ throw error เพราะยังใช้รูปเดิมได้
         }
       }
       
@@ -283,15 +357,30 @@ class AIService {
     const MAX_RETRIES = 2; // retry สูงสุด 2 ครั้ง
     
     try {
-      // บีบอัดรูปภาพสำหรับ mobile (ลดขนาดไฟล์เพื่อเพิ่มความเร็ว)
+      // ตรวจสอบและแปลง HEIF/HEIC เป็น JPEG (OpenAI ไม่รองรับ HEIF)
       let processedFile = imageFile;
-      if (imageFile.size > 2 * 1024 * 1024) { // ถ้าไฟล์ใหญ่กว่า 2MB ให้บีบอัด
+      const isHeif = imageFile.type === 'image/heic' || 
+                     imageFile.type === 'image/heif' ||
+                     /\.(heic|heif)$/i.test(imageFile.name);
+      
+      if (isHeif) {
         try {
-          processedFile = await this.compressImage(imageFile, 1920, 0.85);
+          processedFile = await this.convertHeifToJpeg(imageFile);
+          console.log(`🔄 แปลง HEIF/HEIC เป็น JPEG: ${imageFile.name} → ${processedFile.name}`);
+        } catch (convertError) {
+          console.error('❌ ไม่สามารถแปลง HEIF ได้:', convertError);
+          throw new Error('ไม่สามารถแปลงรูปภาพ HEIF/HEIC ได้ กรุณาใช้รูปภาพรูปแบบอื่น (JPEG, PNG, GIF, WebP)');
+        }
+      }
+      
+      // บีบอัดรูปภาพสำหรับ mobile (ลดขนาดไฟล์เพื่อเพิ่มความเร็ว)
+      if (processedFile.size > 2 * 1024 * 1024) { // ถ้าไฟล์ใหญ่กว่า 2MB ให้บีบอัด
+        try {
+          processedFile = await this.compressImage(processedFile, 1920, 0.85);
           console.log(`📦 บีบอัดรูปภาพ: ${(imageFile.size / 1024 / 1024).toFixed(2)}MB → ${(processedFile.size / 1024 / 1024).toFixed(2)}MB`);
         } catch (compressError) {
           console.warn('⚠️ ไม่สามารถบีบอัดรูปภาพได้ ใช้รูปเดิม:', compressError);
-          processedFile = imageFile;
+          // ไม่ throw error เพราะยังใช้รูปเดิมได้
         }
       }
       

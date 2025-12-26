@@ -39,6 +39,15 @@ const DashboardPage: React.FC = () => {
         return;
       }
 
+      // ตรวจสอบรูปแบบไฟล์ที่รองรับ (HEIF/HEIC จะถูกแปลงอัตโนมัติ)
+      const supportedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 'image/heic', 'image/heif'];
+      const supportedExtensions = /\.(jpg|jpeg|png|gif|webp|heic|heif)$/i;
+      
+      if (!supportedTypes.includes(file.type.toLowerCase()) && !supportedExtensions.test(file.name)) {
+        alert('รูปแบบไฟล์ไม่รองรับ กรุณาใช้ JPEG, PNG, GIF, WebP หรือ HEIF/HEIC (จะถูกแปลงอัตโนมัติ)');
+        return;
+      }
+
       // ตรวจสอบขนาดไฟล์ (10MB)
       if (file.size > 10 * 1024 * 1024) {
         alert('ไฟล์มีขนาดใหญ่เกินไป (ขนาดสูงสุด 10MB)');
@@ -56,6 +65,15 @@ const DashboardPage: React.FC = () => {
       // ตรวจสอบประเภทไฟล์
       if (!file.type.startsWith('image/')) {
         alert('กรุณาเลือกไฟล์รูปภาพเท่านั้น');
+        return;
+      }
+
+      // ตรวจสอบรูปแบบไฟล์ที่รองรับ (HEIF/HEIC จะถูกแปลงอัตโนมัติ)
+      const supportedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 'image/heic', 'image/heif'];
+      const supportedExtensions = /\.(jpg|jpeg|png|gif|webp|heic|heif)$/i;
+      
+      if (!supportedTypes.includes(file.type.toLowerCase()) && !supportedExtensions.test(file.name)) {
+        alert('รูปแบบไฟล์ไม่รองรับ กรุณาใช้ JPEG, PNG, GIF, WebP หรือ HEIF/HEIC (จะถูกแปลงอัตโนมัติ)');
         return;
       }
 
