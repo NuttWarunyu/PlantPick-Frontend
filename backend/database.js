@@ -1,19 +1,67 @@
 const { Pool } = require('pg');
+const logger = require('./utils/logger');
 
 // Database connection
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+  // Connection pool settings
+  max: 20, // Maximum number of clients in the pool
+  idleTimeoutMillis: 30000, // Close idle clients after 30 seconds
+  connectionTimeoutMillis: 10000, // Return an error after 10 seconds if connection could not be established
 });
 
 // Test connection
-pool.on('connect', () => {
-  console.log('Connected to PostgreSQL database');
+pool.on('connect', (client) => {
+  logger.info('Connected to PostgreSQL database', {
+    totalCount: pool.totalCount,
+    idleCount: pool.idleCount,
+    waitingCount: pool.waitingCount
+  });
 });
 
-pool.on('error', (err) => {
-  console.error('Database connection error:', err);
+pool.on('error', async (err) => {
+  logger.error('Database connection error:', {
+    message: err.message,
+    code: err.code,
+    stack: err.stack
+  });
+
+  // Try to reconnect if connection is lost
+  if (err.code === 'ECONNREFUSED' || err.code === 'ETIMEDOUT') {
+    logger.warn('Attempting to reconnect to database...');
+    try {
+      await pool.connect();
+      logger.info('Database reconnected successfully');
+    } catch (reconnectError) {
+      logger.error('Failed to reconnect to database:', {
+        message: reconnectError.message,
+        code: reconnectError.code
+      });
+      // Don't exit - let the application handle it
+    }
+  }
 });
+
+// Test database connection on startup
+async function testConnection() {
+  try {
+    const result = await pool.query('SELECT NOW()');
+    logger.info('Database connection test successful', {
+      serverTime: result.rows[0].now
+    });
+    return true;
+  } catch (error) {
+    logger.error('Database connection test failed:', {
+      message: error.message,
+      code: error.code
+    });
+    return false;
+  }
+}
+
+// Initialize connection test
+testConnection();
 
 // Database queries
 const db = {

@@ -5,15 +5,34 @@ const morgan = require('morgan');
 const multer = require('multer');
 const csv = require('csv-parser');
 const { v4: uuidv4 } = require('uuid');
+const path = require('path');
+const fs = require('fs');
+require('dotenv').config();
+
+// Import utilities
+const logger = require('./utils/logger');
+const { errorHandler, notFoundHandler, asyncHandler } = require('./utils/errorHandler');
+const { validateEnv } = require('./utils/env');
+const { apiLimiter, aiLimiter, adminLimiter, scrapingLimiter } = require('./middleware/rateLimiter');
+
+// Import services
 const { db, pool } = require('./database');
 const aiService = require('./services/aiService');
 const adminAuth = require('./services/adminAuth');
 const { requireAdmin, optionalAdmin } = require('./middleware/adminAuth');
 const agentService = require('./services/agentService');
-require('dotenv').config();
+
+// Validate environment variables
+validateEnv();
 
 const app = express();
 const PORT = process.env.PORT || 3002;
+
+// Create logs directory if it doesn't exist
+const logsDir = path.join(__dirname, 'logs');
+if (!fs.existsSync(logsDir)) {
+  fs.mkdirSync(logsDir, { recursive: true });
+}
 
 // เพิ่ม server timeout สำหรับ long-running requests (120 วินาที)
 const server = require('http').createServer(app);
@@ -23,14 +42,46 @@ server.headersTimeout = 120000; // 120 วินาที
 
 // Middleware
 app.use(helmet());
-app.use(cors({
-  origin: true, // Allow all origins for now
-  credentials: true
+
+// CORS configuration - use specific origin instead of allowing all
+const corsOptions = {
+  origin: process.env.FRONTEND_URL || (process.env.NODE_ENV === 'production' ? false : true),
+  credentials: true,
+  optionsSuccessStatus: 200
+};
+
+// If FRONTEND_URL is not set in production, log warning
+if (!process.env.FRONTEND_URL && process.env.NODE_ENV === 'production') {
+  logger.warn('⚠️  FRONTEND_URL not set in production. CORS may not work correctly.');
+}
+
+app.use(cors(corsOptions));
+
+// Morgan logging - use logger instead of console
+morgan.token('custom', (req, res) => {
+  return JSON.stringify({
+    method: req.method,
+    url: req.url,
+    status: res.statusCode,
+    responseTime: res.responseTime
+  });
+});
+app.use(morgan('combined', {
+  stream: {
+    write: (message) => {
+      logger.info(message.trim());
+    }
+  }
 }));
-app.use(morgan('combined'));
 // เพิ่ม body size limit สำหรับรองรับ base64 image (50MB)
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+
+// Rate limiting - apply to all API routes
+app.use('/api/', apiLimiter);
+
+// Trust proxy (important for Railway/Vercel)
+app.set('trust proxy', 1);
 
 // เพิ่ม keep-alive headers สำหรับ long-running requests
 app.use((req, res, next) => {
@@ -52,9 +103,11 @@ const upload = multer({
 // Routes
 app.get('/api/health', (req, res) => {
   res.json({ 
+    success: true,
     status: 'OK', 
     message: 'Plant Price API is running',
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime()
   });
 });
 
@@ -3215,15 +3268,61 @@ async function initializeDatabase() {
   }
 }
 
+// Apply rate limiting to specific routes
+// AI endpoints - more restrictive
+app.use('/api/ai/', aiLimiter);
+app.use('/api/agents/', scrapingLimiter);
+app.use('/api/admin/', adminLimiter);
+
+// 404 handler - must be after all routes
+app.use(notFoundHandler);
+
+// Error handler - must be last
+app.use(errorHandler);
+
 // Start server
 server.listen(PORT, async () => {
-  console.log(`🌱 Plant Price API Server running on port ${PORT}`);
-  console.log(`📊 Health check: http://localhost:${PORT}/api/health`);
-  console.log(`🌿 Plants API: http://localhost:${PORT}/api/plants`);
-  console.log(`⏱️ Server timeout: ${server.timeout}ms (${server.timeout / 1000}s)`);
+  logger.info(`🌱 Plant Price API Server running on port ${PORT}`);
+  logger.info(`📊 Health check: http://localhost:${PORT}/api/health`);
+  logger.info(`🌿 Plants API: http://localhost:${PORT}/api/plants`);
+  logger.info(`⏱️ Server timeout: ${server.timeout}ms (${server.timeout / 1000}s)`);
+  logger.info(`🔒 Rate limiting enabled`);
+  logger.info(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
 
   // Initialize database tables
-  await initializeDatabase();
+  try {
+    await initializeDatabase();
+    logger.info('✅ Database initialized successfully');
+  } catch (error) {
+    logger.error('❌ Database initialization failed:', {
+      message: error.message,
+      stack: error.stack
+    });
+    // Don't exit - let the app continue, but log the error
+  }
+});
+
+// Graceful shutdown
+process.on('SIGTERM', async () => {
+  logger.info('SIGTERM signal received: closing HTTP server');
+  server.close(() => {
+    logger.info('HTTP server closed');
+    pool.end(() => {
+      logger.info('Database pool closed');
+      process.exit(0);
+    });
+  });
+});
+
+process.on('SIGINT', async () => {
+  logger.info('SIGINT signal received: closing HTTP server');
+  server.close(() => {
+    logger.info('HTTP server closed');
+    pool.end(() => {
+      logger.info('Database pool closed');
+      process.exit(0);
+    });
+  });
 });
 
 module.exports = app;
