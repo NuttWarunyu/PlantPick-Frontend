@@ -3256,6 +3256,53 @@ async function initializeDatabase() {
     }
     console.log('✅ ตาราง scraping_results พร้อมใช้งาน');
 
+    // 📱 LINE Bot Tables - สำหรับ LINE Bot features
+    // ตาราง projects - เก็บโปรเจคของผู้ใช้
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS projects (
+        id VARCHAR(255) PRIMARY KEY,
+        user_id VARCHAR(255) NOT NULL,
+        name VARCHAR(255) NOT NULL,
+        description TEXT,
+        budget DECIMAL(10,2),
+        status VARCHAR(50) DEFAULT 'active',
+        created_at TIMESTAMP DEFAULT NOW(),
+        updated_at TIMESTAMP DEFAULT NOW()
+      )
+    `);
+    await pool.query('CREATE INDEX IF NOT EXISTS idx_projects_user_id ON projects(user_id)');
+    await pool.query('CREATE INDEX IF NOT EXISTS idx_projects_status ON projects(status)');
+    console.log('✅ ตาราง projects พร้อมใช้งาน');
+
+    // ตาราง bill_projects - เชื่อมบิลกับโปรเจค
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS bill_projects (
+        bill_id VARCHAR(255) NOT NULL,
+        project_id VARCHAR(255) NOT NULL,
+        created_at TIMESTAMP DEFAULT NOW(),
+        PRIMARY KEY (bill_id, project_id),
+        FOREIGN KEY (bill_id) REFERENCES bills(id) ON DELETE CASCADE,
+        FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
+      )
+    `);
+    await pool.query('CREATE INDEX IF NOT EXISTS idx_bill_projects_bill_id ON bill_projects(bill_id)');
+    await pool.query('CREATE INDEX IF NOT EXISTS idx_bill_projects_project_id ON bill_projects(project_id)');
+    console.log('✅ ตาราง bill_projects พร้อมใช้งาน');
+
+    // ตาราง bill_users - เชื่อมบิลกับผู้ใช้ LINE
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS bill_users (
+        bill_id VARCHAR(255) NOT NULL,
+        user_id VARCHAR(255) NOT NULL,
+        created_at TIMESTAMP DEFAULT NOW(),
+        PRIMARY KEY (bill_id, user_id),
+        FOREIGN KEY (bill_id) REFERENCES bills(id) ON DELETE CASCADE
+      )
+    `);
+    await pool.query('CREATE INDEX IF NOT EXISTS idx_bill_users_bill_id ON bill_users(bill_id)');
+    await pool.query('CREATE INDEX IF NOT EXISTS idx_bill_users_user_id ON bill_users(user_id)');
+    console.log('✅ ตาราง bill_users พร้อมใช้งาน');
+
     // ตรวจสอบจำนวนข้อมูล
     const plantsCount = await pool.query('SELECT COUNT(*) FROM plants');
     const suppliersCount = await pool.query('SELECT COUNT(*) FROM suppliers');
@@ -3267,6 +3314,10 @@ async function initializeDatabase() {
     // ไม่ throw error เพราะอาจมีตารางอยู่แล้ว
   }
 }
+
+// LINE Bot routes (no rate limiting for webhook - LINE handles it)
+const lineRouter = require('./routes/line');
+app.use('/api/line', lineRouter);
 
 // Apply rate limiting to specific routes
 // AI endpoints - more restrictive
